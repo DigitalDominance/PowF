@@ -34,15 +34,19 @@ export function CreateJob() {
     }
 
     try {
+      const weeklyPayWei = formData.payType === 0 ? ethers.parseEther(formData.weeklyPay) : 0n;
+      const durationWeeks = BigInt(formData.durationWeeks || '0');
+      const totalPayWei = formData.payType === 1 ? ethers.parseEther(formData.totalPay) : 0n;
+
       const value = formData.payType === 0 
-        ? ethers.parseEther(formData.weeklyPay).mul(formData.durationWeeks)
-        : ethers.parseEther(formData.totalPay);
+        ? weeklyPayWei * durationWeeks
+        : totalPayWei;
 
       const tx = await contracts.jobFactory.createJob(
         formData.payType,
-        ethers.parseEther(formData.weeklyPay),
-        formData.durationWeeks,
-        ethers.parseEther(formData.totalPay),
+        weeklyPayWei,
+        durationWeeks,
+        totalPayWei,
         formData.title,
         formData.description,
         formData.numPositions,
