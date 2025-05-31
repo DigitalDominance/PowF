@@ -31,6 +31,10 @@ export function ConnectButton() {
     }
   };
 
+  const displayAddress = address 
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : 'Connect Wallet';
+
   return (
     <Button
       size="lg"
@@ -38,7 +42,7 @@ export function ConnectButton() {
       className="bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg hover:shadow-accent/40 transition-all duration-300 transform hover:scale-105 group"
     >
       <Wallet className="mr-2 h-5 w-5" />
-      {isConnected ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connect Wallet'}
+      {isConnected ? displayAddress : 'Connect Wallet'}
     </Button>
   );
 } 
