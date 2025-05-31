@@ -7,19 +7,19 @@ import { useToast } from "@/components/ui/use-toast";
 
 export function ConnectButton() {
   const { address, isConnected } = useAppKitAccount();
-  const { openConnectModal, disconnect } = useAppKit();
+  const appKit = useAppKit();
   const { toast } = useToast();
 
   const handleClick = async () => {
     try {
       if (isConnected) {
-        await disconnect();
+        await appKit.close();
         toast({
           title: "Disconnected",
           description: "Wallet disconnected successfully",
         });
       } else {
-        openConnectModal();
+        await appKit.open();
       }
     } catch (error) {
       console.error('Wallet connection error:', error);
