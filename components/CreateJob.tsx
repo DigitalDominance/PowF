@@ -57,7 +57,7 @@ export function CreateJob() {
         description: "Please wait for confirmation...",
       });
 
-      await tx.wait();
+      const receipt = await tx.wait();
       
       toast({
         title: "Success",
