@@ -57,7 +57,8 @@ export function CreateJob() {
         description: "Please wait for confirmation...",
       });
 
-      const receipt = await tx.wait();
+      // The transaction object itself is a Promise that resolves when mined
+      await tx;
       
       toast({
         title: "Success",
