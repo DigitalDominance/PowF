@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { ConnectWallet } from "./connect-wallet"
+import { ConnectButton } from "@/components/ConnectButton"
 import { ThemeSwitch } from "./theme-switch"
 
 const navItems = [
@@ -96,14 +96,14 @@ export function Header() {
               </Link>
             </motion.div>
           ))}
-          <ConnectWallet />
+          <ConnectButton />
           <ThemeSwitch />
         </nav>
         {/* Mobile Navigation Controls */}
         <div className="md:hidden flex items-center gap-1.5">
           {" "}
           {/* Reduced gap */}
-          <ConnectWallet buttonSize="sm" /> {/* Pass sm size for mobile */}
+          <ConnectButton />
           <ThemeSwitch size="sm" /> {/* Pass sm size for mobile */}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
