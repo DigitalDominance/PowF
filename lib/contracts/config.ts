@@ -19,4 +19,4 @@ export const CONTRACT_ABIS = {
   REPUTATION_SYSTEM: ReputationSystemABI,
   DISPUTE_DAO: DisputeDAOABI,
   ZK_RESUME: ZKResumeABI
-} as const;
+} as const; 

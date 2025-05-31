@@ -46,4 +46,4 @@ export interface DisputeDAOContract extends ethers.Contract {
 export interface ZKResumeContract extends ethers.Contract {
   submitProof: (proof: string, pubSignals: ethers.BigNumberish[]) => Promise<ethers.ContractTransaction>;
   proofs: (address: string) => Promise<string>;
-}
+} 

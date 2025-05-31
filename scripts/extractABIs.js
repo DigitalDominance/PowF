@@ -31,4 +31,4 @@ contracts.forEach(contractName => {
   );
   
   console.log(`Extracted ABI for ${contractName}`);
-});
+}); 
