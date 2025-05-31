@@ -1,13 +1,13 @@
 "use client"
 
-import { useAppKitAccount, useAppKitConnect } from '@reown/appkit/react';
+import { useAppKitAccount, useAppKit } from '@reown/appkit/react';
 import { Button } from "@/components/ui/button";
 import { Wallet } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 export function ConnectButton() {
   const { address, isConnected } = useAppKitAccount();
-  const { connect, disconnect } = useAppKitConnect();
+  const { openConnectModal, disconnect } = useAppKit();
   const { toast } = useToast();
 
   const handleClick = async () => {
@@ -19,7 +19,7 @@ export function ConnectButton() {
           description: "Wallet disconnected successfully",
         });
       } else {
-        await connect();
+        openConnectModal();
       }
     } catch (error) {
       console.error('Wallet connection error:', error);
