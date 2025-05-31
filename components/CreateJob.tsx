@@ -50,9 +50,7 @@ export function CreateJob() {
         formData.title,
         formData.description,
         formData.numPositions,
-        {
-          value: value
-        }
+        { value }
       );
 
       toast({
