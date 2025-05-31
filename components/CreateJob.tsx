@@ -49,8 +49,7 @@ export function CreateJob() {
         totalPayWei,
         formData.title,
         formData.description,
-        formData.numPositions,
-        { value }
+        formData.numPositions
       );
 
       toast({
