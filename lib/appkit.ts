@@ -1,8 +1,8 @@
-import { createAppKit } from '@reown/appkit/react';
+import { createAppKit, AppKitNetwork } from '@reown/appkit/react';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 
 // Kasplex Testnet configuration
-export const kaspaEVMTestnet = {
+const kaspaEVMTestnet: AppKitNetwork = {
   id: 167012,
   name: 'Kaspa EVM Testnet',
   network: 'kaspa',
@@ -18,6 +18,12 @@ export const kaspaEVMTestnet = {
     },
   },
   testnet: true,
+  contracts: {
+    multicall3: {
+      address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+      blockCreated: 1
+    }
+  }
 };
 
 // Project ID from Reown Cloud
@@ -28,7 +34,7 @@ if (!projectId) {
 }
 
 // Configure supported networks
-const networks = [kaspaEVMTestnet];
+const networks: readonly [AppKitNetwork, ...AppKitNetwork[]] = [kaspaEVMTestnet] as const;
 
 // Metadata configuration
 const metadata = {
