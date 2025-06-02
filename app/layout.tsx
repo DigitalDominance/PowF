@@ -1,8 +1,10 @@
-import type React from "react"
+"use client"
+
+import * as React from "react"
 import type { Metadata } from "next"
-import { Inter, Poppins } from "next/font/google" // Import Poppins
+import { Inter, Poppins } from "next/font/google"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/providers/theme-provider"
 import { Header } from "@/components/custom/header"
 import { Footer } from "@/components/custom/footer"
 import { Toaster } from "sonner"
@@ -31,14 +33,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
-    // Add poppins.variable to the html tag classes
     <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
       <body className={`font-sans antialiased min-h-screen flex flex-col bg-background`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange={true}
+        >
           <AnimatedBackground />
           <Header />
           <main className="flex-1 relative z-10">{children}</main>
