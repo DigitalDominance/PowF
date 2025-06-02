@@ -1,7 +1,4 @@
-"use client"
-
 import * as React from "react"
-import type { Metadata } from "next"
 import { Inter, Poppins } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/providers/theme-provider"
@@ -18,18 +15,6 @@ const poppins = Poppins({
   weight: ["300", "400", "500", "600", "700", "800", "900"], // Include desired weights
   display: "swap",
 })
-
-export const metadata: Metadata = {
-  title: "Proof Of Works - On-Chain Hiring & Payroll",
-  description: "Transparent, trustless, and accountable hiring on Kaspa's EVM layer.",
-  icons: {
-    icon: [
-      { url: "/favicon-light.png", media: "(prefers-color-scheme: light)" },
-      { url: "/favicon-dark.png", media: "(prefers-color-scheme: dark)" },
-    ],
-  },
-    generator: 'v0.dev'
-}
 
 export default function RootLayout({
   children,
