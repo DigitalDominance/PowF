@@ -7,7 +7,10 @@ import { createAppKit } from "@reown/appkit/react";
 import { EthersAdapter } from "@reown/appkit-adapter-ethers";
 import { defineChain } from "@reown/appkit/networks";
 
-// 1) Custom Kaspa EVM Testnet chain definition
+// 1) Import AppKitNetwork for explicit typing
+import type { AppKitNetwork } from "@reown/appkit/types";
+
+// 2) Define Kaspa EVM Testnet as an AppKitNetwork via defineChain
 const kaspaEVMTestnet = defineChain({
   id: 167012,
   caipNetworkId: "eip155:167012",
@@ -34,28 +37,33 @@ const kaspaEVMTestnet = defineChain({
   }
 });
 
-// 2) AppKitProvider component
+// 3) Explicitly type networks as a non‐empty tuple:
+const networks: [AppKitNetwork, ...AppKitNetwork[]] = [kaspaEVMTestnet];
+
 export function AppKitProvider({ children }: { children: React.ReactNode }) {
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
   if (!projectId) {
     throw new Error("NEXT_PUBLIC_PROJECT_ID environment variable is not set");
   }
 
-  const networks = [kaspaEVMTestnet];
+  // 4) Optional metadata for your DApp
   const metadata = {
-    name: "Proof of Works",
+    name:        "Proof of Works",
     description: "Proof of Works – Decentralized Freelance Platform on Kaspa EVM",
-    url: "https://proofofworks.com",
-    icons: ["https://proofofworks.com/logo.png"]
+    url:         "https://proofofworks.com",
+    icons:       ["https://proofofworks.com/logo.png"]
   };
 
+  // 5) Initialize AppKit on mount (client side)
   useEffect(() => {
     createAppKit({
-      adapters: [new EthersAdapter()],
-      networks,
+      adapters:  [new EthersAdapter()],   // no constructor args
+      networks,                           // now satisfies [AppKitNetwork, ...]
       projectId,
       metadata,
-      features: { analytics: true }
+      features: {
+        analytics: true
+      }
     });
   }, [projectId]);
 
