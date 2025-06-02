@@ -2,12 +2,12 @@
 
 import { createAppKit } from "@reown/appkit/react";
 import { EthersAdapter } from "@reown/appkit-adapter-ethers";
-// IMPORT defineChain from AppKit’s own networks module:
 import { defineChain } from "@reown/appkit/networks";
 
+// Kaspa EVM Testnet configuration
 const kaspaEVMTestnet = defineChain({
   id: 167012,
-  caipNetworkId: "eip155:167012",      // CAIP-2 compliant identifier
+  caipNetworkId: "eip155:167012",
   chainNamespace: "eip155",
   name: "Kaspa EVM Testnet",
   network: "kaspa",
@@ -37,7 +37,7 @@ if (!projectId) {
   throw new Error("NEXT_PUBLIC_PROJECT_ID environment variable is not set");
 }
 
-// Configure supported networks as an AppKitNetwork array
+// Configure supported networks
 const networks = [kaspaEVMTestnet];
 
 const metadata = {
@@ -50,7 +50,7 @@ const metadata = {
 export const initAppKit = () => {
   try {
     createAppKit({
-      adapters: [new EthersAdapter({ projectId, networks })],
+      adapters: [new EthersAdapter()],
       networks,
       metadata,
       projectId,
