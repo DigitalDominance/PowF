@@ -1,8 +1,9 @@
-import { createAppKit, AppKitNetwork } from '@reown/appkit/react';
+import { createAppKit } from '@reown/appkit/react';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
+import { defineChain } from 'viem';
 
 // Kasplex Testnet configuration
-const kaspaEVMTestnet: AppKitNetwork = {
+const kaspaEVMTestnet = defineChain({
   id: 167012,
   name: 'Kaspa EVM Testnet',
   network: 'kaspa',
@@ -24,7 +25,7 @@ const kaspaEVMTestnet: AppKitNetwork = {
       blockCreated: 1
     }
   }
-};
+});
 
 // Project ID from Reown Cloud
 const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
@@ -34,7 +35,7 @@ if (!projectId) {
 }
 
 // Configure supported networks
-const networks: readonly [AppKitNetwork, ...AppKitNetwork[]] = [kaspaEVMTestnet] as const;
+const networks = [kaspaEVMTestnet] as const;
 
 // Metadata configuration
 const metadata = {
