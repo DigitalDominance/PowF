@@ -1,10 +1,13 @@
-// lib/appkit.ts
+// lib/appkit.tsx
 
+"use client";
+
+import React, { useEffect } from "react";
 import { createAppKit } from "@reown/appkit/react";
 import { EthersAdapter } from "@reown/appkit-adapter-ethers";
 import { defineChain } from "@reown/appkit/networks";
 
-// Kaspa EVM Testnet configuration
+// 1. Custom Kaspa EVM Testnet definition as AppKitNetwork
 const kaspaEVMTestnet = defineChain({
   id: 167012,
   caipNetworkId: "eip155:167012",
@@ -14,52 +17,54 @@ const kaspaEVMTestnet = defineChain({
   nativeCurrency: { name: "Kaspa", symbol: "KAS", decimals: 18 },
   rpcUrls: {
     default: { http: ["https://rpc.kasplextest.xyz:167012"] },
-    public: { http: ["https://rpc.kasplextest.xyz:167012"] },
+    public:  { http: ["https://rpc.kasplextest.xyz:167012"] }
   },
   blockExplorers: {
     default: {
       name: "Kaspa Explorer",
-      url: "https://frontend.kasplextest.xyz",
-    },
+      url: "https://frontend.kasplextest.xyz"
+    }
   },
   testnet: true,
   contracts: {
     multicall3: {
       address: "0xcA11bde05977b3631167028862bE2a173976CA11",
-      blockCreated: 1,
-    },
-  },
+      blockCreated: 1
+    }
+  }
 });
 
-// Project ID from Reown Cloud
-const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
-if (!projectId) {
-  throw new Error("NEXT_PUBLIC_PROJECT_ID environment variable is not set");
-}
+/**
+ * 2. AppKitProvider for Next.js Client Components
+ *    - Calls createAppKit() once on mount.
+ *    - Includes EthersAdapter, custom network, and metadata.
+ */
+export function AppKitProvider({ children }: { children: React.ReactNode }) {
+  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
+  if (!projectId) {
+    throw new Error("NEXT_PUBLIC_PROJECT_ID environment variable is not set");
+  }
 
-// Configure supported networks
-const networks = [kaspaEVMTestnet];
+  const networks = [kaspaEVMTestnet];
 
-const metadata = {
-  name: "Proof of Works",
-  description: "Proof of Works – Decentralized Freelance Platform on Kaspa EVM",
-  url: "https://proofofworks.com",
-  icons: ["https://proofofworks.com/logo.png"],
-};
+  const metadata = {
+    name:        "Proof of Works",
+    description: "Proof of Works – Decentralized Freelance Platform on Kaspa EVM",
+    url:         "https://proofofworks.com",
+    icons:       ["https://proofofworks.com/logo.png"]
+  };
 
-export const initAppKit = () => {
-  try {
+  useEffect(() => {
     createAppKit({
       adapters: [new EthersAdapter()],
       networks,
-      metadata,
       projectId,
+      metadata,
       features: {
-        analytics: true,
-      },
+        analytics: true
+      }
     });
-  } catch (error) {
-    console.error("Failed to initialize AppKit:", error);
-    throw error;
-  }
-};
+  }, [projectId]);
+
+  return <>{children}</>;
+}
