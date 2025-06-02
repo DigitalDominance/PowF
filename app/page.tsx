@@ -1,9 +1,9 @@
-"use client"
-import { Button } from "@/components/ui/button"
-import type React from "react"
-import { useEffect } from 'react';
-import { ConnectButton } from '@/components/ConnectButton';
-import { initAppKit } from '@/lib/appkit';
+"use client";
+
+import { Button } from "@/components/ui/button";
+import type React from "react";
+import { useEffect } from "react";
+import { ConnectButton } from "@/components/ConnectButton";
 
 import {
   ArrowRight,
@@ -23,17 +23,17 @@ import {
   Share2,
   LinkIcon,
   Cpu,
-} from "lucide-react"
-import Link from "next/link"
-import { motion, type Variants } from "framer-motion"
-import { InteractiveCard } from "@/components/custom/interactive-card"
-import { ChangeNowWidget } from "@/components/custom/change-now-widget"
-import { Balancer } from "react-wrap-balancer"
+} from "lucide-react";
+import Link from "next/link";
+import { motion, type Variants } from "framer-motion";
+import { InteractiveCard } from "@/components/custom/interactive-card";
+import { ChangeNowWidget } from "@/components/custom/change-now-widget";
+import { Balancer } from "react-wrap-balancer";
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { delay, duration, ease: "easeOut" } },
-})
+});
 
 const staggerContainer = (staggerChildren = 0.1, delayChildren = 0) => ({
   hidden: {},
@@ -43,7 +43,7 @@ const staggerContainer = (staggerChildren = 0.1, delayChildren = 0) => ({
       delayChildren,
     },
   },
-})
+});
 
 const SectionWrapper = ({
   children,
@@ -51,22 +51,18 @@ const SectionWrapper = ({
   id,
   padding = "py-16 md:py-20 lg:py-24",
 }: {
-  children: React.ReactNode
-  className?: string
-  id?: string
-  padding?: string
+  children: React.ReactNode;
+  className?: string;
+  id?: string;
+  padding?: string;
 }) => (
   <section id={id} className={`w-full relative ${padding} ${className}`}>
     <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-background/3 dark:via-black/5 to-transparent opacity-20" />
     <div className="container px-4 md:px-6 relative z-10">{children}</div>
   </section>
-)
+);
 
 export default function Home() {
-  useEffect(() => {
-    initAppKit();
-  }, []);
-
   const coreValues = [
     {
       icon: <Layers className="h-8 w-8 text-accent" />,
@@ -86,7 +82,7 @@ export default function Home() {
       description:
         "Each work week and dispute resolution is permanently recorded, building robust and reliable reputation scores for all parties.",
     },
-  ]
+  ];
 
   const stakeholders = [
     {
@@ -126,7 +122,7 @@ export default function Home() {
       cta: "Learn About Governance",
       href: "/dao",
     },
-  ]
+  ];
 
   const smartContractFeatures = [
     {
@@ -160,7 +156,7 @@ export default function Home() {
       name: "ZK-Resume Module",
       description: "Lets workers prove work history privately using zero-knowledge proofs.",
     },
-  ]
+  ];
 
   const securityPoints = [
     {
@@ -183,7 +179,7 @@ export default function Home() {
       text: "Disputes handled by a staked juror group.",
       icon: <Scale className="h-5 w-5 text-accent mr-3 mt-1 shrink-0" />,
     },
-  ]
+  ];
 
   const headingLetterVariants: Variants = {
     hidden: { opacity: 0, y: 50 },
@@ -196,7 +192,7 @@ export default function Home() {
         ease: "easeOut",
       },
     }),
-  }
+  };
 
   return (
     <div className="flex flex-col items-center">
@@ -266,16 +262,14 @@ export default function Home() {
         </div>
       </motion.section>
 
-      {/* Rest of your sections remain unchanged */}
+      {/* Core Values */}
       <SectionWrapper id="core-values" className="bg-background/50 dark:bg-black/5">
         <div className="container px-4 md:px-6 relative z-10">
           <h2 className="text-4xl font-bold mb-8 text-center">Core Values</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {coreValues.map((value, index) => (
               <div key={index} className="text-center">
-                <div className="flex justify-center mb-4">
-                  {value.icon}
-                </div>
+                <div className="flex justify-center mb-4">{value.icon}</div>
                 <h3 className="text-2xl font-semibold mb-2">{value.title}</h3>
                 <p className="text-muted-foreground">{value.description}</p>
               </div>
@@ -284,15 +278,14 @@ export default function Home() {
         </div>
       </SectionWrapper>
 
+      {/* Stakeholders */}
       <SectionWrapper id="stakeholders" className="bg-background/50 dark:bg-black/5">
         <div className="container px-4 md:px-6 relative z-10">
           <h2 className="text-4xl font-bold mb-8 text-center">Stakeholders</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {stakeholders.map((stakeholder, index) => (
               <div key={index} className="text-center">
-                <div className="flex justify-center mb-4">
-                  {stakeholder.icon}
-                </div>
+                <div className="flex justify-center mb-4">{stakeholder.icon}</div>
                 <h3 className="text-2xl font-semibold mb-2">{stakeholder.title}</h3>
                 <p className="text-muted-foreground">{stakeholder.description}</p>
                 <ul className="list-disc list-inside mt-2">
@@ -307,9 +300,7 @@ export default function Home() {
                     variant="outline"
                     className="shadow-lg hover:shadow-md transition-all duration-300 transform hover:scale-105 group border-accent/50 hover:bg-accent/10 hover:text-accent"
                   >
-                    <Link href={stakeholder.href}>
-                      {stakeholder.cta}
-                    </Link>
+                    <Link href={stakeholder.href}>{stakeholder.cta}</Link>
                   </Button>
                 </div>
               </div>
@@ -318,15 +309,14 @@ export default function Home() {
         </div>
       </SectionWrapper>
 
+      {/* Smart Contract Features */}
       <SectionWrapper id="smart-contract-features" className="bg-background/50 dark:bg-black/5">
         <div className="container px-4 md:px-6 relative z-10">
           <h2 className="text-4xl font-bold mb-8 text-center">Smart Contract Features</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {smartContractFeatures.map((feature, index) => (
               <div key={index} className="text-center">
-                <div className="flex justify-center mb-4">
-                  {feature.icon}
-                </div>
+                <div className="flex justify-center mb-4">{feature.icon}</div>
                 <h3 className="text-2xl font-semibold mb-2">{feature.name}</h3>
                 <p className="text-muted-foreground">{feature.description}</p>
               </div>
@@ -335,15 +325,14 @@ export default function Home() {
         </div>
       </SectionWrapper>
 
+      {/* Security Points */}
       <SectionWrapper id="security-points" className="bg-background/50 dark:bg-black/5">
         <div className="container px-4 md:px-6 relative z-10">
           <h2 className="text-4xl font-bold mb-8 text-center">Security Points</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {securityPoints.map((point, index) => (
               <div key={index} className="text-center">
-                <div className="flex justify-center mb-4">
-                  {point.icon}
-                </div>
+                <div className="flex justify-center mb-4">{point.icon}</div>
                 <h3 className="text-2xl font-semibold mb-2">{point.lead}</h3>
                 <p className="text-muted-foreground">{point.text}</p>
               </div>
@@ -352,5 +341,5 @@ export default function Home() {
         </div>
       </SectionWrapper>
     </div>
-  )
+  );
 }
