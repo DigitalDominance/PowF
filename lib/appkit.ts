@@ -35,7 +35,7 @@ if (!projectId) {
 }
 
 // Configure supported networks
-const networks = [kaspaEVMTestnet] as const;
+const networks = [kaspaEVMTestnet];
 
 // Metadata configuration
 const metadata = {
