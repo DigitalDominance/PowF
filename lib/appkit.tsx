@@ -7,9 +7,7 @@ import { createAppKit } from "@reown/appkit/react";
 import { EthersAdapter } from "@reown/appkit-adapter-ethers";
 import { defineChain } from "@reown/appkit/networks";
 
-/**
- * 1) Define Kaspa EVM Testnet as an AppKitNetwork
- */
+// 1) Custom Kaspa EVM Testnet chain definition
 const kaspaEVMTestnet = defineChain({
   id: 167012,
   caipNetworkId: "eip155:167012",
@@ -35,12 +33,8 @@ const kaspaEVMTestnet = defineChain({
     }
   }
 });
- 
-/**
- * 2) AppKitProvider component: initializes AppKit on mount.
- *    - Must be called before any useAppKit/useAppKitAccount hooks.
- *    - Uses EthersAdapter (no constructor args).
- */
+
+// 2) AppKitProvider component
 export function AppKitProvider({ children }: { children: React.ReactNode }) {
   const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
   if (!projectId) {
@@ -61,9 +55,7 @@ export function AppKitProvider({ children }: { children: React.ReactNode }) {
       networks,
       projectId,
       metadata,
-      features: {
-        analytics: true
-      }
+      features: { analytics: true }
     });
   }, [projectId]);
 
