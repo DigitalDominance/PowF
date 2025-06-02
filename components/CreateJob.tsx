@@ -34,9 +34,9 @@ export function CreateJob() {
     }
 
     try {
-      const weeklyPayWei = formData.payType === 0 ? ethers.parseEther(formData.weeklyPay) : 0n;
+      const weeklyPayWei = formData.payType === 0 ? ethers.parseEther(formData.weeklyPay) : BigInt(0);
       const durationWeeks = BigInt(formData.durationWeeks || '0');
-      const totalPayWei = formData.payType === 1 ? ethers.parseEther(formData.totalPay) : 0n;
+      const totalPayWei = formData.payType === 1 ? ethers.parseEther(formData.totalPay) : BigInt(0);
 
       const value = formData.payType === 0 
         ? weeklyPayWei * durationWeeks
