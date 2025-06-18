@@ -376,7 +376,7 @@ export default function DisputesPage() {
         <div className="container px-4 md:px-6 relative z-10">
           <motion.h1
             variants={fadeIn(0.1)}
-            className="font-varien text-[4rem] font-bold tracking-wider sm:text-[3rem] md:text-[3rem] lg:text-[5rem] text-foreground mb-6"
+            className="font-varien text-[3rem] font-bold tracking-wider sm:text-[2rem] md:text-[2rem] lg:text-[4rem] text-foreground mb-6"
           >
             Dispute <span className="text-accent">Resolution</span>
           </motion.h1>
