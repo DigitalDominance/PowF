@@ -340,7 +340,7 @@ export default function PostJobPage() {
                 <div className="container px-4 md:px-6 relative z-10">
                   <motion.h1
                     variants={fadeIn(0.1)}
-                    className="font-varien text-[6rem] font-bold tracking-wider sm:text-[5rem] md:text-[6rem] lg:text-[7rem] text-foreground mb-6"
+                    className="font-varien text-[5rem] font-bold tracking-wider sm:text-[4rem] md:text-[4rem] lg:text-[6rem] text-foreground mb-6"
                   >
                     Post a <span className="text-accent">Job</span>
                   </motion.h1>
