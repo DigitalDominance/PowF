@@ -205,11 +205,11 @@ export default function LandingPage() {
           <div className="flex flex-col items-center w-full">
             <motion.h1
               // Apply new font "Poppins" and existing reduced size.
-              className="font-varien text-5xl font-normal tracking-wider-xl sm:text-6xl md:text-7xl lg:text-8xl !leading-tight text-accent mb-4 md:mb-6 break-words hyphens-none"
+              className="font-varien text-5xl font-normal tracking-wider-xl sm:text-6xl md:text-7xl lg:text-8xl !leading-tight text-accent mb-4 md:mb-6 whitespace-normal break-normal hyphens-none"
               initial="hidden"
               animate="visible"
               aria-label="Proof Of Works"
-              style={{ wordBreak: "keep-all", overflowWrap: "break-word" }}
+              style={{ wordBreak: "normal", overflowWrap: "normal" }}
             >
               {"Proof Of Works".split("").map((char, index) => (
                 <motion.span
@@ -418,9 +418,9 @@ export default function LandingPage() {
           <h2 className="font-varien text-3xl font-normal tracking-wider-xl sm:text-4xl md:text-5xl text-foreground mb-14 md:mb-16">
             Why <span className="text-accent">Proof Of Works</span> Matters
           </h2>
-          <div className="max-w-3xl mx-auto grid md:grid-cols-2 gap-8 text-left mb-10">
+          <div className="max-w-3xl mx-auto grid md:grid-cols-2 gap-8 text-center mb-10">
             <div>
-              <h3 className="font-varien text-xl font-normal tracking-wider text-foreground mb-2 flex items-center">
+              <h3 className="font-varien text-xl font-normal tracking-wider text-foreground mb-2 flex items-center justify-center">
                 <Users className="h-6 w-6 text-accent mr-2" />
                 For Employers:
               </h3>
@@ -432,7 +432,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div>
-              <h3 className="font-varien text-xl font-normal tracking-wider text-foreground mb-2 flex items-center">
+              <h3 className="font-varien text-xl font-normal tracking-wider text-foreground mb-2 flex items-center justify-center">
                 <Briefcase className="h-6 w-6 text-accent mr-2" />
                 For Workers:
               </h3>
