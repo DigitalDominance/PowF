@@ -477,7 +477,7 @@ export default function JobsPage() {
     fetchApplications();
   }, [contracts?.jobFactory, provider, address]);  
 
-  return (
+    return (
     <div className="flex flex-col items-center">
       {/* Hero Section */}
       <motion.section
@@ -495,7 +495,7 @@ export default function JobsPage() {
           </motion.h1>
           <motion.p
             variants={fadeIn(0.2)}
-            className="mt-4 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
+            className="mt-8 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
           >
             <Balancer>
               Browse opportunities, apply for jobs, and get paid automatically through smart contracts. Build your
@@ -504,7 +504,7 @@ export default function JobsPage() {
           </motion.p>
         </div>
       </motion.section>
-
+      
       {/* Main Content */}
       <SectionWrapper id="jobs" padding="py-8 md:py-12">
         <Tabs defaultValue="browse" className="w-full">
