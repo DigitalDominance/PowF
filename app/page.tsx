@@ -204,7 +204,7 @@ export default function LandingPage() {
           <div className="flex flex-col items-center w-full">
             <motion.h1
               // Apply new font "Poppins" and existing reduced size.
-              className="font-varien text-5xl font-normal tracking-wider-xl sm:text-6xl md:text-7xl lg:text-8xl !leading-tight text-accent mb-4 md:mb-6 whitespace-normal break-normal hyphens-none"
+              className="font-varien text-6xl font-normal tracking-wider-xl sm:text-6xl md:text-7xl lg:text-8xl !leading-tight text-accent mb-4 md:mb-6 whitespace-normal break-normal hyphens-none"
               initial="hidden"
               animate="visible"
               aria-label="Proof Of Works"
