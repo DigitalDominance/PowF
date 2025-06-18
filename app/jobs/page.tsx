@@ -489,7 +489,7 @@ export default function JobsPage() {
         <div className="container px-4 md:px-6 relative z-10">
           <motion.h1
             variants={fadeIn(0.1)}
-            className="font-varien text-4xl font-bold sm:text-5xl md:text-6xl text-foreground mb-12 tracking-wider"
+            className="font-varien text-4xl font-bold sm:text-5xl md:text-6xl text-foreground mb-15 tracking-wider"
           >
             Find <span className="text-accent">On-Chain</span> Work
           </motion.h1>
