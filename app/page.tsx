@@ -103,7 +103,6 @@ export default function LandingPage() {
         "Browse listings and apply for on-chain jobs.",
         "Earn KAS payouts automatically, no manual invoicing.",
         "Accumulate a portable, verifiable reputation score.",
-        "Optionally mint privacy-preserving ZK-Resume NFTs.",
       ],
       cta: "Find Work",
       href: "/jobs",
@@ -209,20 +208,9 @@ export default function LandingPage() {
               initial="hidden"
               animate="visible"
               aria-label="Proof Of Works"
-              style={{ wordBreak: "normal", overflowWrap: "normal" }}
             >
-              {"Proof Of Works".split("").map((char, index) => (
-                <motion.span
-                  key={`${char}-${index}`}
-                  custom={index}
-                  variants={headingLetterVariants}
-                  style={{ display: "inline-block", whiteSpace: "pre" }}
-                >
-                  {char}
-                </motion.span>
-              ))}
+              Proof Of Works
             </motion.h1>
-
             {/* Animated Logo - Manually Centered with Left Offset */}
             <motion.div
               variants={fadeIn(0.8 + "Proof Of Works".length * 0.05)}
