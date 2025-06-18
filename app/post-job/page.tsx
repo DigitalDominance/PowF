@@ -346,7 +346,7 @@ export default function PostJobPage() {
                   </motion.h1>
                   <motion.p
                     variants={fadeIn(0.2)}
-                    className="mt-20 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
+                    className="mt-10 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
                   >
                     <Balancer>
                       Hire top talent with guaranteed payments and transparent terms. All job contracts are secured
