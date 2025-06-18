@@ -327,44 +327,43 @@ export default function PostJobPage() {
     
         loadJobDetails();
     }, [employerJobs]);    
-
-    return (
-        <div className="flex flex-col items-center">
-            {/* Hero Section */}
-            <motion.section
+    
+        return (
+            <div className="flex flex-col items-center">
+              {/* Hero Section */}
+              <motion.section
                 className="w-full min-h-[60vh] flex flex-col justify-center items-center text-center relative overflow-hidden py-16"
                 initial="hidden"
                 animate="visible"
                 variants={staggerContainer(0.1, 0.1)}
-            >
+              >
                 <div className="container px-4 md:px-6 relative z-10">
-                    <motion.h1
-                        variants={fadeIn(0.1)}
-                        className="font-varien text-4xl font-bold tracking-wider sm:text-5xl md:text-6xl text-foreground mb-6"
-                    >
-                        Post a <span className="text-accent">Job</span>
-                    </motion.h1>
-                    <motion.p
-                        variants={fadeIn(0.2)}
-                        className="mt-4 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
-                    >
-                        <Balancer>
-                            Hire top talent with guaranteed payments and transparent terms. All job contracts are secured on-chain for
-                            maximum trust and accountability.
-                        </Balancer>
-                    </motion.p>
+                  <motion.h1
+                    variants={fadeIn(0.1)}
+                    className="font-varien text-4xl font-bold tracking-wider sm:text-5xl md:text-6xl text-foreground mb-6"
+                  >
+                    Post a <span className="text-accent">Job</span>
+                  </motion.h1>
+                  <motion.p
+                    variants={fadeIn(0.2)}
+                    className="mt-16 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
+                  >
+                    <Balancer>
+                      Hire top talent with guaranteed payments and transparent terms. All job contracts are secured
+                      on-chain for maximum trust and accountability.
+                    </Balancer>
+                  </motion.p>
                 </div>
-            </motion.section>
+              </motion.section>
 
-            {/* How It Works Section */}
-            <SectionWrapper id="how-it-works" padding="py-12 md:py-16">
+              <SectionWrapper id="how-it-works" padding="pt-4 md:pt-6 pb-12 md:pb-16">
                 <motion.div variants={fadeIn()} className="text-center mb-12">
-                    <h2 className="font-varien text-3xl font-bold tracking-tighter sm:text-4xl text-foreground">
-                        How <span className="text-accent">It Works</span>
-                    </h2>
-                    <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-                        <Balancer>Simple steps to post your job and start hiring with blockchain-powered security.</Balancer>
-                    </p>
+                  <h2 className="font-varien text-3xl font-bold tracking-tighter sm:text-4xl text-foreground">
+                    How <span className="text-accent">It Works</span>
+                  </h2>
+                  <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
+                    <Balancer>Simple steps to post your job and start hiring with blockchain-powered security.</Balancer>
+                  </p>
                 </motion.div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {instructionSteps.map((step, index) => (
