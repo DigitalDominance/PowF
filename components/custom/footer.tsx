@@ -105,7 +105,7 @@ export function Footer() {
             </p>
             {/* Powered by Kaspa */}
             <Image
-              src="/LND-CLEAR.PNG"
+              src="/LND-CLEAR.png"
               alt="Powered by Kaspa"
               width={949}
               height={331}
