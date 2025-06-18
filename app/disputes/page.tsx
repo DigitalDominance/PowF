@@ -382,7 +382,7 @@ export default function DisputesPage() {
           </motion.h1>
           <motion.p
             variants={fadeIn(0.2)}
-            className="mt-4 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
+            className="mt-20 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
           >
             <Balancer>
               Fair and transparent conflict resolution through our decentralized DisputeDAO. Our pre-selected jurors
