@@ -29,8 +29,8 @@ export const metadata: Metadata = {
   description: "Transparent, trustless, and accountable hiring on Kaspa's EVM layer.",
   icons: {
     icon: [
-      { url: "/favicon-light.ico", media: "(prefers-color-scheme: light)" },
-      { url: "/favicon-dark.ico", media: "(prefers-color-scheme: dark)" },
+      { url: "/favicon.ico", media: "(prefers-color-scheme: light)" },
+      { url: "/favicon.ico", media: "(prefers-color-scheme: dark)" },
     ],
   },
     generator: 'v0.dev'
