@@ -107,8 +107,8 @@ export function Footer() {
             <Image
               src="/LND-CLEAR.png"
               alt="Powered by Kaspa"
-              width={475}
-              height={166}
+              width={300}
+              height={100}
               className="mx-auto mt-4 object-contain"
             />
           </div>
