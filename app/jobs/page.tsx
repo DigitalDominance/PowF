@@ -506,7 +506,7 @@ export default function JobsPage() {
       </motion.section>
       
       {/* Main Content – moved up by reducing top padding */}
-      <SectionWrapper id="jobs" padding="pt-8 md:pt-10 pb-12 md:pb-12">
+      <SectionWrapper id="jobs" padding="pt-0 md:pt-2 pb-12 md:pb-12">
         <Tabs defaultValue="browse" className="w-full">
           <TabsList className="font-varien grid grid-cols-3 mb-8">
             <TabsTrigger value="browse" className="text-sm sm:text-base">
