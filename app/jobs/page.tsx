@@ -495,7 +495,7 @@ export default function JobsPage() {
           </motion.h1>
           <motion.p
             variants={fadeIn(0.2)}
-            className="mt-12 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
+            className="mt-20 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
           >
             <Balancer>
               Browse opportunities, apply for jobs, and get paid automatically through smart contracts. Build your
