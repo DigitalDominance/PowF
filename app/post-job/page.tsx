@@ -332,7 +332,7 @@ export default function PostJobPage() {
             <div className="flex flex-col items-center">
               {/* Hero Section */}
               <motion.section
-                className="w-full min-h-[60vh] flex flex-col justify-center items-center text-center relative overflow-hidden py-10"
+                className="w-full min-h-[40vh] flex flex-col justify-center items-center text-center relative overflow-hidden py-10"
                 initial="hidden"
                 animate="visible"
                 variants={staggerContainer(0.1, 0.1)}
