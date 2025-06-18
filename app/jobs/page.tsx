@@ -85,34 +85,34 @@ const SectionWrapper = ({
 )
 
 // Placeholder data for my jobs
-const myJobs = [
-  {
-    id: 101,
-    title: "Backend Developer for NFT Marketplace",
-    employer: "NFT World",
-    employerRating: 4.6,
-    payType: "WEEKLY",
-    weeklyPay: "3.2",
-    durationWeeks: 10,
-    totalPay: "32",
-    startDate: "2024-01-05",
-    nextPayoutDate: "2024-01-26",
-    payoutsMade: 3,
-    status: "active",
-    progress: 30,
-  },
-  {
-    id: 102,
-    title: "Documentation for Smart Contract SDK",
-    employer: "DevDAO",
-    employerRating: 4.9,
-    payType: "ONE_OFF",
-    totalPay: "8",
-    startDate: "2024-01-15",
-    status: "active",
-    progress: 75,
-  },
-]
+// const myJobs = [
+//   {
+//     id: 101,
+//     title: "Backend Developer for NFT Marketplace",
+//     employer: "NFT World",
+//     employerRating: 4.6,
+//     payType: "WEEKLY",
+//     weeklyPay: "3.2",
+//     durationWeeks: 10,
+//     totalPay: "32",
+//     startDate: "2024-01-05",
+//     nextPayoutDate: "2024-01-26",
+//     payoutsMade: 3,
+//     status: "active",
+//     progress: 30,
+//   },
+//   {
+//     id: 102,
+//     title: "Documentation for Smart Contract SDK",
+//     employer: "DevDAO",
+//     employerRating: 4.9,
+//     payType: "ONE_OFF",
+//     totalPay: "8",
+//     startDate: "2024-01-15",
+//     status: "active",
+//     progress: 75,
+//   },
+// ]
 
 // Placeholder data for applications
 // const myApplications = [
@@ -161,43 +161,44 @@ const myJobs = [
 // ]
 
 export default function JobsPage() {
-  const { contracts, provider, role, address } = useUserContext();
-  const [allJobs, setAllJobs] = useState<any[]>([]);
+  const { contracts, provider, role, address, allJobs, jobAddresses } = useUserContext();
+  // const [allJobs, setAllJobs] = useState<any[]>([]);
+  const [myJobs, setMyJobs] = useState<any[]>([]);
 
-  const fetchTags = async (jobContract: ethers.Contract) => {
-    try {
-        const tags = [];
-        let index = 0;
+  // const fetchTags = async (jobContract: ethers.Contract) => {
+  //   try {
+  //       const tags = [];
+  //       let index = 0;
 
-        while (true) {
-            try {
-                const tag = await jobContract.tags(index); // Fetch tag by index
-                tags.push(tag);
-                index++;
-            } catch (error) {
-                // Break the loop when out-of-bounds error occurs
-                break;
-            }
-        }
+  //       while (true) {
+  //           try {
+  //               const tag = await jobContract.tags(index); // Fetch tag by index
+  //               tags.push(tag);
+  //               index++;
+  //           } catch (error) {
+  //               // Break the loop when out-of-bounds error occurs
+  //               break;
+  //           }
+  //       }
 
-        console.log("Fetched tags:", tags);
-        return tags;
-    } catch (error) {
-        console.error("Error fetching tags:", error);
-        return [];
-    }
-  };  
+  //       console.log("Fetched tags:", tags);
+  //       return tags;
+  //   } catch (error) {
+  //       console.error("Error fetching tags:", error);
+  //       return [];
+  //   }
+  // };  
 
-  const fetchAssignedWorkersLength = async (jobContract: ethers.Contract) => {
-      try {
-          const assignedWorkers = await jobContract.getAssignedWorkers(); // Fetch the entire array
-          console.log("Assigned Workers:", assignedWorkers);
-          return assignedWorkers.length; // Return the length of the array
-      } catch (error) {
-          console.error("Error fetching assigned workers:", error);
-          return 0;
-      }
-  };  
+  // const fetchAssignedWorkersLength = async (jobContract: ethers.Contract) => {
+  //     try {
+  //         const assignedWorkers = await jobContract.getAssignedWorkers(); // Fetch the entire array
+  //         console.log("Assigned Workers:", assignedWorkers);
+  //         return assignedWorkers.length; // Return the length of the array
+  //     } catch (error) {
+  //         console.error("Error fetching assigned workers:", error);
+  //         return 0;
+  //     }
+  // };  
 
   const fetchEmployerInfo = async (wallet: string) => {
     try {
@@ -217,99 +218,114 @@ export default function JobsPage() {
         }
         return null;
     }
-} ;  
-
-  const fetchJobDetails = async (jobAddresses: string[], provider: ethers.Provider) => {
-    try {
-      const jobs = [];
-      for (const address of jobAddresses) {
-          const jobContract = new ethers.Contract(address, PROOF_OF_WORK_JOB_ABI, provider);
-
-          // Fetch job details
-          const [employer, title, description, payType, weeklyPay, totalPay, durationWeeks, createdAt, positions] =
-              await Promise.all([
-                  jobContract.employer(),
-                  jobContract.title(),
-                  jobContract.description(),
-                  jobContract.payType(),
-                  jobContract.weeklyPay(),
-                  jobContract.totalPay(),
-                  jobContract.durationWeeks(),
-                  jobContract.createdAt(),
-                  jobContract.positions(),
-              ]);
-
-            // Fetch tags
-            const tags = await fetchTags(jobContract);    
-            
-            // Fetch assigned workers length
-            const assignedWorkersLength = await fetchAssignedWorkersLength(jobContract);            
-
-          // Map payType to string
-          const payTypeString = payType === BigInt(0) ? "WEEKLY" : "ONE_OFF";
-
-          // Fetch employer info
-          const employerInfo = await fetchEmployerInfo(employer);
-
-          // Fetch reputation scores
-          const reputationAddress = await jobContract.reputation(); // Get the ReputationSystem contract address
-          const reputationContract = new ethers.Contract(reputationAddress, REPUTATION_SYSTEM_ABI, provider);
-          const [workerScore, employerScore] = await reputationContract.getScores(employer);          
-
-          jobs.push({
-              address,
-              employer: employerInfo.displayName,
-              title,
-              description,
-              payType: payTypeString,
-              weeklyPay: ethers.formatEther(weeklyPay),
-              totalPay: ethers.formatEther(totalPay),
-              durationWeeks: durationWeeks.toString(),
-              createdAt: new Date(Number(createdAt) * 1000).toLocaleDateString(),
-              positions: positions.toString(),
-              tags,
-              positionsFilled: assignedWorkersLength,
-              employerRating: employerScore
-          });
-      }
-
-      console.log("Fetched job details:", jobs);
-      return jobs;
-    } catch (error) {
-        console.error("Error fetching job details:", error);
-        return [];
-    }    
-  }  
-
-  const fetchAllJobAddresses = async (jobFactoryContract: ethers.Contract) => {
-    try {
-        const jobAddresses = await jobFactoryContract.getAllJobs();
-        console.log("Fetched job addresses:", jobAddresses);
-        return jobAddresses;
-    } catch (error) {
-        console.error("Error fetching job addresses:", error);
-        return [];
-    }
   };  
 
-  useEffect(() => {
-    const fetchAllJobs = async () => {
-      if (contracts?.jobFactory && provider) {
-        try {
-          // Fetch all job addresses
-          const jobAddresses = await fetchAllJobAddresses(contracts.jobFactory);
-
-          // Fetch job details
-          const jobs = await fetchJobDetails(jobAddresses, provider);
-          setAllJobs(jobs);
-        } catch (error) {
-          console.error("Error fetching allJobs:", error);
-        }
+  const fetchEmployerDisplayName = async (employerAddress: string) => {
+    try {
+      const employerInfo = await fetchEmployerInfo(employerAddress);
+      if (employerInfo) {
+        return employerInfo.displayName;
+      } else {
+        console.error("Employer not found for address:", employerAddress);
+        return "Unknown Employer";
       }
-    };
+    } catch (error) {
+      console.error("Error fetching employer display name:", error);
+      return "Unknown Employer";
+    }
+  };
 
-    fetchAllJobs();
-  }, [contracts?.jobFactory, provider]);
+  // const fetchJobDetails = async (jobAddresses: string[], provider: ethers.Provider) => {
+  //   try {
+  //     const jobs = [];
+  //     for (const address of jobAddresses) {
+  //         const jobContract = new ethers.Contract(address, PROOF_OF_WORK_JOB_ABI, provider);
+
+  //         // Fetch job details
+  //         const [employer, title, description, payType, weeklyPay, totalPay, durationWeeks, createdAt, positions] =
+  //             await Promise.all([
+  //                 jobContract.employer(),
+  //                 jobContract.title(),
+  //                 jobContract.description(),
+  //                 jobContract.payType(),
+  //                 jobContract.weeklyPay(),
+  //                 jobContract.totalPay(),
+  //                 jobContract.durationWeeks(),
+  //                 jobContract.createdAt(),
+  //                 jobContract.positions(),
+  //             ]);
+
+  //           // Fetch tags
+  //           const tags = await fetchTags(jobContract);    
+            
+  //           // Fetch assigned workers length
+  //           const assignedWorkersLength = await fetchAssignedWorkersLength(jobContract);            
+
+  //         // Map payType to string
+  //         const payTypeString = payType === BigInt(0) ? "WEEKLY" : "ONE_OFF";
+
+  //         // Fetch employer info
+  //         const employerInfo = await fetchEmployerInfo(employer);
+
+  //         // Fetch reputation scores
+  //         const reputationAddress = await jobContract.reputation(); // Get the ReputationSystem contract address
+  //         const reputationContract = new ethers.Contract(reputationAddress, REPUTATION_SYSTEM_ABI, provider);
+  //         const [workerScore, employerScore] = await reputationContract.getScores(employer);          
+
+  //         jobs.push({
+  //             address,
+  //             employer: employerInfo.displayName,
+  //             title,
+  //             description,
+  //             payType: payTypeString,
+  //             weeklyPay: ethers.formatEther(weeklyPay),
+  //             totalPay: ethers.formatEther(totalPay),
+  //             durationWeeks: durationWeeks.toString(),
+  //             createdAt: new Date(Number(createdAt) * 1000).toLocaleDateString(),
+  //             positions: positions.toString(),
+  //             tags,
+  //             positionsFilled: assignedWorkersLength,
+  //             employerRating: employerScore
+  //         });
+  //     }
+
+  //     console.log("Fetched job details:", jobs);
+  //     return jobs;
+  //   } catch (error) {
+  //       console.error("Error fetching job details:", error);
+  //       return [];
+  //   }    
+  // }  
+
+  // const fetchAllJobAddresses = async (jobFactoryContract: ethers.Contract) => {
+  //   try {
+  //       const jobAddresses = await jobFactoryContract.getAllJobs();
+  //       console.log("Fetched job addresses:", jobAddresses);
+  //       return jobAddresses;
+  //   } catch (error) {
+  //       console.error("Error fetching job addresses:", error);
+  //       return [];
+  //   }
+  // };  
+
+  // useEffect(() => {
+  //   const fetchAllJobs = async () => {
+  //     if (contracts?.jobFactory && provider) {
+  //       try {
+  //         // Fetch all job addresses
+  //         const jobAddresses = await fetchAllJobAddresses(contracts.jobFactory);
+
+  //         // Fetch job details
+  //         const jobs = await fetchJobDetails(jobAddresses, provider);
+  //         setAllJobs(jobs);
+  //       } catch (error) {
+  //         console.error("Error fetching allJobs:", error);
+  //       }
+  //     }
+  //   };
+
+  //   fetchAllJobs();
+  // }, [contracts?.jobFactory, provider]);
   
   // State for job filters
   const [searchTerm, setSearchTerm] = useState("")
@@ -439,10 +455,12 @@ export default function JobsPage() {
             jobContract.employer(),
           ]);
 
+          const employerName = await fetchEmployerDisplayName(employer);
+
           applications.push({
             jobAddress,
             jobTitle,
-            employer,
+            employer: employerName,
             application,
             appliedAt: new Date(Number(appliedAt) * 1000).toLocaleDateString(),
             status: isActive === false ? 'rejected' : isWorker === false ? 'pending' : 'hired',
@@ -463,7 +481,7 @@ export default function JobsPage() {
       if (contracts?.jobFactory && provider && address) {
         try {
           // Fetch all job addresses
-          const jobAddresses = await fetchAllJobAddresses(contracts.jobFactory);
+          // const jobAddresses = await fetchAllJobAddresses(contracts.jobFactory);
   
           // Fetch applications for the current user
           const applications = await fetchMyApplications(jobAddresses, address);
@@ -475,7 +493,113 @@ export default function JobsPage() {
     };
   
     fetchApplications();
-  }, [contracts?.jobFactory, provider, address]);  
+  }, [contracts?.jobFactory, provider, address, jobAddresses]);  
+
+  const handleWithdrawApplication = async (jobAddress: string) => {
+    if (!provider || !contracts) {
+      toast.error("Please connect your wallet first.");
+      return;
+    }
+  
+    try {
+      const signer = await provider.getSigner();
+      const jobContract = new ethers.Contract(jobAddress, PROOF_OF_WORK_JOB_ABI, signer);
+  
+      // Call the withdrawApplication function
+      const txPromise = jobContract.withdrawApplication();
+  
+      toast.promise(
+        txPromise,
+        {
+          loading: "Please wait for confirmation...",
+          success: "Withdrawing Application...",
+          error: "Failed to withdraw application.",
+        }
+      );
+  
+      // Wait for the transaction to be mined
+      const tx = await txPromise;
+      await tx.wait();
+  
+      toast.success("Application withdrawn successfully!");
+      console.log("Application withdrawn:", tx);
+    } catch (error) {
+      console.error("Error withdrawing application:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to withdraw application.";
+      toast.error(errorMessage);
+    }
+  };  
+
+  const fetchMyJobs = async (jobAddresses: string[], userAddress: string) => {
+    try {
+      const jobs = [];
+      for (const jobAddress of jobAddresses) {
+        const jobContract = new ethers.Contract(jobAddress, PROOF_OF_WORK_JOB_ABI, provider);
+  
+        // Check if the user is an assigned worker
+        const isWorker = await jobContract.isWorker(userAddress);
+        if (isWorker) {
+          // Fetch job details
+          const [title, employer, payType, weeklyPay, totalPay, durationWeeks, startDate, payoutsMade, positionsFilled] =
+            await Promise.all([
+              jobContract.title(),
+              jobContract.employer(),
+              jobContract.payType(),
+              jobContract.weeklyPay(),
+              jobContract.totalPay(),
+              jobContract.durationWeeks(),
+              jobContract.lastPayoutAt(),
+              jobContract.payoutsMade(),
+              jobContract.getAssignedWorkers(),
+            ]);
+  
+          // Map payType to string
+          const payTypeString = payType === BigInt(0) ? "WEEKLY" : "ONE_OFF";
+  
+          // Fetch employer display name
+          const employerName = await fetchEmployerDisplayName(employer);
+  
+          jobs.push({
+            id: jobAddress,
+            title,
+            employer: employerName,
+            payType: payTypeString,
+            weeklyPay: ethers.formatEther(weeklyPay),
+            totalPay: ethers.formatEther(totalPay),
+            durationWeeks: durationWeeks.toString(),
+            startDate: new Date(Number(startDate) * 1000).toLocaleDateString(),
+            payoutsMade: payoutsMade.toString(),
+            positionsFilled: positionsFilled.length,
+          });
+        }
+      }
+  
+      console.log("Fetched my jobs:", jobs);
+      return jobs;
+    } catch (error) {
+      console.error("Error fetching my jobs:", error);
+      return [];
+    }
+  };  
+
+  useEffect(() => {
+    const fetchJobsForUser = async () => {
+      if (contracts?.jobFactory && provider && address) {
+        try {
+          // Fetch all job addresses
+          // const jobAddresses = await fetchAllJobAddresses(contracts.jobFactory);
+  
+          // Fetch jobs where the user is a worker
+          const jobs = await fetchMyJobs(jobAddresses, address);
+          setMyJobs(jobs);
+        } catch (error) {
+          console.error("Error fetching jobs for user:", error);
+        }
+      }
+    };
+  
+    fetchJobsForUser();
+  }, [contracts?.jobFactory, provider, address, jobAddresses]);  
 
     return (
     <div className="flex flex-col items-center">
@@ -1002,7 +1126,11 @@ export default function JobsPage() {
 
                         <div className="flex flex-col items-start md:items-end gap-3 mt-4 md:mt-0">
                           {application.status === "pending" && (
-                            <Button variant="outline" className="border-red-500/50 text-red-500 hover:bg-red-500/10 font-varien">
+                            <Button 
+                            variant="outline" 
+                            className="border-red-500/50 text-red-500 hover:bg-red-500/10 font-varien"
+                            onClick={() => handleWithdrawApplication(application.jobAddress)}
+                            >
                               <XCircle className="mr-1 h-4 w-4" />
                               Withdraw Application
                             </Button>

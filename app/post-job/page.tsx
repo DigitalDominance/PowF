@@ -27,12 +27,13 @@ import {
 import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
-import { useContracts } from "@/hooks/useContract"
+// import { useContracts } from "@/hooks/useContract"
 // import { toast, useToast } from "@/components/ui/use-toast"
 import { toast } from "sonner"
 import { ethers, EventLog } from "ethers"
-import { useUserContext } from "@/context/UserContext"
+import { fetchEmployerInfo, useUserContext } from "@/context/UserContext"
 import PROOF_OF_WORK_JOB_ABI from '@/lib/contracts/ProofOfWorkJob.json';
+import REPUTATION_SYSTEM_ABI from '@/lib/contracts/ReputationSystem.json';
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
     hidden: { opacity: 0, y: 20 },
@@ -76,7 +77,7 @@ export default function PostJobPage() {
         duration: string;
         positions: string;
         tags: string[];
-    }>({          
+    }>({
         jobTitle: "",
         description: "",
         payAmount: "",
@@ -87,44 +88,9 @@ export default function PostJobPage() {
 
     const [employerJobs, setEmployerJobs] = useState<string[]>([]);
 
-    const [jobDetails, setJobDetails] = useState<any[]>([]);    
+    const [jobDetails, setJobDetails] = useState<any[]>([]);
 
-    // Placeholder data for applicants
-    const applicants = [
-        {
-            id: 1,
-            name: "Alex Chen",
-            jobTitle: "Senior React Developer",
-            experience: "5 years",
-            rating: 4.8,
-            appliedDate: "2024-01-16",
-            status: "pending",
-            avatar: "AC",
-            skills: ["React", "TypeScript", "Web3"],
-        },
-        {
-            id: 2,
-            name: "Sarah Johnson",
-            jobTitle: "Senior React Developer",
-            experience: "7 years",
-            rating: 4.9,
-            appliedDate: "2024-01-15",
-            status: "reviewed",
-            avatar: "SJ",
-            skills: ["React", "Next.js", "Solidity"],
-        },
-        {
-            id: 3,
-            name: "Mike Rodriguez",
-            jobTitle: "Smart Contract Auditor",
-            experience: "4 years",
-            rating: 4.7,
-            appliedDate: "2024-01-12",
-            status: "pending",
-            avatar: "MR",
-            skills: ["Solidity", "Security", "DeFi"],
-        },
-    ]
+    const [applicants, setApplicants] = useState<any[]>([]);
 
     const instructionSteps = [
         {
@@ -158,10 +124,10 @@ export default function PostJobPage() {
             setFormData((prev) => ({ ...prev, tags: [...prev.tags, tag] }));
         }
     };
-    
+
     const handleRemoveTag = (tag: string) => {
         setFormData((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag) }));
-    };    
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -181,7 +147,7 @@ export default function PostJobPage() {
                 }
             )
             return;
-        }        
+        }
         // Placeholder for smart contract integration
         console.log("Job posting data:", { paymentType, ...formData })
         // Reset form or show success message
@@ -244,27 +210,27 @@ export default function PostJobPage() {
                     }
                 )
                 return;
-            }        
+            }
             // Get the JobCreated event filter
             const filter = contracts.jobFactory.filters.JobCreated(null, employerAddress);
-    
+
             // Query past events
             const events = await contracts.jobFactory.queryFilter(filter);
-    
+
             // Extract job addresses from the events
             const jobs = events.map((event) => (event as EventLog).args?.jobAddress);
-    
+
             console.log("Jobs posted by employer (from events):", jobs);
             return jobs;
         } catch (error) {
             console.error("Error fetching jobs by employer from events:", error);
             return [];
         }
-    };    
+    };
 
     useEffect(() => {
         const loadJobs = async () => {
-            if(wallet) {
+            if (wallet) {
                 const jobs = await fetchJobsByEmployerFromEvents(wallet);
                 setEmployerJobs(jobs || []);
             }
@@ -278,7 +244,7 @@ export default function PostJobPage() {
             const jobs = [];
             for (const address of jobAddresses) {
                 const jobContract = new ethers.Contract(address, PROOF_OF_WORK_JOB_ABI, provider);
-    
+
                 // Fetch job details
                 const [employer, title, description, duration, positions, payType, totalPay, createdAt, totalApplications] = await Promise.all([
                     jobContract.employer(),
@@ -293,7 +259,7 @@ export default function PostJobPage() {
                 ]);
 
                 console.log('payType', payType)
-    
+
                 jobs.push({
                     address,
                     employer,
@@ -307,7 +273,7 @@ export default function PostJobPage() {
                     applicants: totalApplications.toString(), // Convert BigInt to string
                 });
             }
-    
+
             console.log("Fetched job details:", jobs);
             return jobs;
         } catch (error) {
@@ -324,46 +290,153 @@ export default function PostJobPage() {
                 setJobDetails(jobs);
             }
         };
-    
+
         loadJobDetails();
-    }, [employerJobs]);    
-    
-        return (
-            <div className="flex flex-col items-center">
-              {/* Hero Section */}
-              <motion.section
+    }, [employerJobs]);
+
+    const fetchTags = async (jobContract: ethers.Contract) => {
+        try {
+            const tags = [];
+            let index = 0;
+
+            while (true) {
+                try {
+                    const tag = await jobContract.tags(index); // Fetch tag by index
+                    tags.push(tag);
+                    index++;
+                } catch (error) {
+                    // Break the loop when out-of-bounds error occurs
+                    break;
+                }
+            }
+
+            console.log("Fetched tags:", tags);
+            return tags;
+        } catch (error) {
+            console.error("Error fetching tags:", error);
+            return [];
+        }
+    };
+
+    const fetchApplicantsForJobs = async (jobAddresses: string[], provider: ethers.Provider) => {
+        try {
+            const applicantsDetails = [];
+
+            for (const jobAddress of jobAddresses) {
+                const jobContract = new ethers.Contract(jobAddress, PROOF_OF_WORK_JOB_ABI, provider);
+
+
+                const [title] =
+                    await Promise.all([
+                        jobContract.title(),
+                    ]);
+
+                // Fetch all applicant addresses for the job
+                const applicantAddresses = await jobContract.getAllApplicants();
+
+                const tags = await fetchTags(jobContract);
+
+                // Fetch reputation scores
+                const reputationAddress = await jobContract.reputation(); // Get the ReputationSystem contract address
+                const reputationContract = new ethers.Contract(reputationAddress, REPUTATION_SYSTEM_ABI, provider);
+
+                // Fetch details for each applicant
+                for (const applicantAddress of applicantAddresses) {
+                    const [applicantAddressDetail, application, appliedAt, isActive] = await jobContract.getApplicant(applicantAddress);
+
+                    // Check if the applicant is currently a worker
+                    const isCurrentWorker = await jobContract.isWorker(applicantAddress);
+
+                    const [workerScore, employerScore] = await reputationContract.getScores(applicantAddress);
+
+                    const applicantInfo = await fetchEmployerInfo(applicantAddress);
+
+                    applicantsDetails.push({
+                        id: `${jobAddress}-${applicantAddress}`,
+                        address: applicantAddress,
+                        jobAddress,
+                        jobTitle: title,
+                        name: applicantInfo.displayName,
+                        avatar: applicantInfo.displayName.charAt(2),
+                        experience: `5 years`,
+                        rating: workerScore,
+                        status: isCurrentWorker ? 'reviewed' : 'pending',
+                        applicantAddress: applicantAddressDetail,
+                        application,
+                        appliedDate: Number(appliedAt) * 1000,
+                        isActive,
+                        tags
+                    });
+                }
+            }
+
+            console.log("Fetched applicants' details:", applicantsDetails);
+            return applicantsDetails;
+        } catch (error) {
+            console.error("Error fetching applicants' details:", error);
+            return [];
+        }
+    };
+
+    useEffect(() => {
+        const loadApplicants = async () => {
+            if (employerJobs.length > 0 && provider) {
+                const applicants = await fetchApplicantsForJobs(employerJobs, provider);
+                console.log("Applicants for all jobs:", applicants);
+                setApplicants(applicants);
+            }
+        };
+
+        loadApplicants();
+    }, [employerJobs]);
+
+    const updateApplicantStatus = (applicantAddress: string) => {
+        setApplicants((prevApplicants) =>
+            prevApplicants.map((applicant) =>
+                applicant.id === applicantAddress
+                    ? { ...applicant, status: "reviewed" }
+                    : applicant
+            )
+        );
+    };
+
+
+    return (
+        <div className="flex flex-col items-center">
+            {/* Hero Section */}
+            <motion.section
                 className="w-full min-h-[40vh] flex flex-col justify-center items-center text-center relative overflow-hidden py-10"
                 initial="hidden"
                 animate="visible"
                 variants={staggerContainer(0.1, 0.1)}
-              >
+            >
                 <div className="container px-4 md:px-6 relative z-10">
-                  <motion.h1
-                    variants={fadeIn(0.1)}
-                    className="font-varien text-[5rem] font-bold tracking-wider sm:text-[4rem] md:text-[4rem] lg:text-[6rem] text-foreground mb-6"
-                  >
-                    Post a <span className="text-accent">Job</span>
-                  </motion.h1>
-                  <motion.p
-                    variants={fadeIn(0.2)}
-                    className="mt-10 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
-                  >
-                    <Balancer>
-                      Hire top talent with guaranteed payments and transparent terms. All job contracts are secured
-                      on-chain for maximum trust and accountability.
-                    </Balancer>
-                  </motion.p>
+                    <motion.h1
+                        variants={fadeIn(0.1)}
+                        className="font-varien text-[5rem] font-bold tracking-wider sm:text-[4rem] md:text-[4rem] lg:text-[6rem] text-foreground mb-6"
+                    >
+                        Post a <span className="text-accent">Job</span>
+                    </motion.h1>
+                    <motion.p
+                        variants={fadeIn(0.2)}
+                        className="mt-10 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
+                    >
+                        <Balancer>
+                            Hire top talent with guaranteed payments and transparent terms. All job contracts are secured
+                            on-chain for maximum trust and accountability.
+                        </Balancer>
+                    </motion.p>
                 </div>
-              </motion.section>
+            </motion.section>
 
-              <SectionWrapper id="how-it-works" padding="pt-0 md:pt-2 pb-12 md:pb-16">
+            <SectionWrapper id="how-it-works" padding="pt-0 md:pt-2 pb-12 md:pb-16">
                 <motion.div variants={fadeIn()} className="text-center mb-12">
-                  <h2 className="font-varien text-3xl font-bold tracking-tighter sm:text-4xl text-foreground">
-                    How <span className="text-accent">It Works</span>
-                  </h2>
-                  <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-                    <Balancer>Simple steps to post your job and start hiring with blockchain-powered security.</Balancer>
-                  </p>
+                    <h2 className="font-varien text-3xl font-bold tracking-tighter sm:text-4xl text-foreground">
+                        How <span className="text-accent">It Works</span>
+                    </h2>
+                    <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
+                        <Balancer>Simple steps to post your job and start hiring with blockchain-powered security.</Balancer>
+                    </p>
                 </motion.div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {instructionSteps.map((step, index) => (
@@ -432,7 +505,7 @@ export default function PostJobPage() {
                                         required
                                     />
                                 </div>
-                            </div>                      
+                            </div>
 
                             {/* Duration (only for weekly) */}
                             {paymentType === "weekly" && (
@@ -525,7 +598,7 @@ export default function PostJobPage() {
                                         className="border-border focus:border-accent"
                                     />
                                 </div>
-                            </div>                              
+                            </div>
 
                             {/* Number of Positions */}
                             <div className="space-y-2">
@@ -654,14 +727,43 @@ export default function PostJobPage() {
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div className="flex items-center gap-4">
                                         <Avatar className="h-12 w-12">
-                                            <AvatarImage src={`https://effigy.im/a/${applicant.name}.svg`} alt={applicant.name} />
+                                            <AvatarImage src={`https://effigy.im/a/${applicant.address}.svg`} alt={applicant.address} />
                                             <AvatarFallback className="bg-accent/10 text-accent font-semibold">
-                                                {applicant.avatar}
+                                                {applicant.address.charAt(2)}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div>
                                             <h3 className="text-lg font-semibold text-foreground">{applicant.name}</h3>
                                             <p className="text-sm text-muted-foreground">Applied for: {applicant.jobTitle}</p>
+                                            <div>
+                                            {applicant.application.length > 100 ? (
+                                                <>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {applicant.showFullApplication
+                                                            ? applicant.application
+                                                            : `${applicant.application.slice(0, 100)}...`}
+                                                    </p>
+                                                    <a
+                                                        href="#"
+                                                        className="text-blue-500 hover:underline text-sm"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            setApplicants((prevApplicants) =>
+                                                                prevApplicants.map((a) =>
+                                                                    a.id === applicant.id
+                                                                        ? { ...a, showFullApplication: !a.showFullApplication }
+                                                                        : a
+                                                                )
+                                                            );
+                                                        }}
+                                                    >
+                                                        {applicant.showFullApplication ? "View Less" : "View More"}
+                                                    </a>
+                                                </>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground">{applicant.application}</p>
+                                            )}
+                                        </div>
                                             <div className="flex items-center gap-4 mt-1">
                                                 <span className="text-sm text-muted-foreground">{applicant.experience} experience</span>
                                                 <div className="flex items-center gap-1">
@@ -674,9 +776,9 @@ export default function PostJobPage() {
 
                                     <div className="flex flex-col md:items-end gap-3">
                                         <div className="flex flex-wrap gap-2">
-                                            {applicant.skills.map((skill) => (
-                                                <Badge key={skill} variant="secondary" className="text-xs">
-                                                    {skill}
+                                            {applicant.tags.map((tag: any) => (
+                                                <Badge key={tag} variant="secondary" className="text-xs">
+                                                    {tag}
                                                 </Badge>
                                             ))}
                                         </div>
@@ -696,10 +798,59 @@ export default function PostJobPage() {
                                                 <MessageSquare className="mr-1 h-4 w-4" />
                                                 Message
                                             </Button>
-                                            <Button size="sm" className="bg-accent hover:bg-accent-hover text-accent-foreground">
+                                            <Button
+                                                size="sm"
+                                                className="bg-accent hover:bg-accent-hover text-accent-foreground"
+                                                onClick={async () => {
+                                                    try {
+                                                        if (!provider) {
+                                                            toast.error("Provider is not available. Please connect your wallet.");
+                                                            return;
+                                                        }
+                                                        const signer = await provider.getSigner();
+                                                        const jobContract = new ethers.Contract(applicant.jobAddress, PROOF_OF_WORK_JOB_ABI, signer);
+
+                                                        const tx = await jobContract.acceptApplication(applicant.address);
+                                                        await tx.wait();
+
+                                                        toast.success("Application accepted successfully!");
+                                                        updateApplicantStatus(applicant.id);
+                                                    } catch (error) {
+                                                        console.error("Error accepting application:", error);
+                                                        toast.error("Failed to accept application.");
+                                                    }
+                                                }}
+                                            >
                                                 <CheckCircle className="mr-1 h-4 w-4" />
                                                 Accept
                                             </Button>
+
+                                            <Button
+                                                size="sm"
+                                                className="bg-red-500 hover:bg-red-600 text-white"
+                                                onClick={async () => {
+                                                    try {
+                                                        if (!provider) {
+                                                            toast.error("Provider is not available. Please connect your wallet.");
+                                                            return;
+                                                        }                                                        
+                                                        const signer = await provider.getSigner();
+                                                        const jobContract = new ethers.Contract(applicant.jobAddress, PROOF_OF_WORK_JOB_ABI, signer);
+                                            
+                                                        const tx = await jobContract.declineApplication(applicant.address);
+                                                        await tx.wait();
+                                            
+                                                        toast.success("Application declined successfully!");
+                                                        updateApplicantStatus(applicant.id);
+                                                    } catch (error) {
+                                                        console.error("Error declining application:", error);
+                                                        toast.error("Failed to decline application.");
+                                                    }
+                                                }}
+                                            >
+                                                <Trash2 className="mr-1 h-4 w-4" />
+                                                Decline
+                                            </Button>    
                                         </div>
                                     </div>
                                 </div>

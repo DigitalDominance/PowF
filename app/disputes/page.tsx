@@ -44,6 +44,9 @@ import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
 import { useContracts } from "@/hooks/useContract"
 import { toast } from "sonner"
+import { useUserContext } from "@/context/UserContext"
+import { io } from 'socket.io-client';
+import { useDisputeControl } from "@/hooks/useDisputeControl"
 
 // Animation variants
 const fadeIn = (delay = 0, duration = 0.5) => ({
@@ -307,7 +310,18 @@ const disputeProcessSteps = [
 ]
 
 export default function DisputesPage() {
-  const { contracts } = useContracts();
+  const { contracts, allJobs } = useUserContext();
+
+  const {
+    disputes,
+    messages,
+    loading,
+    error,
+    createDispute,
+    deleteDispute,
+    fetchMessages,
+    sendMessage,
+  } = useDisputeControl();
 
   const [disputeReason, setDisputeReason] = useState("")
   const [selectedJob, setSelectedJob] = useState("")
@@ -316,7 +330,6 @@ export default function DisputesPage() {
   const [selectedDispute, setSelectedDispute] = useState<(typeof myDisputes)[0] | null>(null)
   const [selectedJuryDispute, setSelectedJuryDispute] = useState<(typeof juryDuty)[0] | null>(null)
   const [newMessage, setNewMessage] = useState("")
-
   // Handle dispute submission
   const handleDisputeSubmit = () => {
     if (!contracts || !contracts.disputeDAO) {
@@ -330,9 +343,24 @@ export default function DisputesPage() {
     }            
     console.log("Dispute submitted for job:", selectedJob, "with reason:", disputeReason)
     try {
-      const txPromise = contracts.disputeDAO.createDispute
+      createDispute(selectedJob, disputeReason)
+        .then((dispute) => {
+          toast.success("Dispute created successfully!", {
+            duration: 3000,
+          })
+          setSelectedDispute(dispute)
+        })
+        .catch((error) => {
+          console.error("Error creating dispute:", error)
+          toast.error("Failed to create dispute. Please try again.", {
+            duration: 3000,
+          })
+        })
     } catch (error) {
-      
+      console.error("Error creating dispute:", error)
+      toast.error("Failed to create dispute. Please try again.", {
+        duration: 3000,
+      })
     }
     // Reset dispute form
     setDisputeReason("")
@@ -498,9 +526,18 @@ export default function DisputesPage() {
                       <SelectValue placeholder="Select a job" />
                     </SelectTrigger>
                     <SelectContent className="font-varela">
-                      <SelectItem value="job-1">Backend Developer for NFT Marketplace</SelectItem>
+                      {
+                        allJobs?.map((job) => {
+                          return (
+                            <SelectItem key={job.address} value={job.address}>
+                              {job.title} - {job.employer}
+                            </SelectItem>
+                          )
+                        })
+                      }
+                      {/* <SelectItem value="job-1">Backend Developer for NFT Marketplace</SelectItem>
                       <SelectItem value="job-2">Documentation for Smart Contract SDK</SelectItem>
-                      <SelectItem value="job-3">Frontend Developer for DeFi Dashboard</SelectItem>
+                      <SelectItem value="job-3">Frontend Developer for DeFi Dashboard</SelectItem> */}
                     </SelectContent>
                   </Select>
                 </div>
