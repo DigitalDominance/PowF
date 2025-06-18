@@ -103,14 +103,16 @@ export function Footer() {
             <p className="text-xs text-muted-foreground mt-6 font-varien tracking-wider">
               Built on Kaspa's EVM Layer.
             </p>
-            {/* Powered by Kaspa */}
-            <Image
-              src="/LND-CLEAR.png"
-              alt="Powered by Kaspa"
-              width={300}
-              height={100}
-              className="mx-auto mt-4 object-contain"
-            />
+            {/* Powered by Kaspa, left-aligned & smaller */}
+            <div className="mt-4">
+              <Image
+                src="/LND-CLEAR.png"
+                alt="Powered by Kaspa"
+                width={200}
+                height={70}
+                className="object-contain"
+              />
+            </div>
           </div>
         </div>
         <div className="border-t border-border/40 pt-8 text-center">
