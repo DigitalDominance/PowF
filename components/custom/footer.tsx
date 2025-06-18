@@ -100,7 +100,17 @@ export function Footer() {
                 </motion.a>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-6 font-varien tracking-wider">Built on Kaspa's EVM Layer.</p>
+            <p className="text-xs text-muted-foreground mt-6 font-varien tracking-wider">
+              Built on Kaspa's EVM Layer.
+            </p>
+            {/* Powered by Kaspa */}
+            <Image
+              src="/LND-CLEAR.PNG"
+              alt="Powered by Kaspa"
+              width={949}
+              height={331}
+              className="mx-auto mt-4 object-contain"
+            />
           </div>
         </div>
         <div className="border-t border-border/40 pt-8 text-center">
