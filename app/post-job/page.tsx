@@ -332,7 +332,7 @@ export default function PostJobPage() {
             <div className="flex flex-col items-center">
               {/* Hero Section */}
               <motion.section
-                className="w-full min-h-[60vh] flex flex-col justify-center items-center text-center relative overflow-hidden py-16"
+                className="w-full min-h-[60vh] flex flex-col justify-center items-center text-center relative overflow-hidden py-10"
                 initial="hidden"
                 animate="visible"
                 variants={staggerContainer(0.1, 0.1)}
@@ -346,7 +346,7 @@ export default function PostJobPage() {
                   </motion.h1>
                   <motion.p
                     variants={fadeIn(0.2)}
-                    className="mt-16 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
+                    className="mt-20 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
                   >
                     <Balancer>
                       Hire top talent with guaranteed payments and transparent terms. All job contracts are secured
@@ -356,7 +356,7 @@ export default function PostJobPage() {
                 </div>
               </motion.section>
 
-              <SectionWrapper id="how-it-works" padding="pt-4 md:pt-6 pb-12 md:pb-16">
+              <SectionWrapper id="how-it-works" padding="pt-0 md:pt-2 pb-12 md:pb-16">
                 <motion.div variants={fadeIn()} className="text-center mb-12">
                   <h2 className="font-varien text-3xl font-bold tracking-tighter sm:text-4xl text-foreground">
                     How <span className="text-accent">It Works</span>
