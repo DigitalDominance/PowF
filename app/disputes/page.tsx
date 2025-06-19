@@ -37,15 +37,15 @@ import {
   ThumbsDown,
   User,
   Briefcase,
+  Info,
+  X,
 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
-import { useContracts } from "@/hooks/useContract"
 import { toast } from "sonner"
 import { useUserContext } from "@/context/UserContext"
-import { io } from 'socket.io-client';
 import { useDisputeControl } from "@/hooks/useDisputeControl"
 
 // Animation variants
@@ -310,18 +310,10 @@ const disputeProcessSteps = [
 ]
 
 export default function DisputesPage() {
-  const { contracts, allJobs } = useUserContext();
+  const { contracts, allJobs } = useUserContext()
 
-  const {
-    disputes,
-    messages,
-    loading,
-    error,
-    createDispute,
-    deleteDispute,
-    fetchMessages,
-    sendMessage,
-  } = useDisputeControl();
+  const { disputes, messages, loading, error, createDispute, deleteDispute, fetchMessages, sendMessage } =
+    useDisputeControl()
 
   const [disputeReason, setDisputeReason] = useState("")
   const [selectedJob, setSelectedJob] = useState("")
@@ -330,17 +322,16 @@ export default function DisputesPage() {
   const [selectedDispute, setSelectedDispute] = useState<(typeof myDisputes)[0] | null>(null)
   const [selectedJuryDispute, setSelectedJuryDispute] = useState<(typeof juryDuty)[0] | null>(null)
   const [newMessage, setNewMessage] = useState("")
+  const [howDisputesWorkOpen, setHowDisputesWorkOpen] = useState(false)
+
   // Handle dispute submission
   const handleDisputeSubmit = () => {
     if (!contracts || !contracts.disputeDAO) {
-      toast.error(
-          "Please connect your wallet first",
-          {
-              duration: 3000, // Example of a valid property; adjust as needed
-          }
-      )
-      return;
-    }            
+      toast.error("Please connect your wallet first", {
+        duration: 3000, // Example of a valid property; adjust as needed
+      })
+      return
+    }
     console.log("Dispute submitted for job:", selectedJob, "with reason:", disputeReason)
     try {
       createDispute(selectedJob, disputeReason)
@@ -420,165 +411,196 @@ export default function DisputesPage() {
         </div>
       </motion.section>
 
-      {/* How Disputes Work Section */}
-      <SectionWrapper id="how-it-works" padding="py-8 md:py-12">
-        <motion.div variants={fadeIn()} className="text-center mb-12">
-          <h2 className="font-varien text-3xl font-bold tracking-wider sm:text-4xl text-foreground">
-            How <span className="text-accent">Disputes Work</span>
-          </h2>
-          <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-            <Balancer>
-              Our DisputeDAO ensures fair outcomes through transparent voting by qualified jurors who review evidence
-              from both parties.
-            </Balancer>
-          </p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {disputeProcessSteps.map((step, index) => (
-            <motion.div variants={fadeIn(index * 0.1)} key={step.title}>
-              <InteractiveCard className="h-full text-center">
-                <div className="flex flex-col items-center">
-                  <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">{step.icon}</div>
-                  <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground font-varela">
-                    <Balancer>{step.description}</Balancer>
-                  </p>
-                </div>
-              </InteractiveCard>
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <motion.div variants={fadeIn(0.4)}>
-            <InteractiveCard className="h-full">
-              <div className="flex flex-col items-center text-center p-4">
-                <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
-                  <Users className="h-8 w-8 text-accent" />
-                </div>
-                <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">Pre-Selected Jurors</h3>
-                <p className="text-sm text-muted-foreground">
-                  <Balancer>
-                    Our DisputeDAO has two pre-selected jurors who review all disputes. These jurors have been chosen
-                    for their expertise and impartiality in resolving conflicts.
-                  </Balancer>
-                </p>
-              </div>
-            </InteractiveCard>
-          </motion.div>
-
-          <motion.div variants={fadeIn(0.5)}>
-            <InteractiveCard className="h-full">
-              <div className="flex flex-col items-center text-center p-4">
-                <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
-                  <Scale className="h-8 w-8 text-accent" />
-                </div>
-                <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">Fair Outcomes</h3>
-                <p className="text-sm text-muted-foreground">
-                  <Balancer>
-                    Jurors review evidence from both parties and vote independently. The majority decision determines
-                    the outcome, which is executed automatically by the smart contract.
-                  </Balancer>
-                </p>
-              </div>
-            </InteractiveCard>
-          </motion.div>
-
-          <motion.div variants={fadeIn(0.6)}>
-            <InteractiveCard className="h-full">
-              <div className="flex flex-col items-center text-center p-4">
-                <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
-                  <Lock className="h-8 w-8 text-accent" />
-                </div>
-                <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">Secure Funds</h3>
-                <p className="text-sm text-muted-foreground">
-                  <Balancer>
-                    When a dispute is opened, remaining funds in the contract are frozen until resolution. This ensures
-                    that funds are distributed according to the jury's decision.
-                  </Balancer>
-                </p>
-              </div>
-            </InteractiveCard>
-          </motion.div>
-        </div>
-
-        <motion.div variants={fadeIn(0.7)} className="mt-12 text-center">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien">
-                <AlertTriangle className="mr-2 h-4 w-4" />
-                Open a New Dispute
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[525px]">
-              <DialogHeader>
-                <DialogTitle className=" font-varien">Open a New Dispute</DialogTitle>
-                <DialogDescription className="font-varela">
-                  Opening a dispute will create a case in the DisputeDAO for resolution by the assigned jurors.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="job-select"  className="font-varien">Select Job</Label>
-                  <Select value={selectedJob} onValueChange={setSelectedJob}>
-                    <SelectTrigger className="border-border focus:border-accent">
-                      <SelectValue placeholder="Select a job" />
-                    </SelectTrigger>
-                    <SelectContent className="font-varela">
-                      {
-                        allJobs?.map((job) => {
+      {/* Action Buttons Section */}
+      <SectionWrapper id="actions" padding="py-8 md:py-12">
+        <motion.div variants={fadeIn(0.7)} className="text-center">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien">
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  Open a New Dispute
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[525px]">
+                <DialogHeader>
+                  <DialogTitle className=" font-varien">Open a New Dispute</DialogTitle>
+                  <DialogDescription className="font-varela">
+                    Opening a dispute will create a case in the DisputeDAO for resolution by the assigned jurors.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="job-select" className="font-varien">
+                      Select Job
+                    </Label>
+                    <Select value={selectedJob} onValueChange={setSelectedJob}>
+                      <SelectTrigger className="border-border focus:border-accent">
+                        <SelectValue placeholder="Select a job" />
+                      </SelectTrigger>
+                      <SelectContent className="font-varela">
+                        {allJobs?.map((job) => {
                           return (
                             <SelectItem key={job.address} value={job.address}>
                               {job.title} - {job.employer}
                             </SelectItem>
                           )
-                        })
-                      }
-                      {/* <SelectItem value="job-1">Backend Developer for NFT Marketplace</SelectItem>
-                      <SelectItem value="job-2">Documentation for Smart Contract SDK</SelectItem>
-                      <SelectItem value="job-3">Frontend Developer for DeFi Dashboard</SelectItem> */}
-                    </SelectContent>
-                  </Select>
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="dispute-reason" className="font-varien">
+                      Initial Statement
+                    </Label>
+                    <Textarea
+                      id="dispute-reason"
+                      placeholder="Describe the issue in detail. This will be your first message in the dispute thread..."
+                      className="min-h-[150px]"
+                      value={disputeReason}
+                      onChange={(e) => setDisputeReason(e.target.value)}
+                    />
+                  </div>
+                  <div className="text-sm text-muted-foreground font-varela">
+                    <p className="mb-2">
+                      <strong>Important:</strong> Opening a dispute will:
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Create a new dispute record in the DisputeDAO contract</li>
+                      <li>Freeze any remaining funds in the job contract</li>
+                      <li>Allow both parties and jurors to submit evidence and messages</li>
+                      <li>Initiate the voting process by the assigned jurors</li>
+                    </ul>
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="dispute-reason" className="font-varien">Initial Statement</Label>
-                  <Textarea
-                    id="dispute-reason"
-                    placeholder="Describe the issue in detail. This will be your first message in the dispute thread..."
-                    className="min-h-[150px]"
-                    value={disputeReason}
-                    onChange={(e) => setDisputeReason(e.target.value)}
-                  />
-                </div>
-                <div className="text-sm text-muted-foreground font-varela">
-                  <p className="mb-2">
-                    <strong>Important:</strong> Opening a dispute will:
-                  </p>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>Create a new dispute record in the DisputeDAO contract</li>
-                    <li>Freeze any remaining funds in the job contract</li>
-                    <li>Allow both parties and jurors to submit evidence and messages</li>
-                    <li>Initiate the voting process by the assigned jurors</li>
-                  </ul>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDisputeReason("")} className="font-varien">
-                  Cancel
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDisputeReason("")} className="font-varien">
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
+                    onClick={handleDisputeSubmit}
+                    disabled={!selectedJob || !disputeReason}
+                  >
+                    <AlertTriangle className="mr-1 h-4 w-4" />
+                    Submit Dispute
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={howDisputesWorkOpen} onOpenChange={setHowDisputesWorkOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="font-varien border-accent/30 hover:bg-accent/10">
+                  <Info className="mr-2 h-4 w-4" />
+                  How Disputes Work
                 </Button>
-                <Button
-                  type="submit"
-                  className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
-                  onClick={handleDisputeSubmit}
-                  disabled={!selectedJob || !disputeReason}
-                >
-                  <AlertTriangle className="mr-1 h-4 w-4" />
-                  Submit Dispute
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+                <DialogHeader className="relative">
+                  <DialogTitle className="font-varien text-2xl tracking-wider text-center">
+                    How <span className="text-accent">Disputes Work</span>
+                  </DialogTitle>
+                  <DialogDescription className="text-center font-varela">
+                    <Balancer>
+                      Our DisputeDAO ensures fair outcomes through transparent voting by qualified jurors who review
+                      evidence from both parties.
+                    </Balancer>
+                  </DialogDescription>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-6 w-6 rounded-full hover:bg-accent/20 transition-all duration-200"
+                    onClick={() => setHowDisputesWorkOpen(false)}
+                  >
+                    <motion.div initial={{ rotate: 0 }} whileHover={{ rotate: 90 }} transition={{ duration: 0.2 }}>
+                      <X className="h-4 w-4" />
+                    </motion.div>
+                  </Button>
+                </DialogHeader>
+
+                <div className="py-6 space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {disputeProcessSteps.map((step, index) => (
+                      <motion.div variants={fadeIn(index * 0.1)} key={step.title} initial="hidden" animate="visible">
+                        <InteractiveCard className="h-full text-center">
+                          <div className="flex flex-col items-center">
+                            <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">{step.icon}</div>
+                            <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">
+                              {step.title}
+                            </h3>
+                            <p className="text-sm text-muted-foreground font-varela">
+                              <Balancer>{step.description}</Balancer>
+                            </p>
+                          </div>
+                        </InteractiveCard>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <motion.div variants={fadeIn(0.4)} initial="hidden" animate="visible">
+                      <InteractiveCard className="h-full">
+                        <div className="flex flex-col items-center text-center p-4">
+                          <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
+                            <Users className="h-8 w-8 text-accent" />
+                          </div>
+                          <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">
+                            Pre-Selected Jurors
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            <Balancer>
+                              Our DisputeDAO has two pre-selected jurors who review all disputes. These jurors have been
+                              chosen for their expertise and impartiality in resolving conflicts.
+                            </Balancer>
+                          </p>
+                        </div>
+                      </InteractiveCard>
+                    </motion.div>
+
+                    <motion.div variants={fadeIn(0.5)} initial="hidden" animate="visible">
+                      <InteractiveCard className="h-full">
+                        <div className="flex flex-col items-center text-center p-4">
+                          <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
+                            <Scale className="h-8 w-8 text-accent" />
+                          </div>
+                          <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">
+                            Fair Outcomes
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            <Balancer>
+                              Jurors review evidence from both parties and vote independently. The majority decision
+                              determines the outcome, which is executed automatically by the smart contract.
+                            </Balancer>
+                          </p>
+                        </div>
+                      </InteractiveCard>
+                    </motion.div>
+
+                    <motion.div variants={fadeIn(0.6)} initial="hidden" animate="visible">
+                      <InteractiveCard className="h-full">
+                        <div className="flex flex-col items-center text-center p-4">
+                          <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
+                            <Lock className="h-8 w-8 text-accent" />
+                          </div>
+                          <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">
+                            Secure Funds
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            <Balancer>
+                              When a dispute is opened, remaining funds in the contract are frozen until resolution.
+                              This ensures that funds are distributed according to the jury's decision.
+                            </Balancer>
+                          </p>
+                        </div>
+                      </InteractiveCard>
+                    </motion.div>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </motion.div>
       </SectionWrapper>
 
@@ -626,7 +648,9 @@ export default function DisputesPage() {
                 <InteractiveCard>
                   <div className="space-y-4">
                     <div>
-                      <h2 className="text-xl font-varien font-normal tracking-wider text-foreground">{selectedDispute.jobTitle}</h2>
+                      <h2 className="text-xl font-varien font-normal tracking-wider text-foreground">
+                        {selectedDispute.jobTitle}
+                      </h2>
                       <div className="flex items-center gap-2 mt-1">
                         <Calendar className="h-4 w-4 text-accent" />
                         <span className="text-sm text-muted-foreground font-varela">
@@ -899,7 +923,9 @@ export default function DisputesPage() {
                 <InteractiveCard>
                   <div className="space-y-4">
                     <div>
-                      <h2 className="text-xl font-semibold text-foreground font-varela">{selectedJuryDispute.jobTitle}</h2>
+                      <h2 className="text-xl font-semibold text-foreground font-varela">
+                        {selectedJuryDispute.jobTitle}
+                      </h2>
                       <div className="flex items-center gap-4 mt-1">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-accent" />
