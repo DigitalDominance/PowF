@@ -1047,20 +1047,22 @@ export default function DisputesPage() {
                           As a juror, your vote will help determine the outcome of this dispute. Please review all
                           evidence carefully before voting.
                         </p>
-                        <div className="flex gap-4">
+                        <div className="flex flex-col sm:flex-row gap-4">
                           <Button
-                            className="flex-1 bg-green-500 hover:bg-green-600 text-white font-varien"
+                            className="flex-1 bg-green-500 hover:bg-green-600 text-white font-varien text-xs sm:text-sm px-2 sm:px-4"
                             onClick={() => handleJuryVote(selectedJuryDispute.id, "worker")}
                           >
-                            <ThumbsUp className="mr-2 h-4 w-4" />
-                            Vote for Worker
+                            <ThumbsUp className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                            <span className="hidden sm:inline">Vote for Worker</span>
+                            <span className="sm:hidden">Worker</span>
                           </Button>
                           <Button
-                            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-varien"
+                            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-varien text-xs sm:text-sm px-2 sm:px-4"
                             onClick={() => handleJuryVote(selectedJuryDispute.id, "employer")}
                           >
-                            <ThumbsDown className="mr-2 h-4 w-4" />
-                            Vote for Employer
+                            <ThumbsDown className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                            <span className="hidden sm:inline">Vote for Employer</span>
+                            <span className="sm:hidden">Employer</span>
                           </Button>
                         </div>
                       </div>
@@ -1159,22 +1161,24 @@ export default function DisputesPage() {
                             </Button>
 
                             {!dispute.yourVote && (
-                              <div className="flex gap-2">
+                              <div className="flex flex-col sm:flex-row gap-2">
                                 <Button
                                   variant="outline"
-                                  className="border-green-500/50 text-green-500 hover:bg-green-500/10 font-varien"
+                                  className="border-green-500/50 text-green-500 hover:bg-green-500/10 font-varien text-xs sm:text-sm px-2 sm:px-3"
                                   onClick={() => handleJuryVote(dispute.id, "worker")}
                                 >
-                                  <ThumbsUp className="mr-1 h-4 w-4" />
-                                  Vote for Worker
+                                  <ThumbsUp className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                                  <span className="hidden sm:inline">Vote for Worker</span>
+                                  <span className="sm:hidden">Worker</span>
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  className="border-red-500/50 text-red-500 hover:bg-red-500/10 font-varien"
+                                  className="border-red-500/50 text-red-500 hover:bg-red-500/10 font-varien text-xs sm:text-sm px-2 sm:px-3"
                                   onClick={() => handleJuryVote(dispute.id, "employer")}
                                 >
-                                  <ThumbsDown className="mr-1 h-4 w-4" />
-                                  Vote for Employer
+                                  <ThumbsDown className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                                  <span className="hidden sm:inline">Vote for Employer</span>
+                                  <span className="sm:hidden">Employer</span>
                                 </Button>
                               </div>
                             )}
