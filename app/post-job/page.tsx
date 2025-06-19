@@ -670,7 +670,7 @@ export default function PostJobPage() {
               className="col-span-full flex justify-center"
             >
               <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
-                <FileText className="h-12 w-12 text-accent mb-4" />
+                <FileText className="h-12 w-12 text-accent mb-4 mx-auto" />
                 <h3 className="font-varien text-lg font-semibold text-foreground mb-2">
                   No Listings Found
                 </h3>
@@ -875,9 +875,9 @@ export default function PostJobPage() {
               </motion.div>
             ))
           ) : (
-            <motion.div variants={fadeIn()} key="no-applicants" className="flex justify-center">
+            <motion.div variants={fadeIn()} key="no-applicants" className="col-span-full flex justify-center">
               <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
-                <Users className="h-12 w-12 text-accent mb-4" />
+                <Users className="h-12 w-12 text-accent mb-4 mx-auto" />
                 <h3 className="font-varien text-lg font-semibold text-foreground mb-2">
                   No Applicants Found
                 </h3>
