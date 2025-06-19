@@ -76,12 +76,12 @@ export function Header() {
               <div className="scale-[0.5]">
                 <ThemeSwitch />
               </div>
-              <div className="block md:hidden scale-[0.65] -mx-10">
+              <div className="block md:hidden scale-[0.65] -mx-12">
                 <ConnectWallet />
               </div>
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="scale-75 ml-1">
+                  <Button variant="ghost" size="icon" className="scale-75 translate-x-2">
                     <Menu className="h-6 w-6 text-accent" />
                     <span className="sr-only">Open menu</span>
                   </Button>
