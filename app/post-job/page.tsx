@@ -223,7 +223,7 @@ export default function PostJobPage() {
     provider: ethers.Provider
   ) => {
     try {
-      const results: any[] = [];
+      const results = [];
       for (const addr of jobAddresses) {
         const c = new ethers.Contract(addr, PROOF_OF_WORK_JOB_ABI, provider);
         const [
@@ -370,7 +370,10 @@ export default function PostJobPage() {
             How <span className="text-accent">It Works</span>
           </h2>
           <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-            <Balancer>Simple steps to post your job and start hiring with blockchain-powered security.</Balancer>
+            <Balancer>
+              Simple steps to post your job and start hiring with
+              blockchain-powered security.
+            </Balancer>
           </p>
         </motion.div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -394,14 +397,17 @@ export default function PostJobPage() {
         </div>
       </SectionWrapper>
 
-      {/* Create Listing Section */}
+      {/* Create Listing */}
       <SectionWrapper id="create-listing" padding="py-12 md:py-16">
         <motion.div variants={fadeIn()} className="text-center mb-12">
           <h2 className="font-varien text-3xl font-bold tracking-wider sm:text-4xl text-foreground">
             Create Your <span className="text-accent">Listing</span>
           </h2>
           <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-            <Balancer>Fill out the details below to create your job posting and lock funds in the smart contract.</Balancer>
+            <Balancer>
+              Fill out the details below to create your job posting and lock
+              funds in the smart contract.
+            </Balancer>
           </p>
         </motion.div>
 
@@ -575,7 +581,9 @@ export default function PostJobPage() {
             Your Current <span className="text-accent">Listings</span>
           </h2>
           <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-            <Balancer>Manage your active job postings and track applicant interest.</Balancer>
+            <Balancer>
+              Manage your active job postings and track applicant interest.
+            </Balancer>
           </p>
         </motion.div>
 
@@ -663,7 +671,7 @@ export default function PostJobPage() {
             >
               <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
                 <FileText className="h-12 w-12 text-accent mb-4" />
-                <h3 className="font-varien text-lg font-semibold text-accent mb-2">
+                <h3 className="font-varien text-lg font-semibold text-foreground mb-2">
                   No Listings Found
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -682,7 +690,10 @@ export default function PostJobPage() {
             Review <span className="text-accent">Applicants</span>
           </h2>
           <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-            <Balancer>Evaluate candidates based on their on-chain reputation and experience.</Balancer>
+            <Balancer>
+              Evaluate candidates based on their on-chain reputation and
+              experience.
+            </Balancer>
           </p>
         </motion.div>
 
@@ -800,7 +811,9 @@ export default function PostJobPage() {
                           onClick={async () => {
                             try {
                               if (!provider) {
-                                toast.error("Provider is not available. Please connect your wallet.");
+                                toast.error(
+                                  "Provider is not available. Please connect your wallet."
+                                );
                                 return;
                               }
                               const signer = await provider.getSigner();
@@ -822,13 +835,16 @@ export default function PostJobPage() {
                           <CheckCircle className="mr-1 h-4 w-4" />
                           Accept
                         </Button>
+
                         <Button
                           size="sm"
                           className="bg-red-500 hover:bg-red-600 text-white"
                           onClick={async () => {
                             try {
                               if (!provider) {
-                                toast.error("Provider is not available. Please connect your wallet.");
+                                toast.error(
+                                  "Provider is not available. Please connect your wallet."
+                                );
                                 return;
                               }
                               const signer = await provider.getSigner();
@@ -837,7 +853,9 @@ export default function PostJobPage() {
                                 PROOF_OF_WORK_JOB_ABI,
                                 signer
                               );
-                              const tx = await c.declineApplication(applicant.address);
+                              const tx = await c.declineApplication(
+                                applicant.address
+                              );
                               await tx.wait();
                               toast.success("Application declined successfully!");
                               updateApplicantStatus(applicant.id);
@@ -857,14 +875,10 @@ export default function PostJobPage() {
               </motion.div>
             ))
           ) : (
-            <motion.div
-              variants={fadeIn()}
-              key="no-applicants"
-              className="col-span-full flex justify-center"
-            >
-              <InteractiveCard className="max-w-full flex flex-col items-center justify-center text-center py-10">
+            <motion.div variants={fadeIn()} key="no-applicants" className="flex justify-center">
+              <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
                 <Users className="h-12 w-12 text-accent mb-4" />
-                <h3 className="font-varien text-lg font-semibold text-accent mb-2">
+                <h3 className="font-varien text-lg font-semibold text-foreground mb-2">
                   No Applicants Found
                 </h3>
                 <p className="text-sm text-muted-foreground">
