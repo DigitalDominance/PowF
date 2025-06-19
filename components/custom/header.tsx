@@ -70,13 +70,13 @@ export function Header() {
           // Mobile Navigation
           <div className="md:hidden flex items-center justify-end w-full ml-2">
             <div className="flex items-center gap-1">
-              <div className="scale-75 mr-6">
+              <div className="scale-75 ml-4">
                 <NotificationSystem />
               </div>
               <div className="scale-[0.65]">
                 <ThemeSwitch />
               </div>
-              <div className="block md:hidden scale-[0.65] -mx-10">
+              <div className="block md:hidden scale-[0.65] -mx-1">
                 <ConnectWallet />
               </div>
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -93,18 +93,18 @@ export function Header() {
                         <div className="relative h-8 w-auto">
                           {/* Dark mode logo (default) */}
                           <Image
-                            src="/powmobile.png"
+                            src="/powlogodarkmode.webp"
                             alt="Proof of Works Logo"
-                            width={40}
-                            height={40}
+                            width={160}
+                            height={32}
                             className="object-contain h-8 w-auto dark:block hidden"
                           />
                           {/* Light mode logo */}
                           <Image
-                            src="/powmobile.png"
+                            src="/powlogolightmode.webp"
                             alt="Proof of Works Logo"
-                            width={40}
-                            height={40}
+                            width={160}
+                            height={32}
                             className="object-contain h-8 w-auto dark:hidden block"
                           />
                         </div>
