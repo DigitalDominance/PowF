@@ -664,8 +664,12 @@ export default function PostJobPage() {
               </motion.div>
             ))
           ) : (
-            <motion.div variants={fadeIn()} key="no-listings">
-              <InteractiveCard className="h-full flex flex-col items-center justify-center text-center py-10">
+            <motion.div
+              variants={fadeIn()}
+              key="no-listings"
+              className="col-span-full flex justify-center"
+            >
+              <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
                 <FileText className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">
                   No Listings Found
@@ -888,4 +892,3 @@ export default function PostJobPage() {
     </div>
   );
 }
-
