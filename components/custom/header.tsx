@@ -70,7 +70,7 @@ export function Header() {
           // Mobile Navigation
           <div className="md:hidden flex items-center justify-end w-full ml-2">
             <div className="flex items-center gap-1">
-              <div className="scale-65 translate-x-4">
+              <div className="scale-50 translate-x-4">
                 <NotificationSystem />
               </div>
               <div className="scale-[0.5]">
