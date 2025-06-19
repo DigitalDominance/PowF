@@ -70,14 +70,14 @@ export function Header() {
           // Mobile Navigation
           <div className="md:hidden flex items-center justify-end w-full ml-2">
             <div className="flex items-center gap-1">
+              <div className="block md:hidden scale-[0.65] -mx-12">
+                <ConnectWallet />
+              </div>
               <div className="scale-50 translate-x-4">
                 <NotificationSystem />
               </div>
               <div className="scale-[0.5]">
                 <ThemeSwitch />
-              </div>
-              <div className="block md:hidden scale-[0.65] -mx-12">
-                <ConnectWallet />
               </div>
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
