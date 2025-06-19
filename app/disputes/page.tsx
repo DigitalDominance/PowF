@@ -38,7 +38,6 @@ import {
   User,
   Briefcase,
   Info,
-  X,
 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -497,108 +496,95 @@ export default function DisputesPage() {
                   How Disputes Work
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto" hideCloseButton>
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-8 w-8 rounded-full hover:bg-accent/20 transition-all duration-200 z-10"
-                    onClick={() => setHowDisputesWorkOpen(false)}
-                  >
-                    <motion.div initial={{ rotate: 0 }} whileHover={{ rotate: 90 }} transition={{ duration: 0.2 }}>
-                      <X className="h-4 w-4" />
+              <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="font-varien text-2xl tracking-wider text-center">
+                    How <span className="text-accent">Disputes Work</span>
+                  </DialogTitle>
+                  <DialogDescription className="text-center font-varela">
+                    <Balancer>
+                      Our DisputeDAO ensures fair outcomes through transparent voting by qualified jurors who review
+                      evidence from both parties.
+                    </Balancer>
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="py-6 space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {disputeProcessSteps.map((step, index) => (
+                      <motion.div variants={fadeIn(index * 0.1)} key={step.title} initial="hidden" animate="visible">
+                        <InteractiveCard className="h-full text-center">
+                          <div className="flex flex-col items-center">
+                            <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">{step.icon}</div>
+                            <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">
+                              {step.title}
+                            </h3>
+                            <p className="text-sm text-muted-foreground font-varela">
+                              <Balancer>{step.description}</Balancer>
+                            </p>
+                          </div>
+                        </InteractiveCard>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <motion.div variants={fadeIn(0.4)} initial="hidden" animate="visible">
+                      <InteractiveCard className="h-full">
+                        <div className="flex flex-col items-center text-center p-4">
+                          <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
+                            <Users className="h-8 w-8 text-accent" />
+                          </div>
+                          <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">
+                            Pre-Selected Jurors
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            <Balancer>
+                              Our DisputeDAO has two pre-selected jurors who review all disputes. These jurors have been
+                              chosen for their expertise and impartiality in resolving conflicts.
+                            </Balancer>
+                          </p>
+                        </div>
+                      </InteractiveCard>
                     </motion.div>
-                  </Button>
 
-                  <DialogHeader className="pr-10">
-                    <DialogTitle className="font-varien text-2xl tracking-wider text-center">
-                      How <span className="text-accent">Disputes Work</span>
-                    </DialogTitle>
-                    <DialogDescription className="text-center font-varela">
-                      <Balancer>
-                        Our DisputeDAO ensures fair outcomes through transparent voting by qualified jurors who review
-                        evidence from both parties.
-                      </Balancer>
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="py-6 space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {disputeProcessSteps.map((step, index) => (
-                        <motion.div variants={fadeIn(index * 0.1)} key={step.title} initial="hidden" animate="visible">
-                          <InteractiveCard className="h-full text-center">
-                            <div className="flex flex-col items-center">
-                              <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">{step.icon}</div>
-                              <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">
-                                {step.title}
-                              </h3>
-                              <p className="text-sm text-muted-foreground font-varela">
-                                <Balancer>{step.description}</Balancer>
-                              </p>
-                            </div>
-                          </InteractiveCard>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <motion.div variants={fadeIn(0.4)} initial="hidden" animate="visible">
-                        <InteractiveCard className="h-full">
-                          <div className="flex flex-col items-center text-center p-4">
-                            <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
-                              <Users className="h-8 w-8 text-accent" />
-                            </div>
-                            <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">
-                              Pre-Selected Jurors
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              <Balancer>
-                                Our DisputeDAO has two pre-selected jurors who review all disputes. These jurors have
-                                been chosen for their expertise and impartiality in resolving conflicts.
-                              </Balancer>
-                            </p>
+                    <motion.div variants={fadeIn(0.5)} initial="hidden" animate="visible">
+                      <InteractiveCard className="h-full">
+                        <div className="flex flex-col items-center text-center p-4">
+                          <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
+                            <Scale className="h-8 w-8 text-accent" />
                           </div>
-                        </InteractiveCard>
-                      </motion.div>
+                          <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">
+                            Fair Outcomes
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            <Balancer>
+                              Jurors review evidence from both parties and vote independently. The majority decision
+                              determines the outcome, which is executed automatically by the smart contract.
+                            </Balancer>
+                          </p>
+                        </div>
+                      </InteractiveCard>
+                    </motion.div>
 
-                      <motion.div variants={fadeIn(0.5)} initial="hidden" animate="visible">
-                        <InteractiveCard className="h-full">
-                          <div className="flex flex-col items-center text-center p-4">
-                            <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
-                              <Scale className="h-8 w-8 text-accent" />
-                            </div>
-                            <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">
-                              Fair Outcomes
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              <Balancer>
-                                Jurors review evidence from both parties and vote independently. The majority decision
-                                determines the outcome, which is executed automatically by the smart contract.
-                              </Balancer>
-                            </p>
+                    <motion.div variants={fadeIn(0.6)} initial="hidden" animate="visible">
+                      <InteractiveCard className="h-full">
+                        <div className="flex flex-col items-center text-center p-4">
+                          <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
+                            <Lock className="h-8 w-8 text-accent" />
                           </div>
-                        </InteractiveCard>
-                      </motion.div>
-
-                      <motion.div variants={fadeIn(0.6)} initial="hidden" animate="visible">
-                        <InteractiveCard className="h-full">
-                          <div className="flex flex-col items-center text-center p-4">
-                            <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
-                              <Lock className="h-8 w-8 text-accent" />
-                            </div>
-                            <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">
-                              Secure Funds
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              <Balancer>
-                                When a dispute is opened, remaining funds in the contract are frozen until resolution.
-                                This ensures that funds are distributed according to the jury's decision.
-                              </Balancer>
-                            </p>
-                          </div>
-                        </InteractiveCard>
-                      </motion.div>
-                    </div>
+                          <h3 className="font-varien text-lg font-normal tracking-wider mb-2 text-foreground">
+                            Secure Funds
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            <Balancer>
+                              When a dispute is opened, remaining funds in the contract are frozen until resolution.
+                              This ensures that funds are distributed according to the jury's decision.
+                            </Balancer>
+                          </p>
+                        </div>
+                      </InteractiveCard>
+                    </motion.div>
                   </div>
                 </div>
               </DialogContent>
