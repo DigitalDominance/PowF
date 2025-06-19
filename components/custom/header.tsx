@@ -93,18 +93,18 @@ export function Header() {
                         <div className="relative h-8 w-auto">
                           {/* Dark mode logo (default) */}
                           <Image
-                            src="/powlogodarkmode.webp"
+                            src="/powmobile.png"
                             alt="Proof of Works Logo"
-                            width={160}
-                            height={32}
+                            width={40}
+                            height={40}
                             className="object-contain h-8 w-auto dark:block hidden"
                           />
                           {/* Light mode logo */}
                           <Image
-                            src="/powlogolightmode.webp"
+                            src="/powmobile.png"
                             alt="Proof of Works Logo"
-                            width={160}
-                            height={32}
+                            width={40}
+                            height={40}
                             className="object-contain h-8 w-auto dark:hidden block"
                           />
                         </div>
