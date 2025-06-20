@@ -4,7 +4,7 @@ import { useWeb3Modal, useWeb3ModalState } from "@web3modal/wagmi/react"
 import { useAccount, useEnsName, useBalance } from "wagmi"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Wallet, Copy, Check, ExternalLink } from "lucide-react"
+import { LogOut, Wallet, Copy, Check, ExternalLink, Briefcase, User } from "lucide-react"
 // import { chains, kaspaEVMTestnet } from "@/lib/web3modal-config" // Import chains
 import { useState, useEffect, useRef } from "react"
 import {
@@ -30,13 +30,13 @@ function truncateAddress(address: string) {
 export function ConnectWallet() {
   const { open, close } = useAppKit()
   const { disconnect } = useDisconnect();
-  const { provider, address, isConnected } = useUserContext();
+  const { provider, address, isConnected, displayName, role } = useUserContext();
   const [isSigned, setIsSigned] = useState(false); // Track signing completion
-  const [displayName, setDisplayName] = useState(""); // State for displayName
+  const [displayName_, setDisplayName_] = useState(""); // State for displayName
   const [challenge, setChallenge] = useState(""); // State for storing the challenge
 
   const [copied, setCopied] = useState(false)
-  const [role, setRole] = useState(""); // State for role  
+  const [role_, setRole_] = useState(""); // State for role  
 
   const { setUserData } = useUserContext();  
 
@@ -60,6 +60,23 @@ export function ConnectWallet() {
       console.log('connect')
       await open(); // Open WalletConnect modal
   }
+
+  const renderRoleIcon = () => {
+    if (role === "employer") {
+      return (
+        <span className="flex items-center gap-1 text-green-500">
+          <Briefcase className="h-4 w-4"/> Employer
+        </span>
+      );
+    } else if (role === "worker") {
+      return (
+        <span className="flex items-center gap-1 text-blue-500">
+          <User className="h-4 w-4"/> Worker
+        </span>
+      );
+    }
+    return null; // No role assigned
+  };  
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -99,13 +116,13 @@ export function ConnectWallet() {
       const { data: { accessToken, refreshToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
         wallet: address,
         signature: await signer?.signMessage(challenge), // Use the signed challenge
-        displayName, // Pass the custom displayName
-        role
+        displayName: displayName_, // Pass the custom displayName
+        role: role_
       });
   
       localStorage.setItem("accessToken", accessToken); // Save access token
       localStorage.setItem("refreshToken", refreshToken); // Save refresh token
-      setUserData({ wallet: address || '', displayName, role });
+      setUserData({ wallet: address || '', displayName: displayName_, role: role_ });
 
       toast.success("Authentication successful!");
       setIsSigned(false); // Reset signing state after submission
@@ -159,8 +176,8 @@ export function ConnectWallet() {
       const { data: { accessToken, refreshToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
         wallet: address,
         signature: await signer?.signMessage(challenge),
-        displayName, // Use the existing displayName
-        role,        // Use the existing role
+        displayName: displayName_, // Use the existing displayName
+        role: role_,        // Use the existing role
       });
   
       // Store the new tokens
@@ -204,7 +221,10 @@ export function ConnectWallet() {
                 <AvatarImage src={`https://effigy.im/a/${address}.svg`} alt={address} />
                 <AvatarFallback>{address.charAt(2)}</AvatarFallback>
               </Avatar>
-              <span>{truncateAddress(address)}</span>
+              <div className="flex flex-col items-start">
+                <span>{displayName || truncateAddress(address)}</span>
+                {renderRoleIcon()}
+              </div>
             </Button>
           </motion.div>
         </DropdownMenuTrigger>
@@ -253,8 +273,8 @@ export function ConnectWallet() {
           <input
             id="displayName"
             type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            value={displayName_}
+            onChange={(e) => setDisplayName_(e.target.value)}
             placeholder="Enter your display name"
             className="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent bg-gray-700 text-white sm:text-sm"
           />
@@ -265,8 +285,8 @@ export function ConnectWallet() {
           </label>
           <select
             id="role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
+            value={role_}
+            onChange={(e) => setRole_(e.target.value)}
             className="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent bg-gray-700 text-white sm:text-sm"
           >
             <option value="" disabled>Select your role</option>

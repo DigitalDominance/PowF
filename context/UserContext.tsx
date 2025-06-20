@@ -1,5 +1,5 @@
 'use client'
-// env for api needed
+
 import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
 import { BrowserProvider, Eip1193Provider, ethers } from "ethers";
 import React, { createContext, useState, useContext, useMemo, useEffect } from "react";
