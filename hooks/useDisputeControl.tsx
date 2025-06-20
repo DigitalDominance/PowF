@@ -1,127 +1,112 @@
-import { useState, useEffect } from "react";
-import { io } from "socket.io-client";
-import axios from "axios";
+import { useState } from "react";
+import { ethers } from "ethers";
+import { useUserContext } from "../context/UserContext";
+import { toast } from "sonner";
 
-export function useDisputeControl(disputeId?: number) {
-  const [messages, setMessages] = useState<any[]>([]);
-  const [disputes, setDisputes] = useState<{ id: number; [key: string]: any }[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const socket = io(process.env.NEXT_PUBLIC_API);
+export const useDisputeControl = () => {
+    const { contracts, provider } = useUserContext(); // Get contracts and provider from UserContext
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-  // Fetch existing disputes
-  const fetchDisputes = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API}/disputes`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` },
-      });
-      setDisputes(data);
-    } catch (err) {
-      setError("Failed to fetch disputes.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const createDispute = async (jobAddress: string, reason: string) => {
+        const disputeDAOContract = contracts?.disputeDAO; // Get the disputeDAO contract from UserContext
 
-  // Create a new dispute
-  const createDispute = async (jobId: string, reason: string) => {
-    try {
-      setLoading(true);
-      const { data } = await axios.post(
-        `${process.env.NEXT_PUBLIC_API}/disputes`,
-        { jobId, reason },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` },
+        if (!disputeDAOContract || !provider) {
+            setError("DisputeDAO contract or provider is not available.");
+            toast.error("DisputeDAO contract or provider is not available.");
+            return null;
         }
-      );
-      setDisputes((prev) => [...prev, data]);
-      return data;
-    } catch (err) {
-      setError("Failed to create dispute.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // Delete a dispute
-  const deleteDispute = async (disputeId: number) => {
-    try {
-      setLoading(true);
-      await axios.delete(`${process.env.NEXT_PUBLIC_API}/disputes/${disputeId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` },
-      });
-      setDisputes((prev) => prev.filter((dispute) => dispute.id !== disputeId));
-    } catch (err) {
-      setError("Failed to delete dispute.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch messages for a specific dispute
-  const fetchMessages = async () => {
-    if (!disputeId) return;
-    try {
-      setLoading(true);
-      const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API}/messages/${disputeId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` },
-      });
-      setMessages(data);
-    } catch (err) {
-      setError("Failed to fetch messages.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Send a new message
-  const sendMessage = async (content: string) => {
-    if (!disputeId) return;
-    try {
-      const { data } = await axios.post(
-        `${process.env.NEXT_PUBLIC_API}/messages`,
-        { disputeId, content },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` },
+        if (!reason.trim()) {
+            setError("Reason cannot be empty.");
+            toast.error("Reason cannot be empty.");
+            return null;
         }
-      );
-      setMessages((prev) => [...prev, data]);
-    } catch (err) {
-      setError("Failed to send message.");
-    }
-  };
 
-  // WebSocket integration for real-time updates
-  useEffect(() => {
-    if (!disputeId) return;
+        try {
+            setIsLoading(true);
+            setError(null);
 
-    // Join the dispute room
-    socket.emit("joinRoom", disputeId);
+            // Call the createDispute function
+            const txPromise = disputeDAOContract.createDispute(
+                jobAddress, // Job address
+                reason // Reason for the dispute
+            );
 
-    // Listen for new messages
-    socket.on("newMessage", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+            // Use toast.promise to handle the transaction
+            toast.promise(
+                txPromise,
+                {
+                    loading: "Submitting dispute...",
+                    success: "Dispute submitted successfully!",
+                    error: "Failed to submit dispute.",
+                }
+            );
 
-    return () => {
-      socket.off("newMessage");
-      socket.disconnect();
+            // Wait for the transaction to be mined
+            const tx = await txPromise;
+            await tx.wait();
+
+            // Show a success toast message after the transaction is confirmed
+            toast.success("Dispute created successfully!");
+        } catch (err: any) {
+            console.error("Error creating dispute:", err);
+            setError(err.message || "An unknown error occurred.");
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
     };
-  }, [disputeId]);
 
-  useEffect(() => {
-    fetchDisputes();
-  }, []);
+    // Vote Function
+    const vote = async (disputeId: number, vote: string): Promise<void> => {
+        const disputeDAOContract = contracts?.disputeDAO;
 
-  return {
-    disputes,
-    messages,
-    loading,
-    error,
-    createDispute,
-    deleteDispute,
-    fetchMessages,
-    sendMessage,
-  };
-}
+        if (!disputeDAOContract || !provider) {
+            setError("DisputeDAO contract or provider is not available.");
+            toast.error("DisputeDAO contract or provider is not available.");
+            return;
+        }
+
+        if (vote !== "worker" && vote !== "employer") {
+            setError("Invalid vote. Must be 'worker' or 'employer'.");
+            toast.error("Invalid vote. Must be 'worker' or 'employer'.");
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            setError(null);
+
+            const support = vote === "worker"; // `true` for worker, `false` for employer
+            const txPromise = disputeDAOContract.vote(disputeId, support);
+
+            toast.promise(
+                txPromise,
+                {
+                    loading: `Casting your vote for ${vote}...`,
+                    success: `Vote for ${vote} submitted successfully!`,
+                    error: `Failed to submit vote for ${vote}.`,
+                }
+            );
+
+            const tx = await txPromise;
+            await tx.wait();
+
+            toast.success(`You voted for ${vote} successfully!`);
+        } catch (err: any) {
+            console.error("Error voting on dispute:", err);
+            setError(err.message || "An unknown error occurred.");
+            toast.error(err.message || "An unknown error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return {
+        createDispute,
+        vote,
+        isLoading,
+        error,
+    };
+};
