@@ -29,8 +29,8 @@ const kaspaEVMTestnet = {
 const metadata = {
   name: "Kasplex Network Testnet",
   description: "Kasplex Network Testnet",
-  url: "https://mywebsite.com", // origin must match your domain & subdomain
-  icons: ["https://avatars.mywebsite.com/"],
+  url: "https://www.proofofworks.com", // origin must match your domain & subdomain
+  icons: ["https://www.proofofworks.com/"],
 };
 
 // 3. Create the AppKit instance
