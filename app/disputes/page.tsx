@@ -81,205 +81,91 @@ const SectionWrapper = ({
   </section>
 )
 
-// Placeholder data for disputes
-const myDisputes = [
-  {
-    id: 301,
-    jobId: 101,
-    jobTitle: "Backend Developer for NFT Marketplace",
-    employer: {
-      address: "0x1234...5678",
-      name: "NFT World",
-    },
-    worker: {
-      address: "0xabcd...efgh",
-      name: "Alex Chen",
-    },
-    openedDate: "2024-01-20",
-    status: "pending",
-    reason: "Payment delay for completed milestone",
-    votes: { for: 3, against: 1 },
-    messages: [
-      {
-        sender: "0xabcd...efgh", // worker
-        senderName: "Alex Chen",
-        role: "worker",
-        timestamp: "2024-01-20T10:30:00Z",
-        content:
-          "I've completed all the required work for milestone 2 as specified in the contract, but payment has been delayed for over a week now.",
-      },
-      {
-        sender: "0x1234...5678", // employer
-        senderName: "NFT World",
-        role: "employer",
-        timestamp: "2024-01-20T14:45:00Z",
-        content:
-          "The work submitted doesn't meet our quality standards. The API endpoints are not properly documented and there are performance issues.",
-      },
-      {
-        sender: "0xfF81...07C9", // juror
-        senderName: "Juror 1",
-        role: "juror",
-        timestamp: "2024-01-21T09:15:00Z",
-        content:
-          "Can the worker provide evidence of the completed work and the employer provide specific examples of the quality issues?",
-      },
-      {
-        sender: "0xabcd...efgh", // worker
-        senderName: "Alex Chen",
-        role: "worker",
-        timestamp: "2024-01-21T11:20:00Z",
-        content:
-          "I've attached the documentation and test results showing all endpoints are working as specified. The performance meets the metrics we agreed upon in the contract.",
-      },
-    ],
-    evidence: [
-      { type: "text", content: "Completed work as specified in the contract", submittedBy: "worker" },
-      { type: "text", content: "Work was not up to the agreed standard", submittedBy: "employer" },
-    ],
-    timeline: [
-      { date: "2024-01-20", event: "Dispute opened", actor: "worker" },
-      { date: "2024-01-21", event: "Employer notified", actor: "system" },
-      { date: "2024-01-22", event: "Employer responded", actor: "employer" },
-      { date: "2024-01-23", event: "Voting started", actor: "system" },
-    ],
-  },
-  {
-    id: 302,
-    jobId: 103,
-    jobTitle: "Smart Contract Audit",
-    employer: {
-      address: "0x9876...5432",
-      name: "DeFi Protocol",
-    },
-    worker: {
-      address: "0xabcd...efgh",
-      name: "Alex Chen",
-    },
-    openedDate: "2024-01-15",
-    status: "resolved",
-    resolution: "in_favor_of_worker",
-    reason: "Scope creep without additional compensation",
-    votes: { for: 5, against: 1 },
-    messages: [
-      {
-        sender: "0xabcd...efgh", // worker
-        senderName: "Alex Chen",
-        role: "worker",
-        timestamp: "2024-01-15T08:30:00Z",
-        content:
-          "The original contract specified auditing 2 smart contracts, but the employer has added 3 more contracts without adjusting the payment.",
-      },
-      {
-        sender: "0x9876...5432", // employer
-        senderName: "DeFi Protocol",
-        role: "employer",
-        timestamp: "2024-01-15T10:15:00Z",
-        content:
-          "The additional contracts are minor extensions of the original ones and don't require significant additional work.",
-      },
-    ],
-    evidence: [
-      { type: "text", content: "Original contract specified 2 contracts to audit", submittedBy: "worker" },
-      { type: "text", content: "Employer added 3 more contracts without adjusting payment", submittedBy: "worker" },
-      { type: "text", content: "Additional contracts were minor extensions", submittedBy: "employer" },
-    ],
-    timeline: [
-      { date: "2024-01-15", event: "Dispute opened", actor: "worker" },
-      { date: "2024-01-16", event: "Employer notified", actor: "system" },
-      { date: "2024-01-17", event: "Employer responded", actor: "employer" },
-      { date: "2024-01-18", event: "Voting started", actor: "system" },
-      { date: "2024-01-22", event: "Voting ended", actor: "system" },
-      { date: "2024-01-22", event: "Resolved in favor of worker", actor: "system" },
-    ],
-  },
-]
-
 // Placeholder data for jury duty
-const juryDuty = [
-  {
-    id: 401,
-    jobTitle: "Frontend Developer for DeFi Dashboard",
-    disputeType: "Payment Dispute",
-    employer: {
-      address: "0x2468...1357",
-      name: "DeFi Labs",
-    },
-    worker: {
-      address: "0x1357...2468",
-      name: "Sarah Johnson",
-    },
-    openedDate: "2024-01-22",
-    status: "voting",
-    votingEnds: "2024-01-29",
-    description:
-      "Worker claims they completed all requirements but employer is withholding payment. Employer claims the work doesn't meet specifications.",
-    yourVote: null,
-    messages: [
-      {
-        sender: "0x1357...2468", // worker
-        senderName: "Sarah Johnson",
-        role: "worker",
-        timestamp: "2024-01-22T09:30:00Z",
-        content:
-          "I've completed all the requirements as specified in the contract. The dashboard is fully functional with all the requested features.",
-      },
-      {
-        sender: "0x2468...1357", // employer
-        senderName: "DeFi Labs",
-        role: "employer",
-        timestamp: "2024-01-22T14:20:00Z",
-        content:
-          "The dashboard is missing key features we specified, including the portfolio tracking and transaction history components.",
-      },
-    ],
-  },
-  {
-    id: 402,
-    jobTitle: "Content Writer for NFT Project",
-    disputeType: "Scope Dispute",
-    employer: {
-      address: "0x3579...2468",
-      name: "NFT Collective",
-    },
-    worker: {
-      address: "0x2468...3579",
-      name: "Michael Brown",
-    },
-    openedDate: "2024-01-18",
-    status: "voting",
-    votingEnds: "2024-01-25",
-    description:
-      "Worker claims employer significantly increased scope without additional compensation. Employer claims changes were minor and within original scope.",
-    yourVote: "worker",
-    messages: [
-      {
-        sender: "0x2468...3579", // worker
-        senderName: "Michael Brown",
-        role: "worker",
-        timestamp: "2024-01-18T11:45:00Z",
-        content:
-          "The original contract was for writing content for 5 NFT descriptions, but the employer has requested content for 15 NFTs without adjusting the payment.",
-      },
-      {
-        sender: "0x3579...2468", // employer
-        senderName: "NFT Collective",
-        role: "employer",
-        timestamp: "2024-01-18T16:30:00Z",
-        content:
-          "The additional NFTs are part of the same collection and follow the same template, requiring minimal additional work.",
-      },
-      {
-        sender: "0xfF81...07C9", // juror (you)
-        senderName: "Juror 1",
-        role: "juror",
-        timestamp: "2024-01-19T10:15:00Z",
-        content:
-          "After reviewing the evidence, I'm voting in favor of the worker. Tripling the workload is a significant scope increase regardless of template similarity.",
-      },
-    ],
-  },
-]
+// const juryDuty = [
+//   {
+//     id: 401,
+//     jobTitle: "Frontend Developer for DeFi Dashboard",
+//     disputeType: "Payment Dispute",
+//     employer: {
+//       address: "0x2468...1357",
+//       name: "DeFi Labs",
+//     },
+//     worker: {
+//       address: "0x1357...2468",
+//       name: "Sarah Johnson",
+//     },
+//     openedDate: "2024-01-22",
+//     status: "voting",
+//     votingEnds: "2024-01-29",
+//     description:
+//       "Worker claims they completed all requirements but employer is withholding payment. Employer claims the work doesn't meet specifications.",
+//     yourVote: null,
+//     messages: [
+//       {
+//         sender: "0x1357...2468", // worker
+//         senderName: "Sarah Johnson",
+//         role: "worker",
+//         timestamp: "2024-01-22T09:30:00Z",
+//         content:
+//           "I've completed all the requirements as specified in the contract. The dashboard is fully functional with all the requested features.",
+//       },
+//       {
+//         sender: "0x2468...1357", // employer
+//         senderName: "DeFi Labs",
+//         role: "employer",
+//         timestamp: "2024-01-22T14:20:00Z",
+//         content:
+//           "The dashboard is missing key features we specified, including the portfolio tracking and transaction history components.",
+//       },
+//     ],
+//   },
+//   {
+//     id: 402,
+//     jobTitle: "Content Writer for NFT Project",
+//     disputeType: "Scope Dispute",
+//     employer: {
+//       address: "0x3579...2468",
+//       name: "NFT Collective",
+//     },
+//     worker: {
+//       address: "0x2468...3579",
+//       name: "Michael Brown",
+//     },
+//     openedDate: "2024-01-18",
+//     status: "voting",
+//     votingEnds: "2024-01-25",
+//     description:
+//       "Worker claims employer significantly increased scope without additional compensation. Employer claims changes were minor and within original scope.",
+//     yourVote: "worker",
+//     messages: [
+//       {
+//         sender: "0x2468...3579", // worker
+//         senderName: "Michael Brown",
+//         role: "worker",
+//         timestamp: "2024-01-18T11:45:00Z",
+//         content:
+//           "The original contract was for writing content for 5 NFT descriptions, but the employer has requested content for 15 NFTs without adjusting the payment.",
+//       },
+//       {
+//         sender: "0x3579...2468", // employer
+//         senderName: "NFT Collective",
+//         role: "employer",
+//         timestamp: "2024-01-18T16:30:00Z",
+//         content:
+//           "The additional NFTs are part of the same collection and follow the same template, requiring minimal additional work.",
+//       },
+//       {
+//         sender: "0xfF81...07C9", // juror (you)
+//         senderName: "Juror 1",
+//         role: "juror",
+//         timestamp: "2024-01-19T10:15:00Z",
+//         content:
+//           "After reviewing the evidence, I'm voting in favor of the worker. Tripling the workload is a significant scope increase regardless of template similarity.",
+//       },
+//     ],
+//   },
+// ]
 
 const disputeProcessSteps = [
   {
@@ -309,23 +195,23 @@ const disputeProcessSteps = [
 ]
 
 export default function DisputesPage() {
-  const { contracts, allJobs } = useUserContext()
+  const { contracts, myDisputes, myJobs, sendMessage, disputes } = useUserContext()
 
-  const { disputes, messages, loading, error, createDispute, deleteDispute, fetchMessages, sendMessage } =
-    useDisputeControl()
-
+  const { createDispute, vote } = useDisputeControl();
   const [disputeReason, setDisputeReason] = useState("")
   const [selectedJob, setSelectedJob] = useState("")
   const [activeTab, setActiveTab] = useState("my-disputes")
-  const [voteSelection, setVoteSelection] = useState<Record<number, string | null>>({})
+  // const [voteSelection, setVoteSelection] = useState<Record<number, string | null>>({})
   const [selectedDispute, setSelectedDispute] = useState<(typeof myDisputes)[0] | null>(null)
-  const [selectedJuryDispute, setSelectedJuryDispute] = useState<(typeof juryDuty)[0] | null>(null)
+  const [selectedJuryDispute, setSelectedJuryDispute] = useState<(typeof disputes)[0] | null>(null)
   const [newMessage, setNewMessage] = useState("")
   const [howDisputesWorkOpen, setHowDisputesWorkOpen] = useState(false)
+  console.log('selectedDispute', selectedDispute)
 
+  
   // Handle dispute submission
-  const handleDisputeSubmit = () => {
-    if (!contracts || !contracts.disputeDAO) {
+  const handleDisputeSubmit = async () => {
+    if (!contracts) {
       toast.error("Please connect your wallet first", {
         duration: 3000, // Example of a valid property; adjust as needed
       })
@@ -333,19 +219,7 @@ export default function DisputesPage() {
     }
     console.log("Dispute submitted for job:", selectedJob, "with reason:", disputeReason)
     try {
-      createDispute(selectedJob, disputeReason)
-        .then((dispute) => {
-          toast.success("Dispute created successfully!", {
-            duration: 3000,
-          })
-          setSelectedDispute(dispute)
-        })
-        .catch((error) => {
-          console.error("Error creating dispute:", error)
-          toast.error("Failed to create dispute. Please try again.", {
-            duration: 3000,
-          })
-        })
+      await createDispute(selectedJob, disputeReason);
     } catch (error) {
       console.error("Error creating dispute:", error)
       toast.error("Failed to create dispute. Please try again.", {
@@ -359,9 +233,10 @@ export default function DisputesPage() {
   }
 
   // Handle jury vote
-  const handleJuryVote = (disputeId: number, vote: string) => {
-    setVoteSelection((prev) => ({ ...prev, [disputeId]: vote }))
-    console.log(`Voted ${vote} on dispute ${disputeId}`)
+  const handleJuryVote = async (disputeId: number, voteType: string) => {
+    // setVoteSelection((prev) => ({ ...prev, [disputeId]: vote }))
+    // console.log(`Voted ${vote} on dispute ${disputeId}`)
+    await vote(disputeId, voteType);
     // In a real implementation, this would call a smart contract function
   }
 
@@ -371,7 +246,8 @@ export default function DisputesPage() {
 
     console.log("Sending message:", newMessage)
     // In a real implementation, this would call the postMessage function on the smart contract
-
+    // sendMessage(newMessage);
+    sendMessage(selectedDispute?.id.toString() || "", newMessage)
     // Reset message input
     setNewMessage("")
   }
@@ -438,9 +314,9 @@ export default function DisputesPage() {
                         <SelectValue placeholder="Select a job" />
                       </SelectTrigger>
                       <SelectContent className="font-varela">
-                        {allJobs?.map((job) => {
+                        {myJobs?.map((job) => {
                           return (
-                            <SelectItem key={job.address} value={job.address}>
+                            <SelectItem key={job.id} value={job.id}>
                               {job.title} - {job.employer}
                             </SelectItem>
                           )
@@ -697,7 +573,7 @@ export default function DisputesPage() {
                     <div className="space-y-4">
                       <h3 className="font-varien text-lg font-normal tracking-wider text-foreground">Messages</h3>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto p-2">
-                        {selectedDispute.messages.map((message, index) => (
+                        {selectedDispute.messages.map((message: any, index: number) => (
                           <div
                             key={index}
                             className={`flex gap-3 ${
@@ -737,7 +613,7 @@ export default function DisputesPage() {
                                   </Badge>
                                 </span>
                                 <span className="text-xs text-muted-foreground font-varela">
-                                  {formatTimestamp(message.timestamp)}
+                                  {message.timestamp}
                                 </span>
                               </div>
                               <p className="text-sm">{message.content}</p>
@@ -773,7 +649,7 @@ export default function DisputesPage() {
                       )}
                     </div>
 
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <h3 className="font-varien text-lg font-normal tracking-wider text-foreground">Timeline</h3>
                       <div className="space-y-2">
                         {selectedDispute.timeline.map((item, index) => (
@@ -795,7 +671,7 @@ export default function DisputesPage() {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </InteractiveCard>
               </div>
@@ -901,12 +777,12 @@ export default function DisputesPage() {
                     <ArrowRight className="mr-2 h-4 w-4 rotate-180" />
                     Back to Jury Duty
                   </Button>
-                  <Badge
+                  {/* <Badge
                     className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 font-varela"
                     variant="outline"
                   >
                     {selectedJuryDispute.disputeType}
-                  </Badge>
+                  </Badge> */}
                 </div>
 
                 <InteractiveCard>
@@ -966,7 +842,7 @@ export default function DisputesPage() {
                     <div className="space-y-4">
                       <h3 className="text-md font-semibold text-foreground">Messages</h3>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto p-2">
-                        {selectedJuryDispute.messages.map((message, index) => (
+                        {selectedJuryDispute.messages.map((message: any, index: number) => (
                           <div
                             key={index}
                             className={`flex gap-3 ${
@@ -1095,8 +971,8 @@ export default function DisputesPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6">
-                {juryDuty.length > 0 ? (
-                  juryDuty.map((dispute) => (
+                {disputes.length > 0 ? (
+                  disputes.map((dispute) => (
                     <motion.div key={dispute.id} variants={fadeIn(0.1)}>
                       <InteractiveCard onClick={() => setSelectedJuryDispute(dispute)}>
                         <div className="flex flex-col md:flex-row justify-between gap-6">
@@ -1104,12 +980,12 @@ export default function DisputesPage() {
                             <div>
                               <div className="flex items-center gap-2">
                                 <h3 className="text-lg font-semibold text-foreground">{dispute.jobTitle}</h3>
-                                <Badge
+                                {/* <Badge
                                   className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 font-varela"
                                   variant="outline"
                                 >
                                   {dispute.disputeType}
-                                </Badge>
+                                </Badge> */}
                               </div>
                             </div>
 

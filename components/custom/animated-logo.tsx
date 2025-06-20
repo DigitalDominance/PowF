@@ -108,7 +108,7 @@ export function AnimatedLogo() {
           className="absolute z-10"
           style={{
             left: "50%",
-            top: "98px",
+            top: "100px",
             transform: "translateX(-50%)",
             width: "200px",
           }}
@@ -118,7 +118,7 @@ export function AnimatedLogo() {
           whileHover="hover"
         >
           <Image
-            src="/logoanimationbottom.png"
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logoanimationbottom-bU7Q2TexWX8XNMaL0r8Wm2J4KSEtkT.png"
             alt="Logo bottom part"
             width={200}
             height={98}
@@ -142,7 +142,7 @@ export function AnimatedLogo() {
           whileHover="hover"
         >
           <Image
-            src="/logoanimationcenter.png"
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logoanimationcenter-d9CdD9zze11I9ixf12m6dJPxrp9FQV.png"
             alt="Logo center part"
             width={200}
             height={98}
@@ -166,7 +166,7 @@ export function AnimatedLogo() {
           whileHover="hover"
         >
           <Image
-            src="/logoanimationtop.png"
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logoanimationtop-7WFX4KDmUaNnG5GtxXhHcmhgMICkPs.png"
             alt="Logo top part"
             width={200}
             height={98}

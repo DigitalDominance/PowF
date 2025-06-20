@@ -46,9 +46,10 @@ import { Balancer } from "react-wrap-balancer"
 import { ethers } from "ethers"
 import PROOF_OF_WORK_JOB_ABI from '@/lib/contracts/ProofOfWorkJob.json';
 import REPUTATION_SYSTEM_ABI from '@/lib/contracts/ReputationSystem.json';
+import DISPUTE_DAO_ABI from '@/lib/contracts/DisputeDAO.json';
 import axios from "axios"
 import { toast } from "sonner"
-import { useUserContext } from "@/context/UserContext"
+import { fetchEmployerDisplayName, useUserContext } from "@/context/UserContext"
 
 // Animation variants
 const fadeIn = (delay = 0, duration = 0.5) => ({
@@ -84,248 +85,8 @@ const SectionWrapper = ({
   </section>
 )
 
-// Placeholder data for my jobs
-// const myJobs = [
-//   {
-//     id: 101,
-//     title: "Backend Developer for NFT Marketplace",
-//     employer: "NFT World",
-//     employerRating: 4.6,
-//     payType: "WEEKLY",
-//     weeklyPay: "3.2",
-//     durationWeeks: 10,
-//     totalPay: "32",
-//     startDate: "2024-01-05",
-//     nextPayoutDate: "2024-01-26",
-//     payoutsMade: 3,
-//     status: "active",
-//     progress: 30,
-//   },
-//   {
-//     id: 102,
-//     title: "Documentation for Smart Contract SDK",
-//     employer: "DevDAO",
-//     employerRating: 4.9,
-//     payType: "ONE_OFF",
-//     totalPay: "8",
-//     startDate: "2024-01-15",
-//     status: "active",
-//     progress: 75,
-//   },
-// ]
-
-// Placeholder data for applications
-// const myApplications = [
-//   {
-//     id: 201,
-//     jobId: 1,
-//     jobTitle: "Senior Smart Contract Developer",
-//     employer: "BlockchainX Labs",
-//     appliedDate: "2024-01-12",
-//     status: "pending",
-//     coverLetter: "I have 5 years of experience in Solidity development...",
-//   },
-//   {
-//     id: 202,
-//     jobId: 3,
-//     jobTitle: "Whitepaper Technical Writer",
-//     employer: "Proof Protocol",
-//     appliedDate: "2024-01-19",
-//     status: "hired",
-//     coverLetter: "I've written whitepapers for 3 successful blockchain projects...",
-//   },
-//   {
-//     id: 203,
-//     jobId: 5,
-//     jobTitle: "Smart Contract Security Audit",
-//     employer: "SecureChain",
-//     appliedDate: "2024-01-23",
-//     status: "rejected",
-//     coverLetter: "I specialize in smart contract security with a focus on DeFi protocols...",
-//     feedback: "We found a candidate with more specific experience in formal verification.",
-//   },
-// ]
-
-// // Placeholder data for disputes
-// const myDisputes = [
-//   {
-//     id: 301,
-//     jobId: 101,
-//     jobTitle: "Backend Developer for NFT Marketplace",
-//     employer: "NFT World",
-//     openedDate: "2024-01-20",
-//     status: "pending",
-//     reason: "Payment delay for completed milestone",
-//     votes: { for: 3, against: 1 },
-//   },
-// ]
-
 export default function JobsPage() {
-  const { contracts, provider, role, address, allJobs, jobAddresses } = useUserContext();
-  // const [allJobs, setAllJobs] = useState<any[]>([]);
-  const [myJobs, setMyJobs] = useState<any[]>([]);
-
-  // const fetchTags = async (jobContract: ethers.Contract) => {
-  //   try {
-  //       const tags = [];
-  //       let index = 0;
-
-  //       while (true) {
-  //           try {
-  //               const tag = await jobContract.tags(index); // Fetch tag by index
-  //               tags.push(tag);
-  //               index++;
-  //           } catch (error) {
-  //               // Break the loop when out-of-bounds error occurs
-  //               break;
-  //           }
-  //       }
-
-  //       console.log("Fetched tags:", tags);
-  //       return tags;
-  //   } catch (error) {
-  //       console.error("Error fetching tags:", error);
-  //       return [];
-  //   }
-  // };  
-
-  // const fetchAssignedWorkersLength = async (jobContract: ethers.Contract) => {
-  //     try {
-  //         const assignedWorkers = await jobContract.getAssignedWorkers(); // Fetch the entire array
-  //         console.log("Assigned Workers:", assignedWorkers);
-  //         return assignedWorkers.length; // Return the length of the array
-  //     } catch (error) {
-  //         console.error("Error fetching assigned workers:", error);
-  //         return 0;
-  //     }
-  // };  
-
-  const fetchEmployerInfo = async (wallet: string) => {
-    try {
-        // Check if the employer exists
-        const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${wallet.toLowerCase()}`);
-        if (response.status === 200) {
-            // Fetch employer details
-            const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${wallet.toLowerCase()}`);
-            console.log("Employer Info:", data);
-            return data;
-        }
-    } catch (error) {
-        if (typeof error === "object" && error !== null && "response" in error && (error as any).response?.status === 404) {
-            console.error("Employer not found:", wallet);
-        } else {
-            console.error("Error fetching employer info:", error);
-        }
-        return null;
-    }
-  };  
-
-  const fetchEmployerDisplayName = async (employerAddress: string) => {
-    try {
-      const employerInfo = await fetchEmployerInfo(employerAddress);
-      if (employerInfo) {
-        return employerInfo.displayName;
-      } else {
-        console.error("Employer not found for address:", employerAddress);
-        return "Unknown Employer";
-      }
-    } catch (error) {
-      console.error("Error fetching employer display name:", error);
-      return "Unknown Employer";
-    }
-  };
-
-  // const fetchJobDetails = async (jobAddresses: string[], provider: ethers.Provider) => {
-  //   try {
-  //     const jobs = [];
-  //     for (const address of jobAddresses) {
-  //         const jobContract = new ethers.Contract(address, PROOF_OF_WORK_JOB_ABI, provider);
-
-  //         // Fetch job details
-  //         const [employer, title, description, payType, weeklyPay, totalPay, durationWeeks, createdAt, positions] =
-  //             await Promise.all([
-  //                 jobContract.employer(),
-  //                 jobContract.title(),
-  //                 jobContract.description(),
-  //                 jobContract.payType(),
-  //                 jobContract.weeklyPay(),
-  //                 jobContract.totalPay(),
-  //                 jobContract.durationWeeks(),
-  //                 jobContract.createdAt(),
-  //                 jobContract.positions(),
-  //             ]);
-
-  //           // Fetch tags
-  //           const tags = await fetchTags(jobContract);    
-            
-  //           // Fetch assigned workers length
-  //           const assignedWorkersLength = await fetchAssignedWorkersLength(jobContract);            
-
-  //         // Map payType to string
-  //         const payTypeString = payType === BigInt(0) ? "WEEKLY" : "ONE_OFF";
-
-  //         // Fetch employer info
-  //         const employerInfo = await fetchEmployerInfo(employer);
-
-  //         // Fetch reputation scores
-  //         const reputationAddress = await jobContract.reputation(); // Get the ReputationSystem contract address
-  //         const reputationContract = new ethers.Contract(reputationAddress, REPUTATION_SYSTEM_ABI, provider);
-  //         const [workerScore, employerScore] = await reputationContract.getScores(employer);          
-
-  //         jobs.push({
-  //             address,
-  //             employer: employerInfo.displayName,
-  //             title,
-  //             description,
-  //             payType: payTypeString,
-  //             weeklyPay: ethers.formatEther(weeklyPay),
-  //             totalPay: ethers.formatEther(totalPay),
-  //             durationWeeks: durationWeeks.toString(),
-  //             createdAt: new Date(Number(createdAt) * 1000).toLocaleDateString(),
-  //             positions: positions.toString(),
-  //             tags,
-  //             positionsFilled: assignedWorkersLength,
-  //             employerRating: employerScore
-  //         });
-  //     }
-
-  //     console.log("Fetched job details:", jobs);
-  //     return jobs;
-  //   } catch (error) {
-  //       console.error("Error fetching job details:", error);
-  //       return [];
-  //   }    
-  // }  
-
-  // const fetchAllJobAddresses = async (jobFactoryContract: ethers.Contract) => {
-  //   try {
-  //       const jobAddresses = await jobFactoryContract.getAllJobs();
-  //       console.log("Fetched job addresses:", jobAddresses);
-  //       return jobAddresses;
-  //   } catch (error) {
-  //       console.error("Error fetching job addresses:", error);
-  //       return [];
-  //   }
-  // };  
-
-  // useEffect(() => {
-  //   const fetchAllJobs = async () => {
-  //     if (contracts?.jobFactory && provider) {
-  //       try {
-  //         // Fetch all job addresses
-  //         const jobAddresses = await fetchAllJobAddresses(contracts.jobFactory);
-
-  //         // Fetch job details
-  //         const jobs = await fetchJobDetails(jobAddresses, provider);
-  //         setAllJobs(jobs);
-  //       } catch (error) {
-  //         console.error("Error fetching allJobs:", error);
-  //       }
-  //     }
-  //   };
-
-  //   fetchAllJobs();
-  // }, [contracts?.jobFactory, provider]);
+  const { contracts, provider, role, address, allJobs, jobAddresses, myJobs } = useUserContext();
   
   // State for job filters
   const [searchTerm, setSearchTerm] = useState("")
@@ -426,10 +187,58 @@ export default function JobsPage() {
   }
 
   // Handle dispute submission
-  const handleDisputeSubmit = () => {
-    console.log("Dispute submitted for job:", selectedJobForDispute?.id, "with reason:", disputeReason)
-    // Reset dispute form
-    setDisputeReason("")
+  const handleDisputeSubmit = async () => {
+    if (!provider || !contracts || !selectedJobForDispute) {
+      toast.error("Please connect your wallet and select a job to open a dispute.");
+      return;
+    }
+  
+    if (!disputeReason.trim()) {
+      toast.error("Dispute reason cannot be empty.");
+      return;
+    }
+  
+    try {
+      const signer = await provider.getSigner();
+      const disputeDAOContract = new ethers.Contract(
+        selectedJobForDispute.disputeDAOAddress, // Address of the DisputeDAO contract
+        DISPUTE_DAO_ABI, // ABI of the DisputeDAO contract
+        signer
+      );
+  
+      // Call the createDispute function
+      const txPromise = disputeDAOContract.createDispute(
+        selectedJobForDispute.id, // Job address
+        disputeReason // Reason for the dispute
+      );
+  
+      // Use toast.promise to handle the transaction
+      toast.promise(
+        txPromise,
+        {
+          loading: "Submitting dispute...",
+          success: "Dispute submitted successfully!",
+          error: "Failed to submit dispute.",
+        }
+      );
+  
+      // Wait for the transaction to be mined
+      const tx = await txPromise;
+      await tx.wait();
+
+      // Show a success toast message after the transaction is confirmed
+      toast.success("Dispute created successfully!");      
+  
+      console.log("Dispute created:", tx);
+  
+      // Reset the dispute form
+      setDisputeReason("");
+      setSelectedJobForDispute(null);
+    } catch (error) {
+      console.error("Error submitting dispute:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit dispute.";
+      toast.error(errorMessage);
+    }
     // In a real implementation, this would call a smart contract function
   }
 
@@ -443,11 +252,18 @@ export default function JobsPage() {
         const hasApplied = await jobContract.hasApplied(userAddress);
         if (hasApplied) {
           // Fetch application details
-          const [applicantAddress, application, appliedAt, isActive] = await jobContract.getApplicant(userAddress);
+          const [applicantAddress, application, appliedAt, isActive, status, reviewedAt, wasAccepted] = await jobContract.getApplicant(userAddress);
 
           // Check if the user is already a worker
           const isWorker = await jobContract.isWorker(userAddress);
-          // const isActiveWorker = await jobContract.activeWorker(userAddress);          
+
+          // Determine the application status
+          let applicationStatus = "pending";
+          if (isWorker) {
+            applicationStatus = "hired"; // The applicant is already working
+          } else if (status === 1) { // REVIEWED
+            applicationStatus = wasAccepted ? "hired" : "rejected";
+          }        
 
           // Fetch job title and employer for display
           const [jobTitle, employer] = await Promise.all([
@@ -463,7 +279,7 @@ export default function JobsPage() {
             employer: employerName,
             application,
             appliedAt: new Date(Number(appliedAt) * 1000).toLocaleDateString(),
-            status: isActive === false ? 'rejected' : isWorker === false ? 'pending' : 'hired',
+            status: applicationStatus,
           });
         }
       }
@@ -528,78 +344,7 @@ export default function JobsPage() {
       const errorMessage = error instanceof Error ? error.message : "Failed to withdraw application.";
       toast.error(errorMessage);
     }
-  };  
-
-  const fetchMyJobs = async (jobAddresses: string[], userAddress: string) => {
-    try {
-      const jobs = [];
-      for (const jobAddress of jobAddresses) {
-        const jobContract = new ethers.Contract(jobAddress, PROOF_OF_WORK_JOB_ABI, provider);
-  
-        // Check if the user is an assigned worker
-        const isWorker = await jobContract.isWorker(userAddress);
-        if (isWorker) {
-          // Fetch job details
-          const [title, employer, payType, weeklyPay, totalPay, durationWeeks, startDate, payoutsMade, positionsFilled] =
-            await Promise.all([
-              jobContract.title(),
-              jobContract.employer(),
-              jobContract.payType(),
-              jobContract.weeklyPay(),
-              jobContract.totalPay(),
-              jobContract.durationWeeks(),
-              jobContract.lastPayoutAt(),
-              jobContract.payoutsMade(),
-              jobContract.getAssignedWorkers(),
-            ]);
-  
-          // Map payType to string
-          const payTypeString = payType === BigInt(0) ? "WEEKLY" : "ONE_OFF";
-  
-          // Fetch employer display name
-          const employerName = await fetchEmployerDisplayName(employer);
-  
-          jobs.push({
-            id: jobAddress,
-            title,
-            employer: employerName,
-            payType: payTypeString,
-            weeklyPay: ethers.formatEther(weeklyPay),
-            totalPay: ethers.formatEther(totalPay),
-            durationWeeks: durationWeeks.toString(),
-            startDate: new Date(Number(startDate) * 1000).toLocaleDateString(),
-            payoutsMade: payoutsMade.toString(),
-            positionsFilled: positionsFilled.length,
-          });
-        }
-      }
-  
-      console.log("Fetched my jobs:", jobs);
-      return jobs;
-    } catch (error) {
-      console.error("Error fetching my jobs:", error);
-      return [];
-    }
-  };  
-
-  useEffect(() => {
-    const fetchJobsForUser = async () => {
-      if (contracts?.jobFactory && provider && address) {
-        try {
-          // Fetch all job addresses
-          // const jobAddresses = await fetchAllJobAddresses(contracts.jobFactory);
-  
-          // Fetch jobs where the user is a worker
-          const jobs = await fetchMyJobs(jobAddresses, address);
-          setMyJobs(jobs);
-        } catch (error) {
-          console.error("Error fetching jobs for user:", error);
-        }
-      }
-    };
-  
-    fetchJobsForUser();
-  }, [contracts?.jobFactory, provider, address, jobAddresses]);  
+  }; 
 
     return (
     <div className="flex flex-col items-center">

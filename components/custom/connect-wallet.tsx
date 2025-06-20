@@ -38,7 +38,7 @@ export function ConnectWallet() {
   const [copied, setCopied] = useState(false)
   const [role, setRole] = useState(""); // State for role  
 
-  const { setUserData } = useUserContext();
+  const { setUserData } = useUserContext();  
 
   const handleCopyAddress = () => {
     if (address) {
@@ -64,11 +64,6 @@ export function ConnectWallet() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem("jwt");
-        if (!token) {
-          throw new Error("JWT not found. Please authenticate.");
-        }
-
         const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${address}`);
         if (response.status === 200) {
           const response_ = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
@@ -101,14 +96,15 @@ export function ConnectWallet() {
   const handleSubmitDisplayName = async () => {
     try {
       const signer = await provider?.getSigner();
-      const { data: { token } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
+      const { data: { accessToken, refreshToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
         wallet: address,
         signature: await signer?.signMessage(challenge), // Use the signed challenge
         displayName, // Pass the custom displayName
         role
       });
   
-      localStorage.setItem("jwt", token); // Save JWT for subsequent calls
+      localStorage.setItem("accessToken", accessToken); // Save access token
+      localStorage.setItem("refreshToken", refreshToken); // Save refresh token
       setUserData({ wallet: address || '', displayName, role });
 
       toast.success("Authentication successful!");
@@ -132,6 +128,71 @@ export function ConnectWallet() {
       </motion.div>
     );
   }
+
+  const handleDisconnect = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    setUserData({ wallet: '', displayName: '', role: '' });
+    disconnect();
+    toast.success("Disconnected successfully!");
+  };  
+
+  const refreshAccessToken = async () => {
+    try {
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (!refreshToken) throw new Error("Refresh token not found");
+  
+      const { data: { accessToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken });
+      localStorage.setItem("accessToken", accessToken);
+      return accessToken;
+    } catch (error) {
+      console.error("Failed to refresh access token:", error);
+      handleDisconnect();
+    }
+  };
+
+  const handleReAuthentication = async () => {
+    try {
+      toast.info("Re-authenticating...");
+      const { data: { challenge } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address });
+      const signer = await provider?.getSigner();
+      const { data: { accessToken, refreshToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
+        wallet: address,
+        signature: await signer?.signMessage(challenge),
+        displayName, // Use the existing displayName
+        role,        // Use the existing role
+      });
+  
+      // Store the new tokens
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+  
+      toast.success("Re-authentication successful!");
+    } catch (error) {
+      console.error("Re-authentication failed:", error);
+      toast.error("Re-authentication failed. Please reconnect your wallet.");
+      handleDisconnect(); // Disconnect the wallet if re-authentication fails
+    }
+  };  
+  
+  axios.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      if (error.response?.status === 401) {
+        const refreshToken = localStorage.getItem("refreshToken");
+        if (!refreshToken) {
+          await handleReAuthentication(); // Re-authenticate if refreshToken is missing
+        } else {
+          const newAccessToken = await refreshAccessToken();
+          if (newAccessToken) {
+            error.config.headers["Authorization"] = `Bearer ${newAccessToken}`;
+            return axios(error.config);
+          }
+        }
+      }
+      return Promise.reject(error);
+    }
+  );
 
   return (
     <div className="flex flex-col items-center gap-4">

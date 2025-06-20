@@ -36,7 +36,7 @@ import { InteractiveCard } from "@/components/custom/interactive-card";
 import { Balancer } from "react-wrap-balancer";
 import { toast } from "sonner";
 import { ethers, EventLog } from "ethers";
-import { fetchEmployerInfo, useUserContext } from "@/context/UserContext";
+import { fetchEmployerInfo, getAverageRating, useUserContext } from "@/context/UserContext";
 import PROOF_OF_WORK_JOB_ABI from "@/lib/contracts/ProofOfWorkJob.json";
 import REPUTATION_SYSTEM_ABI from "@/lib/contracts/ReputationSystem.json";
 
@@ -301,7 +301,9 @@ export default function PostJobPage() {
           a
         );
         const isCurrent = await c.isWorker(a);
-        const [workerScore] = await rep.getScores(a);
+        // const [workerScore] = await rep.getScores(a);
+        const ratingData = await getAverageRating(rep, a);
+        const averageRating = ratingData ? ratingData.averageRating : 0;
         const info = await fetchEmployerInfo(a);
         all.push({
           id: `${addr}-${a}`,
@@ -312,7 +314,7 @@ export default function PostJobPage() {
           application,
           appliedDate: Number(appliedAt) * 1000,
           status: isCurrent ? "reviewed" : "pending",
-          rating: workerScore,
+          rating: averageRating,
           tags,
         });
       }
@@ -822,8 +824,20 @@ export default function PostJobPage() {
                                 PROOF_OF_WORK_JOB_ABI,
                                 signer
                               );
-                              const tx = await c.acceptApplication(applicant.address);
-                              await tx.wait();
+                              // const tx = await c.acceptApplication(applicant.address);
+                              // await tx.wait();
+                              // Use toast.promise to handle the transaction
+                              await toast.promise(
+                                (async () => {
+                                  const tx = await c.acceptApplication(applicant.address);
+                                  await tx.wait();
+                                })(),
+                                {
+                                  loading: "Processing application...",
+                                  success: "Application accepted successfully!",
+                                  error: "Failed to accept application.",
+                                }
+                              );
                               toast.success("Application accepted successfully!");
                               updateApplicantStatus(applicant.id);
                             } catch (err) {
@@ -853,10 +867,22 @@ export default function PostJobPage() {
                                 PROOF_OF_WORK_JOB_ABI,
                                 signer
                               );
-                              const tx = await c.declineApplication(
-                                applicant.address
-                              );
-                              await tx.wait();
+                              // const tx = await c.declineApplication(
+                              //   applicant.address
+                              // );
+                              // await tx.wait();
+                              // Use toast.promise to handle the transaction
+                              await toast.promise(
+                                (async () => {
+                                  const tx = await c.declineApplication(applicant.address);
+                                  await tx.wait();
+                                })(),
+                                {
+                                  loading: "Processing decline request...",
+                                  success: "Application declined successfully!",
+                                  error: "Failed to decline application.",
+                                }
+                              );                              
                               toast.success("Application declined successfully!");
                               updateApplicantStatus(applicant.id);
                             } catch (err) {
