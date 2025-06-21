@@ -108,7 +108,7 @@ export function AnimatedLogo() {
           className="absolute z-10"
           style={{
             left: "50%",
-            top: "100px",
+            top: "98px",
             transform: "translateX(-50%)",
             width: "200px",
           }}
