@@ -118,7 +118,7 @@ export function AnimatedLogo() {
           whileHover="hover"
         >
           <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logoanimationbottom-bU7Q2TexWX8XNMaL0r8Wm2J4KSEtkT.png"
+            src="/logoanimationbottom.png"
             alt="Logo bottom part"
             width={200}
             height={98}
@@ -142,7 +142,7 @@ export function AnimatedLogo() {
           whileHover="hover"
         >
           <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logoanimationcenter-d9CdD9zze11I9ixf12m6dJPxrp9FQV.png"
+            src="/logoanimationcenter.png"
             alt="Logo center part"
             width={200}
             height={98}
@@ -166,7 +166,7 @@ export function AnimatedLogo() {
           whileHover="hover"
         >
           <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logoanimationtop-7WFX4KDmUaNnG5GtxXhHcmhgMICkPs.png"
+            src="/logoanimationtop.png"
             alt="Logo top part"
             width={200}
             height={98}
