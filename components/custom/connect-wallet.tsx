@@ -197,14 +197,24 @@ export function ConnectWallet() {
     async (error) => {
       if (error.response?.status === 401) {
         const refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) {
-          await handleReAuthentication(); // Re-authenticate if refreshToken is missing
-        } else {
-          const newAccessToken = await refreshAccessToken();
-          if (newAccessToken) {
-            error.config.headers["Authorization"] = `Bearer ${newAccessToken}`;
+        if (refreshToken) {
+          try {
+            const { data: { accessToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken });
+            localStorage.setItem("accessToken", accessToken);
+            error.config.headers["Authorization"] = `Bearer ${accessToken}`;
             return axios(error.config);
+          } catch (refreshError) {
+            console.error("Token refresh failed:", refreshError);
           }
+        }
+  
+        // Only prompt for wallet signing if refresh fails
+        try {
+          await handleReAuthentication();
+          return axios(error.config);
+        } catch (authError) {
+          console.error("Re-authentication failed:", authError);
+          handleDisconnect(); // Disconnect if re-authentication fails
         }
       }
       return Promise.reject(error);

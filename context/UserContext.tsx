@@ -335,24 +335,31 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const workerAddress = assignedWorkers.length > 0 ? assignedWorkers[0] : null;
           const workerName = workerAddress ? await fetchEmployerDisplayName(workerAddress) : "Unknown Worker";
 
+          console.log('Assigned Workers', assignedWorkers)
+
           // Fetch messages for the dispute
           const messages = await axios
             .get(`${process.env.NEXT_PUBLIC_API}/messages/${id}`, {
               headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
             })
-            .then((res) =>
-              res.data.map((msg: any) => ({
-                sender: msg.sender,
-                senderName: msg.sender === employer.toLowerCase() ? employerName : workerName,
-                role: msg.sender === employer.toLowerCase() ? "employer" : "worker",
-                content: msg.content,
-                timestamp: new Date(msg.createdAt).toLocaleString(),
-              }))
-            )
+            .then(async (res) => {
+                const resolvedMessages = await Promise.all(
+                  res.data.map(async (msg: any) => ({
+                  sender: msg.sender,
+                  senderName: await fetchEmployerDisplayName(msg.sender),
+                  role: msg.sender === employer.toLowerCase() ? "employer" : assignedWorkers.find((assigend: any) => msg.sender === assigend.toLowerCase()) ? "worker" : "juror",
+                  content: msg.content,
+                  timestamp: new Date(msg.createdAt).toLocaleString(),
+                }))
+              );
+              return resolvedMessages;
+            })
             .catch((error) => {
               console.error(`Error fetching messages for dispute ${id}:`, error);
               return [];
             });
+
+          console.log('messages', messages)
 
           // Add additional fields
           return {
