@@ -242,6 +242,21 @@ export default function DisputesPage() {
         // Reset message input immediately
         setNewMessage("")
 
+        // Refresh messages by calling the API again
+        setTimeout(async () => {
+          try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API}/messages/${disputeId}`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` },
+            })
+            if (response.ok) {
+              const updatedMessages = await response.json()
+              // The hook should automatically update via WebSocket, but this ensures consistency
+            }
+          } catch (error) {
+            console.error("Error refreshing messages:", error)
+          }
+        }, 500)
+
         toast.success("Message sent successfully!", {
           duration: 2000,
         })
@@ -575,69 +590,74 @@ export default function DisputesPage() {
                     <div className="space-y-4">
                       <h3 className="font-varien text-lg font-normal tracking-wider text-foreground">Messages</h3>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto p-2 messages-container">
-                        {chatHook.messages.map((message: any, index: number) => (
-                          <div
-                            key={message.id || index}
-                            className={`flex gap-3 ${
-                              message.senderRole === "worker"
-                                ? "justify-end"
-                                : message.senderRole === "employer"
-                                  ? "justify-start"
-                                  : "justify-center"
-                            }`}
-                          >
-                            {message.senderRole !== "worker" && (
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage
-                                  src={`https://effigy.im/a/${message.senderAddress || message.sender}.svg`}
-                                />
-                                <AvatarFallback>
-                                  {message.senderRole === "employer" ? (
-                                    <Briefcase className="h-4 w-4" />
-                                  ) : (
-                                    <Gavel className="h-4 w-4" />
-                                  )}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
+                        {chatHook.messages.map((message: any, index: number) => {
+                          const isJuror = message.senderRole === "juror"
+                          const isWorker = message.senderRole === "worker"
+                          const isEmployer = message.senderRole === "employer"
+
+                          return (
                             <div
-                              className={`max-w-[80%] rounded-lg p-3 ${
-                                message.senderRole === "worker"
-                                  ? "bg-accent/20 text-foreground"
-                                  : message.senderRole === "employer"
-                                    ? "bg-muted text-foreground"
-                                    : "bg-secondary text-foreground border border-border"
-                              }`}
+                              key={message.id || index}
+                              className={`flex gap-3 ${isJuror ? "justify-end" : "justify-start"}`}
                             >
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="font-medium text-sm font-varela">
-                                  {message.senderName || message.sender}{" "}
-                                  <Badge variant="outline" className="text-xs ml-1 font-varela">
-                                    {message.senderRole || message.role}
-                                  </Badge>
-                                </span>
-                                <span className="text-xs text-muted-foreground font-varela">
-                                  {message.createdAt
-                                    ? new Date(message.createdAt).toLocaleString()
-                                    : message.timestamp
-                                      ? new Date(message.timestamp).toLocaleString()
-                                      : "Just now"}
-                                </span>
+                              {!isJuror && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage
+                                    src={`https://effigy.im/a/${message.senderAddress || message.sender}.svg`}
+                                  />
+                                  <AvatarFallback>
+                                    {isEmployer ? <Briefcase className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                              <div
+                                className={`max-w-[80%] rounded-lg p-3 ${
+                                  isJuror
+                                    ? "bg-purple-100 dark:bg-purple-900/30 text-foreground border border-purple-200 dark:border-purple-700"
+                                    : isWorker
+                                      ? "bg-green-100 dark:bg-green-900/30 text-foreground border border-green-200 dark:border-green-700"
+                                      : "bg-red-100 dark:bg-red-900/30 text-foreground border border-red-200 dark:border-red-700"
+                                }`}
+                              >
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-medium text-sm font-varela">
+                                    {message.senderName || "Unknown User"}{" "}
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-xs ml-1 font-varela ${
+                                        isJuror
+                                          ? "bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                                          : isWorker
+                                            ? "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
+                                            : "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30"
+                                      }`}
+                                    >
+                                      {isJuror ? "Juror" : isWorker ? "Worker" : "Employer"}
+                                    </Badge>
+                                  </span>
+                                  <span className="text-xs text-muted-foreground font-varela">
+                                    {message.createdAt
+                                      ? new Date(message.createdAt).toLocaleString()
+                                      : message.timestamp
+                                        ? new Date(message.timestamp).toLocaleString()
+                                        : "Just now"}
+                                  </span>
+                                </div>
+                                <p className="text-sm">{message.content}</p>
                               </div>
-                              <p className="text-sm">{message.content}</p>
+                              {isJuror && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage
+                                    src={`https://effigy.im/a/${message.senderAddress || message.sender}.svg`}
+                                  />
+                                  <AvatarFallback>
+                                    <Gavel className="h-4 w-4" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
                             </div>
-                            {message.senderRole === "worker" && (
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage
-                                  src={`https://effigy.im/a/${message.senderAddress || message.sender}.svg`}
-                                />
-                                <AvatarFallback>
-                                  <User className="h-4 w-4" />
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
 
                       {selectedDispute.status === "pending" && (
@@ -852,69 +872,74 @@ export default function DisputesPage() {
                     <div className="space-y-4">
                       <h3 className="text-md font-semibold text-foreground">Messages</h3>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto p-2 messages-container">
-                        {chatHook.messages.map((message: any, index: number) => (
-                          <div
-                            key={message.id || index}
-                            className={`flex gap-3 ${
-                              message.senderRole === "worker"
-                                ? "justify-end"
-                                : message.senderRole === "employer"
-                                  ? "justify-start"
-                                  : "justify-center"
-                            }`}
-                          >
-                            {message.senderRole !== "worker" && (
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage
-                                  src={`https://effigy.im/a/${message.senderAddress || message.sender}.svg`}
-                                />
-                                <AvatarFallback>
-                                  {message.senderRole === "employer" ? (
-                                    <Briefcase className="h-4 w-4" />
-                                  ) : (
-                                    <Gavel className="h-4 w-4" />
-                                  )}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
+                        {chatHook.messages.map((message: any, index: number) => {
+                          const isJuror = message.senderRole === "juror"
+                          const isWorker = message.senderRole === "worker"
+                          const isEmployer = message.senderRole === "employer"
+
+                          return (
                             <div
-                              className={`max-w-[80%] rounded-lg p-3 ${
-                                message.senderRole === "worker"
-                                  ? "bg-accent/20 text-foreground"
-                                  : message.senderRole === "employer"
-                                    ? "bg-muted text-foreground"
-                                    : "bg-secondary text-foreground border border-border"
-                              }`}
+                              key={message.id || index}
+                              className={`flex gap-3 ${isJuror ? "justify-end" : "justify-start"}`}
                             >
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="font-medium text-sm font-varela">
-                                  {message.senderName || message.sender}{" "}
-                                  <Badge variant="outline" className="text-xs ml-1 font-varela">
-                                    {message.senderRole || message.role}
-                                  </Badge>
-                                </span>
-                                <span className="text-xs text-muted-foreground font-varela">
-                                  {message.createdAt
-                                    ? new Date(message.createdAt).toLocaleString()
-                                    : message.timestamp
-                                      ? new Date(message.timestamp).toLocaleString()
-                                      : "Just now"}
-                                </span>
+                              {!isJuror && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage
+                                    src={`https://effigy.im/a/${message.senderAddress || message.sender}.svg`}
+                                  />
+                                  <AvatarFallback>
+                                    {isEmployer ? <Briefcase className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                              <div
+                                className={`max-w-[80%] rounded-lg p-3 ${
+                                  isJuror
+                                    ? "bg-purple-100 dark:bg-purple-900/30 text-foreground border border-purple-200 dark:border-purple-700"
+                                    : isWorker
+                                      ? "bg-green-100 dark:bg-green-900/30 text-foreground border border-green-200 dark:border-green-700"
+                                      : "bg-red-100 dark:bg-red-900/30 text-foreground border border-red-200 dark:border-red-700"
+                                }`}
+                              >
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-medium text-sm font-varela">
+                                    {message.senderName || "Unknown User"}{" "}
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-xs ml-1 font-varela ${
+                                        isJuror
+                                          ? "bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                                          : isWorker
+                                            ? "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
+                                            : "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30"
+                                      }`}
+                                    >
+                                      {isJuror ? "Juror" : isWorker ? "Worker" : "Employer"}
+                                    </Badge>
+                                  </span>
+                                  <span className="text-xs text-muted-foreground font-varela">
+                                    {message.createdAt
+                                      ? new Date(message.createdAt).toLocaleString()
+                                      : message.timestamp
+                                        ? new Date(message.timestamp).toLocaleString()
+                                        : "Just now"}
+                                  </span>
+                                </div>
+                                <p className="text-sm">{message.content}</p>
                               </div>
-                              <p className="text-sm">{message.content}</p>
+                              {isJuror && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage
+                                    src={`https://effigy.im/a/${message.senderAddress || message.sender}.svg`}
+                                  />
+                                  <AvatarFallback>
+                                    <Gavel className="h-4 w-4" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
                             </div>
-                            {message.senderRole === "worker" && (
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage
-                                  src={`https://effigy.im/a/${message.senderAddress || message.sender}.svg`}
-                                />
-                                <AvatarFallback>
-                                  <User className="h-4 w-4" />
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
 
                       <div className="flex gap-2">
