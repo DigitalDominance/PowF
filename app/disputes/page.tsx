@@ -124,15 +124,25 @@ export default function DisputesPage() {
 
   const [votingStates, setVotingStates] = useState<Record<number, { isVoting: boolean; isConfirming: boolean }>>({})
 
-  // Auto-refresh disputes every 10 seconds
+  // Auto-refresh disputes every 10 seconds and log it
   useEffect(() => {
-    const interval = setInterval(() => {
+    console.log("Setting up auto-refresh interval")
+    const interval = setInterval(async () => {
+      console.log("Auto-refreshing disputes...")
       if (refreshDisputes) {
-        refreshDisputes()
+        try {
+          await refreshDisputes()
+          console.log("Auto-refresh completed")
+        } catch (error) {
+          console.error("Auto-refresh failed:", error)
+        }
       }
     }, 10000)
 
-    return () => clearInterval(interval)
+    return () => {
+      console.log("Clearing auto-refresh interval")
+      clearInterval(interval)
+    }
   }, [refreshDisputes])
 
   // Auto-scroll to bottom when messages change
@@ -236,18 +246,46 @@ export default function DisputesPage() {
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return
 
+    const disputeId = selectedDispute?.id.toString() || selectedJuryDispute?.id.toString() || ""
+    const tempMessage = {
+      sender: contracts?.signer?.address || "unknown",
+      senderName: "You", // We'll use "You" for the current user
+      role: selectedDispute ? "worker" : "juror", // Determine role based on which tab we're on
+      content: newMessage.trim(),
+      timestamp: new Date().toLocaleString(),
+    }
+
+    // Optimistically add the message to the current dispute
+    if (selectedDispute) {
+      setSelectedDispute((prev) =>
+        prev
+          ? {
+              ...prev,
+              messages: [...(prev.messages || []), tempMessage],
+            }
+          : null,
+      )
+    } else if (selectedJuryDispute) {
+      setSelectedJuryDispute((prev) =>
+        prev
+          ? {
+              ...prev,
+              messages: [...(prev.messages || []), tempMessage],
+            }
+          : null,
+      )
+    }
+
+    // Clear the input immediately
+    const messageToSend = newMessage
+    setNewMessage("")
     setIsRefreshing(true)
 
     try {
-      const disputeId = selectedDispute?.id.toString() || selectedJuryDispute?.id.toString() || ""
+      // Send the message
+      await sendMessage(disputeId, messageToSend)
 
-      // Use the sendMessage from UserContext
-      await sendMessage(disputeId, newMessage)
-
-      // Reset message input immediately
-      setNewMessage("")
-
-      // Refresh disputes to get updated messages
+      // Force refresh disputes to get the real message data
       if (refreshDisputes) {
         await refreshDisputes()
       }
@@ -257,6 +295,31 @@ export default function DisputesPage() {
       })
     } catch (error) {
       console.error("Error sending message:", error)
+
+      // Remove the optimistic message on error
+      if (selectedDispute) {
+        setSelectedDispute((prev) =>
+          prev
+            ? {
+                ...prev,
+                messages: prev.messages.slice(0, -1), // Remove the last message (our optimistic one)
+              }
+            : null,
+        )
+      } else if (selectedJuryDispute) {
+        setSelectedJuryDispute((prev) =>
+          prev
+            ? {
+                ...prev,
+                messages: prev.messages.slice(0, -1),
+              }
+            : null,
+        )
+      }
+
+      // Restore the message in the input
+      setNewMessage(messageToSend)
+
       toast.error("Failed to send message. Please try again.", {
         duration: 3000,
       })
@@ -264,6 +327,25 @@ export default function DisputesPage() {
       setIsRefreshing(false)
     }
   }
+
+  // Update selected disputes when main dispute data changes
+  useEffect(() => {
+    if (selectedDispute && myDisputes) {
+      const updatedDispute = myDisputes.find((d) => d.id === selectedDispute.id)
+      if (updatedDispute) {
+        setSelectedDispute(updatedDispute)
+      }
+    }
+  }, [myDisputes, selectedDispute])
+
+  useEffect(() => {
+    if (selectedJuryDispute && disputes) {
+      const updatedDispute = disputes.find((d) => d.id === selectedJuryDispute.id)
+      if (updatedDispute) {
+        setSelectedJuryDispute(updatedDispute)
+      }
+    }
+  }, [disputes, selectedJuryDispute?.id])
 
   // Get current messages from the selected dispute
   const getCurrentMessages = () => {
@@ -597,7 +679,29 @@ export default function DisputesPage() {
                     </div>
 
                     <div className="space-y-4">
-                      <h3 className="font-varien text-lg font-normal tracking-wider text-foreground">Messages</h3>
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-varien text-lg font-normal tracking-wider text-foreground">Messages</h3>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            setIsRefreshing(true)
+                            try {
+                              if (refreshDisputes) {
+                                await refreshDisputes()
+                              }
+                            } catch (error) {
+                              console.error("Manual refresh failed:", error)
+                            } finally {
+                              setIsRefreshing(false)
+                            }
+                          }}
+                          disabled={isRefreshing}
+                          className="text-xs"
+                        >
+                          {isRefreshing ? <Loader2 className="h-3 w-3 animate-spin" /> : "Refresh"}
+                        </Button>
+                      </div>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto p-2 messages-container">
                         {currentMessages.map((message: any, index: number) => {
                           const isJuror = message.role === "juror"
@@ -866,7 +970,29 @@ export default function DisputesPage() {
                     </div>
 
                     <div className="space-y-4">
-                      <h3 className="text-md font-semibold text-foreground">Messages</h3>
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-md font-semibold text-foreground">Messages</h3>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            setIsRefreshing(true)
+                            try {
+                              if (refreshDisputes) {
+                                await refreshDisputes()
+                              }
+                            } catch (error) {
+                              console.error("Manual refresh failed:", error)
+                            } finally {
+                              setIsRefreshing(false)
+                            }
+                          }}
+                          disabled={isRefreshing}
+                          className="text-xs"
+                        >
+                          {isRefreshing ? <Loader2 className="h-3 w-3 animate-spin" /> : "Refresh"}
+                        </Button>
+                      </div>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto p-2 messages-container">
                         {currentMessages.map((message: any, index: number) => {
                           const isJuror = message.role === "juror"
