@@ -19,26 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useState } from "react"
 
-import {
-  ArrowRight,
-  Shield,
-  Users,
-  Scale,
-  Calendar,
-  MessageSquare,
-  AlertTriangle,
-  FileText,
-  Vote,
-  Clock,
-  Gavel,
-  Lock,
-  Send,
-  ThumbsUp,
-  ThumbsDown,
-  User,
-  Briefcase,
-  Info,
-} from "lucide-react"
+import { ArrowRight, Shield, Users, Scale, Calendar, MessageSquare, AlertTriangle, FileText, Vote, Clock, Gavel, Lock, Send, ThumbsUp, ThumbsDown, User, Briefcase, Info, Loader2 } from 'lucide-react'
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
@@ -122,6 +103,22 @@ export default function DisputesPage() {
   const [howDisputesWorkOpen, setHowDisputesWorkOpen] = useState(false)
   console.log('selectedDispute', selectedDispute)
 
+  const [votingStates, setVotingStates] = useState<Record<number, { isVoting: boolean; isConfirming: boolean }>>({})
+
+  // Check if user has already voted on a dispute
+  const hasVotedOnDispute = (disputeId: number) => {
+    const votedDisputes = JSON.parse(sessionStorage.getItem('votedDisputes') || '[]')
+    return votedDisputes.includes(disputeId)
+  }
+
+  // Mark dispute as voted in session storage
+  const markDisputeAsVoted = (disputeId: number) => {
+    const votedDisputes = JSON.parse(sessionStorage.getItem('votedDisputes') || '[]')
+    if (!votedDisputes.includes(disputeId)) {
+      votedDisputes.push(disputeId)
+      sessionStorage.setItem('votedDisputes', JSON.stringify(votedDisputes))
+    }
+  }
   
   // Handle dispute submission
   const handleDisputeSubmit = async () => {
@@ -146,12 +143,57 @@ export default function DisputesPage() {
     // In a real implementation, this would call a smart contract function
   }
 
-  // Handle jury vote
+  // Handle jury vote with confirmation
   const handleJuryVote = async (disputeId: number, voteType: string) => {
-    // setVoteSelection((prev) => ({ ...prev, [disputeId]: vote }))
-    // console.log(`Voted ${vote} on dispute ${disputeId}`)
-    await vote(disputeId, voteType);
-    // In a real implementation, this would call a smart contract function
+    // Check if already voted
+    if (hasVotedOnDispute(disputeId)) {
+      toast.error("You have already voted on this dispute", {
+        duration: 3000,
+      })
+      return
+    }
+
+    // Set voting state
+    setVotingStates(prev => ({
+      ...prev,
+      [disputeId]: { isVoting: true, isConfirming: false }
+    }))
+
+    try {
+      // Start confirmation process
+      setVotingStates(prev => ({
+        ...prev,
+        [disputeId]: { isVoting: true, isConfirming: true }
+      }))
+
+      // Call the vote function
+      await vote(disputeId, voteType)
+      
+      // Mark as voted in session storage only after successful confirmation
+      markDisputeAsVoted(disputeId)
+      
+      toast.success(`Vote submitted successfully for ${voteType}`, {
+        duration: 3000,
+      })
+
+      // Reset voting state
+      setVotingStates(prev => ({
+        ...prev,
+        [disputeId]: { isVoting: false, isConfirming: false }
+      }))
+
+    } catch (error) {
+      console.error("Error voting:", error)
+      toast.error("Failed to submit vote. Please try again.", {
+        duration: 3000,
+      })
+      
+      // Reset voting state on error
+      setVotingStates(prev => ({
+        ...prev,
+        [disputeId]: { isVoting: false, isConfirming: false }
+      }))
+    }
   }
 
   // Handle sending a new message
@@ -830,39 +872,49 @@ export default function DisputesPage() {
                       </div>
                     </div>
 
-                    {!selectedJuryDispute.yourVote && (
+                    {!selectedJuryDispute.yourVote && !hasVotedOnDispute(selectedJuryDispute.id) && (
                       <div className="space-y-2">
                         <h3 className="text-md font-semibold text-foreground">Cast Your Vote</h3>
                         <p className="text-sm text-muted-foreground mb-4">
                           As a juror, your vote will help determine the outcome of this dispute. Please review all
                           evidence carefully before voting.
                         </p>
-                        <div className="flex flex-col sm:flex-row gap-4">
+                        {votingStates[selectedJuryDispute.id]?.isVoting ? (
                           <Button
-                            className="flex-1 bg-green-500 hover:bg-green-600 text-white font-varien text-xs sm:text-sm px-2 sm:px-4"
-                            onClick={() => handleJuryVote(selectedJuryDispute.id, "worker")}
+                            disabled
+                            className="w-full bg-accent/50 text-accent-foreground font-varien"
                           >
-                            <ThumbsUp className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                            <span className="hidden sm:inline">Vote for Worker</span>
-                            <span className="sm:hidden">Worker</span>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {votingStates[selectedJuryDispute.id]?.isConfirming ? 'Confirming Your Vote...' : 'Processing Vote...'}
                           </Button>
-                          <Button
-                            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-varien text-xs sm:text-sm px-2 sm:px-4"
-                            onClick={() => handleJuryVote(selectedJuryDispute.id, "employer")}
-                          >
-                            <ThumbsDown className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                            <span className="hidden sm:inline">Vote for Employer</span>
-                            <span className="sm:hidden">Employer</span>
-                          </Button>
-                        </div>
+                        ) : (
+                          <div className="flex flex-col sm:flex-row gap-4">
+                            <Button
+                              className="flex-1 bg-green-500 hover:bg-green-600 text-white font-varien text-xs sm:text-sm px-2 sm:px-4"
+                              onClick={() => handleJuryVote(selectedJuryDispute.id, "worker")}
+                            >
+                              <ThumbsUp className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                              <span className="hidden sm:inline">Vote for Worker</span>
+                              <span className="sm:hidden">Worker</span>
+                            </Button>
+                            <Button
+                              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-varien text-xs sm:text-sm px-2 sm:px-4"
+                              onClick={() => handleJuryVote(selectedJuryDispute.id, "employer")}
+                            >
+                              <ThumbsDown className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                              <span className="hidden sm:inline">Vote for Employer</span>
+                              <span className="sm:hidden">Employer</span>
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    {selectedJuryDispute.yourVote && (
+                    {(selectedJuryDispute.yourVote || hasVotedOnDispute(selectedJuryDispute.id)) && (
                       <div className="p-4 border border-accent/30 rounded-lg bg-accent/5">
                         <h3 className="text-md font-semibold text-foreground mb-2">Your Vote</h3>
                         <div className="flex items-center gap-2">
-                          {selectedJuryDispute.yourVote === "worker" ? (
+                          {selectedJuryDispute.yourVote === "worker" || hasVotedOnDispute(selectedJuryDispute.id) ? (
                             <>
                               <ThumbsUp className="h-5 w-5 text-green-500" />
                               <span className="text-green-600 dark:text-green-400 font-medium">
@@ -950,27 +1002,39 @@ export default function DisputesPage() {
                               Review Case
                             </Button>
 
-                            {!dispute.yourVote && (
-                              <div className="flex flex-col sm:flex-row gap-2">
-                                <Button
-                                  variant="outline"
-                                  className="border-green-500/50 text-green-500 hover:bg-green-500/10 font-varien text-xs sm:text-sm px-2 sm:px-3"
-                                  onClick={() => handleJuryVote(dispute.id, "worker")}
-                                >
-                                  <ThumbsUp className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
-                                  <span className="hidden sm:inline">Vote for Worker</span>
-                                  <span className="sm:hidden">Worker</span>
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  className="border-red-500/50 text-red-500 hover:bg-red-500/10 font-varien text-xs sm:text-sm px-2 sm:px-3"
-                                  onClick={() => handleJuryVote(dispute.id, "employer")}
-                                >
-                                  <ThumbsDown className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
-                                  <span className="hidden sm:inline">Vote for Employer</span>
-                                  <span className="sm:hidden">Employer</span>
-                                </Button>
-                              </div>
+                            {!dispute.yourVote && !hasVotedOnDispute(dispute.id) && (
+                              <>
+                                {votingStates[dispute.id]?.isVoting ? (
+                                  <Button
+                                    disabled
+                                    className="w-full bg-accent/50 text-accent-foreground font-varien"
+                                  >
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {votingStates[dispute.id]?.isConfirming ? 'Confirming Your Vote...' : 'Processing Vote...'}
+                                  </Button>
+                                ) : (
+                                  <div className="flex flex-col sm:flex-row gap-2">
+                                    <Button
+                                      variant="outline"
+                                      className="border-green-500/50 text-green-500 hover:bg-green-500/10 font-varien text-xs sm:text-sm px-2 sm:px-3"
+                                      onClick={() => handleJuryVote(dispute.id, "worker")}
+                                    >
+                                      <ThumbsUp className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                                      <span className="hidden sm:inline">Vote for Worker</span>
+                                      <span className="sm:hidden">Worker</span>
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      className="border-red-500/50 text-red-500 hover:bg-red-500/10 font-varien text-xs sm:text-sm px-2 sm:px-3"
+                                      onClick={() => handleJuryVote(dispute.id, "employer")}
+                                    >
+                                      <ThumbsDown className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                                      <span className="hidden sm:inline">Vote for Employer</span>
+                                      <span className="sm:hidden">Employer</span>
+                                    </Button>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
