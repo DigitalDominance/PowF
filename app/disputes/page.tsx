@@ -47,6 +47,7 @@ import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
 import { useUserContext } from "@/context/UserContext"
 import { useDisputeControl } from "@/hooks/useDisputeControl"
+import { useDisputeChat } from "@/hooks/useDisputeChat"
 
 // Animation variants
 const fadeIn = (delay = 0, duration = 0.5) => ({
@@ -110,7 +111,7 @@ const disputeProcessSteps = [
 ]
 
 export default function DisputesPage() {
-  const { contracts, myDisputes, myJobs, sendMessage, disputes } = useUserContext()
+  const { contracts, myDisputes, myJobs, disputes } = useUserContext()
 
   const { createDispute, vote } = useDisputeControl()
   const [disputeReason, setDisputeReason] = useState("")
@@ -124,7 +125,9 @@ export default function DisputesPage() {
   console.log("selectedDispute", selectedDispute)
 
   const [votingStates, setVotingStates] = useState<Record<number, { isVoting: boolean; isConfirming: boolean }>>({})
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  // Initialize chat hook for the selected dispute
+  const currentDisputeId = selectedDispute?.id.toString() || selectedJuryDispute?.id.toString() || ""
+  const chatHook = useDisputeChat(currentDisputeId)
 
   // Check if user has already voted on a dispute
   const hasVotedOnDispute = (disputeId: number) => {
@@ -220,54 +223,25 @@ export default function DisputesPage() {
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return
 
-    console.log("Sending message:", newMessage)
-
     try {
-      // Send the message with the correct dispute ID
       const disputeId = selectedDispute?.id.toString() || selectedJuryDispute?.id.toString() || ""
-      await sendMessage(disputeId, newMessage)
 
-      // Reset message input immediately
-      setNewMessage("")
+      // Use the hook's sendMessage function
+      if (disputeId) {
+        await chatHook.sendMessage(newMessage)
 
-      // Show loading state briefly
-      setIsRefreshing(true)
+        // Reset message input immediately
+        setNewMessage("")
 
-      // Re-fetch the dispute data after a short delay to allow backend processing
-      setTimeout(async () => {
-        try {
-          // If there's a refresh function in your UserContext, call it here
-          // For now, we'll update the local state by finding the updated dispute
-          if (selectedDispute) {
-            const updatedDispute = myDisputes.find((d) => d.id === selectedDispute.id)
-            if (updatedDispute) {
-              setSelectedDispute({ ...updatedDispute })
-            }
-          }
-
-          if (selectedJuryDispute) {
-            const updatedJuryDispute = disputes.find((d) => d.id === selectedJuryDispute.id)
-            if (updatedJuryDispute) {
-              setSelectedJuryDispute({ ...updatedJuryDispute })
-            }
-          }
-
-          setIsRefreshing(false)
-
-          toast.success("Message sent successfully!", {
-            duration: 2000,
-          })
-        } catch (error) {
-          console.error("Error refreshing dispute data:", error)
-          setIsRefreshing(false)
-        }
-      }, 1500)
+        toast.success("Message sent successfully!", {
+          duration: 2000,
+        })
+      }
     } catch (error) {
       console.error("Error sending message:", error)
       toast.error("Failed to send message. Please try again.", {
         duration: 3000,
       })
-      setIsRefreshing(false)
     }
   }
 
@@ -592,7 +566,7 @@ export default function DisputesPage() {
                     <div className="space-y-4">
                       <h3 className="font-varien text-lg font-normal tracking-wider text-foreground">Messages</h3>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto p-2">
-                        {selectedDispute.messages
+                        {chatHook.messages
                           .filter((message: any) => message.disputeId === selectedDispute.id || !message.disputeId)
                           .map((message: any, index: number) => (
                             <div
@@ -656,14 +630,13 @@ export default function DisputesPage() {
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
                             className="min-h-[80px] font-varela"
-                            disabled={isRefreshing}
                           />
                           <Button
                             className="self-end bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
                             onClick={handleSendMessage}
-                            disabled={!newMessage.trim() || isRefreshing}
+                            disabled={!newMessage.trim()}
                           >
-                            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                            <Send className="h-4 w-4" />
                           </Button>
                         </div>
                       )}
@@ -862,7 +835,7 @@ export default function DisputesPage() {
                     <div className="space-y-4">
                       <h3 className="text-md font-semibold text-foreground">Messages</h3>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto p-2">
-                        {selectedJuryDispute.messages
+                        {chatHook.messages
                           .filter((message: any) => message.disputeId === selectedJuryDispute.id || !message.disputeId)
                           .map((message: any, index: number) => (
                             <div
@@ -927,14 +900,13 @@ export default function DisputesPage() {
                           value={newMessage}
                           onChange={(e) => setNewMessage(e.target.value)}
                           className="min-h-[80px]"
-                          disabled={isRefreshing}
                         />
                         <Button
                           className="self-end bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
                           onClick={handleSendMessage}
-                          disabled={!newMessage.trim() || isRefreshing}
+                          disabled={!newMessage.trim()}
                         >
-                          {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                          <Send className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
