@@ -126,9 +126,9 @@ export default function DisputesPage() {
 
   const [votingStates, setVotingStates] = useState<Record<number, { isVoting: boolean; isConfirming: boolean }>>({})
 
-  // Initialize chat hook for the selected dispute
-  const currentDisputeId = selectedDispute?.id.toString() || selectedJuryDispute?.id.toString() || ""
-  const chatHook = useDisputeChat(currentDisputeId)
+  // Initialize chat hook for the selected dispute - only when we have a valid ID
+  const currentDisputeId = selectedDispute?.id.toString() || selectedJuryDispute?.id.toString()
+  const chatHook = useDisputeChat(currentDisputeId || "")
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -233,34 +233,15 @@ export default function DisputesPage() {
     if (!newMessage.trim()) return
 
     try {
-      const disputeId = selectedDispute?.id.toString() || selectedJuryDispute?.id.toString() || ""
-
       // Use the hook's sendMessage function
-      if (disputeId) {
-        await chatHook.sendMessage(newMessage)
+      await chatHook.sendMessage(newMessage)
 
-        // Reset message input immediately
-        setNewMessage("")
+      // Reset message input immediately
+      setNewMessage("")
 
-        // Refresh messages by calling the API again
-        setTimeout(async () => {
-          try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API}/messages/${disputeId}`, {
-              headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` },
-            })
-            if (response.ok) {
-              const updatedMessages = await response.json()
-              // The hook should automatically update via WebSocket, but this ensures consistency
-            }
-          } catch (error) {
-            console.error("Error refreshing messages:", error)
-          }
-        }, 500)
-
-        toast.success("Message sent successfully!", {
-          duration: 2000,
-        })
-      }
+      toast.success("Message sent successfully!", {
+        duration: 2000,
+      })
     } catch (error) {
       console.error("Error sending message:", error)
       toast.error("Failed to send message. Please try again.", {
