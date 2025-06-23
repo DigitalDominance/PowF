@@ -47,7 +47,6 @@ import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
 import { useUserContext } from "@/context/UserContext"
 import { useDisputeControl } from "@/hooks/useDisputeControl"
-import { useDisputeChat } from "@/hooks/useDisputeChat"
 
 // Animation variants
 const fadeIn = (delay = 0, duration = 0.5) => ({
@@ -111,32 +110,38 @@ const disputeProcessSteps = [
 ]
 
 export default function DisputesPage() {
-  const { contracts, myDisputes, myJobs, disputes } = useUserContext()
+  const { contracts, myDisputes, myJobs, disputes, sendMessage, refreshDisputes } = useUserContext()
 
   const { createDispute, vote } = useDisputeControl()
   const [disputeReason, setDisputeReason] = useState("")
   const [selectedJob, setSelectedJob] = useState("")
   const [activeTab, setActiveTab] = useState("my-disputes")
-  // const [voteSelection, setVoteSelection] = useState<Record<number, string | null>>({})
   const [selectedDispute, setSelectedDispute] = useState<(typeof myDisputes)[0] | null>(null)
   const [selectedJuryDispute, setSelectedJuryDispute] = useState<(typeof disputes)[0] | null>(null)
   const [newMessage, setNewMessage] = useState("")
   const [howDisputesWorkOpen, setHowDisputesWorkOpen] = useState(false)
-  console.log("selectedDispute", selectedDispute)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const [votingStates, setVotingStates] = useState<Record<number, { isVoting: boolean; isConfirming: boolean }>>({})
 
-  // Initialize chat hook for the selected dispute - only when we have a valid ID
-  const currentDisputeId = selectedDispute?.id.toString() || selectedJuryDispute?.id.toString()
-  const chatHook = useDisputeChat(currentDisputeId || "")
+  // Auto-refresh disputes every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (refreshDisputes) {
+        refreshDisputes()
+      }
+    }, 10000)
 
-  // Auto-scroll to bottom when new messages arrive
+    return () => clearInterval(interval)
+  }, [refreshDisputes])
+
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     const messageContainer = document.querySelector(".messages-container")
     if (messageContainer) {
       messageContainer.scrollTop = messageContainer.scrollHeight
     }
-  }, [chatHook.messages])
+  }, [selectedDispute?.messages, selectedJuryDispute?.messages])
 
   // Check if user has already voted on a dispute
   const hasVotedOnDispute = (disputeId: number) => {
@@ -157,7 +162,7 @@ export default function DisputesPage() {
   const handleDisputeSubmit = async () => {
     if (!contracts) {
       toast.error("Please connect your wallet first", {
-        duration: 3000, // Example of a valid property; adjust as needed
+        duration: 3000,
       })
       return
     }
@@ -173,7 +178,6 @@ export default function DisputesPage() {
     // Reset dispute form
     setDisputeReason("")
     setSelectedJob("")
-    // In a real implementation, this would call a smart contract function
   }
 
   // Handle jury vote with confirmation
@@ -232,12 +236,21 @@ export default function DisputesPage() {
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return
 
+    setIsRefreshing(true)
+
     try {
-      // Use the hook's sendMessage function
-      await chatHook.sendMessage(newMessage)
+      const disputeId = selectedDispute?.id.toString() || selectedJuryDispute?.id.toString() || ""
+
+      // Use the sendMessage from UserContext
+      await sendMessage(disputeId, newMessage)
 
       // Reset message input immediately
       setNewMessage("")
+
+      // Refresh disputes to get updated messages
+      if (refreshDisputes) {
+        await refreshDisputes()
+      }
 
       toast.success("Message sent successfully!", {
         duration: 2000,
@@ -247,8 +260,23 @@ export default function DisputesPage() {
       toast.error("Failed to send message. Please try again.", {
         duration: 3000,
       })
+    } finally {
+      setIsRefreshing(false)
     }
   }
+
+  // Get current messages from the selected dispute
+  const getCurrentMessages = () => {
+    if (selectedDispute) {
+      return selectedDispute.messages || []
+    }
+    if (selectedJuryDispute) {
+      return selectedJuryDispute.messages || []
+    }
+    return []
+  }
+
+  const currentMessages = getCurrentMessages()
 
   // Format timestamp
   const formatTimestamp = (timestamp: string) => {
@@ -571,21 +599,16 @@ export default function DisputesPage() {
                     <div className="space-y-4">
                       <h3 className="font-varien text-lg font-normal tracking-wider text-foreground">Messages</h3>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto p-2 messages-container">
-                        {chatHook.messages.map((message: any, index: number) => {
-                          const isJuror = message.senderRole === "juror"
-                          const isWorker = message.senderRole === "worker"
-                          const isEmployer = message.senderRole === "employer"
+                        {currentMessages.map((message: any, index: number) => {
+                          const isJuror = message.role === "juror"
+                          const isWorker = message.role === "worker"
+                          const isEmployer = message.role === "employer"
 
                           return (
-                            <div
-                              key={message.id || index}
-                              className={`flex gap-3 ${isJuror ? "justify-end" : "justify-start"}`}
-                            >
+                            <div key={index} className={`flex gap-3 ${isJuror ? "justify-end" : "justify-start"}`}>
                               {!isJuror && (
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage
-                                    src={`https://effigy.im/a/${message.senderAddress || message.sender}.svg`}
-                                  />
+                                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
                                   <AvatarFallback>
                                     {isEmployer ? <Briefcase className="h-4 w-4" /> : <User className="h-4 w-4" />}
                                   </AvatarFallback>
@@ -602,7 +625,7 @@ export default function DisputesPage() {
                               >
                                 <div className="flex justify-between items-center mb-1">
                                   <span className="font-medium text-sm font-varela">
-                                    {message.senderName || "Unknown User"}{" "}
+                                    {message.senderName}{" "}
                                     <Badge
                                       variant="outline"
                                       className={`text-xs ml-1 font-varela ${
@@ -616,21 +639,13 @@ export default function DisputesPage() {
                                       {isJuror ? "Juror" : isWorker ? "Worker" : "Employer"}
                                     </Badge>
                                   </span>
-                                  <span className="text-xs text-muted-foreground font-varela">
-                                    {message.createdAt
-                                      ? new Date(message.createdAt).toLocaleString()
-                                      : message.timestamp
-                                        ? new Date(message.timestamp).toLocaleString()
-                                        : "Just now"}
-                                  </span>
+                                  <span className="text-xs text-muted-foreground font-varela">{message.timestamp}</span>
                                 </div>
                                 <p className="text-sm">{message.content}</p>
                               </div>
                               {isJuror && (
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage
-                                    src={`https://effigy.im/a/${message.senderAddress || message.sender}.svg`}
-                                  />
+                                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
                                   <AvatarFallback>
                                     <Gavel className="h-4 w-4" />
                                   </AvatarFallback>
@@ -652,9 +667,9 @@ export default function DisputesPage() {
                           <Button
                             className="self-end bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
                             onClick={handleSendMessage}
-                            disabled={!newMessage.trim()}
+                            disabled={!newMessage.trim() || isRefreshing}
                           >
-                            <Send className="h-4 w-4" />
+                            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                           </Button>
                         </div>
                       )}
@@ -853,21 +868,16 @@ export default function DisputesPage() {
                     <div className="space-y-4">
                       <h3 className="text-md font-semibold text-foreground">Messages</h3>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto p-2 messages-container">
-                        {chatHook.messages.map((message: any, index: number) => {
-                          const isJuror = message.senderRole === "juror"
-                          const isWorker = message.senderRole === "worker"
-                          const isEmployer = message.senderRole === "employer"
+                        {currentMessages.map((message: any, index: number) => {
+                          const isJuror = message.role === "juror"
+                          const isWorker = message.role === "worker"
+                          const isEmployer = message.role === "employer"
 
                           return (
-                            <div
-                              key={message.id || index}
-                              className={`flex gap-3 ${isJuror ? "justify-end" : "justify-start"}`}
-                            >
+                            <div key={index} className={`flex gap-3 ${isJuror ? "justify-end" : "justify-start"}`}>
                               {!isJuror && (
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage
-                                    src={`https://effigy.im/a/${message.senderAddress || message.sender}.svg`}
-                                  />
+                                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
                                   <AvatarFallback>
                                     {isEmployer ? <Briefcase className="h-4 w-4" /> : <User className="h-4 w-4" />}
                                   </AvatarFallback>
@@ -884,7 +894,7 @@ export default function DisputesPage() {
                               >
                                 <div className="flex justify-between items-center mb-1">
                                   <span className="font-medium text-sm font-varela">
-                                    {message.senderName || "Unknown User"}{" "}
+                                    {message.senderName}{" "}
                                     <Badge
                                       variant="outline"
                                       className={`text-xs ml-1 font-varela ${
@@ -898,21 +908,13 @@ export default function DisputesPage() {
                                       {isJuror ? "Juror" : isWorker ? "Worker" : "Employer"}
                                     </Badge>
                                   </span>
-                                  <span className="text-xs text-muted-foreground font-varela">
-                                    {message.createdAt
-                                      ? new Date(message.createdAt).toLocaleString()
-                                      : message.timestamp
-                                        ? new Date(message.timestamp).toLocaleString()
-                                        : "Just now"}
-                                  </span>
+                                  <span className="text-xs text-muted-foreground font-varela">{message.timestamp}</span>
                                 </div>
                                 <p className="text-sm">{message.content}</p>
                               </div>
                               {isJuror && (
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage
-                                    src={`https://effigy.im/a/${message.senderAddress || message.sender}.svg`}
-                                  />
+                                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
                                   <AvatarFallback>
                                     <Gavel className="h-4 w-4" />
                                   </AvatarFallback>
@@ -933,9 +935,9 @@ export default function DisputesPage() {
                         <Button
                           className="self-end bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
                           onClick={handleSendMessage}
-                          disabled={!newMessage.trim()}
+                          disabled={!newMessage.trim() || isRefreshing}
                         >
-                          <Send className="h-4 w-4" />
+                          {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                         </Button>
                       </div>
                     </div>
