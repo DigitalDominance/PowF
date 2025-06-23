@@ -1,6 +1,7 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import type React from "react"
+import { useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -17,9 +18,28 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useState } from "react"
 
-import { ArrowRight, Shield, Users, Scale, Calendar, MessageSquare, AlertTriangle, FileText, Vote, Clock, Gavel, Lock, Send, ThumbsUp, ThumbsDown, User, Briefcase, Info, Loader2 } from 'lucide-react'
+import {
+  ArrowRight,
+  Shield,
+  Users,
+  Scale,
+  Calendar,
+  MessageSquare,
+  AlertTriangle,
+  FileText,
+  Vote,
+  Clock,
+  Gavel,
+  Lock,
+  Send,
+  ThumbsUp,
+  ThumbsDown,
+  User,
+  Briefcase,
+  Info,
+  Loader2,
+} from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
@@ -92,7 +112,7 @@ const disputeProcessSteps = [
 export default function DisputesPage() {
   const { contracts, myDisputes, myJobs, sendMessage, disputes } = useUserContext()
 
-  const { createDispute, vote } = useDisputeControl();
+  const { createDispute, vote } = useDisputeControl()
   const [disputeReason, setDisputeReason] = useState("")
   const [selectedJob, setSelectedJob] = useState("")
   const [activeTab, setActiveTab] = useState("my-disputes")
@@ -101,25 +121,26 @@ export default function DisputesPage() {
   const [selectedJuryDispute, setSelectedJuryDispute] = useState<(typeof disputes)[0] | null>(null)
   const [newMessage, setNewMessage] = useState("")
   const [howDisputesWorkOpen, setHowDisputesWorkOpen] = useState(false)
-  console.log('selectedDispute', selectedDispute)
+  console.log("selectedDispute", selectedDispute)
 
   const [votingStates, setVotingStates] = useState<Record<number, { isVoting: boolean; isConfirming: boolean }>>({})
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Check if user has already voted on a dispute
   const hasVotedOnDispute = (disputeId: number) => {
-    const votedDisputes = JSON.parse(sessionStorage.getItem('votedDisputes') || '[]')
+    const votedDisputes = JSON.parse(sessionStorage.getItem("votedDisputes") || "[]")
     return votedDisputes.includes(disputeId)
   }
 
   // Mark dispute as voted in session storage
   const markDisputeAsVoted = (disputeId: number) => {
-    const votedDisputes = JSON.parse(sessionStorage.getItem('votedDisputes') || '[]')
+    const votedDisputes = JSON.parse(sessionStorage.getItem("votedDisputes") || "[]")
     if (!votedDisputes.includes(disputeId)) {
       votedDisputes.push(disputeId)
-      sessionStorage.setItem('votedDisputes', JSON.stringify(votedDisputes))
+      sessionStorage.setItem("votedDisputes", JSON.stringify(votedDisputes))
     }
   }
-  
+
   // Handle dispute submission
   const handleDisputeSubmit = async () => {
     if (!contracts) {
@@ -130,7 +151,7 @@ export default function DisputesPage() {
     }
     console.log("Dispute submitted for job:", selectedJob, "with reason:", disputeReason)
     try {
-      await createDispute(selectedJob, disputeReason);
+      await createDispute(selectedJob, disputeReason)
     } catch (error) {
       console.error("Error creating dispute:", error)
       toast.error("Failed to create dispute. Please try again.", {
@@ -154,58 +175,93 @@ export default function DisputesPage() {
     }
 
     // Set voting state
-    setVotingStates(prev => ({
+    setVotingStates((prev) => ({
       ...prev,
-      [disputeId]: { isVoting: true, isConfirming: false }
+      [disputeId]: { isVoting: true, isConfirming: false },
     }))
 
     try {
       // Start confirmation process
-      setVotingStates(prev => ({
+      setVotingStates((prev) => ({
         ...prev,
-        [disputeId]: { isVoting: true, isConfirming: true }
+        [disputeId]: { isVoting: true, isConfirming: true },
       }))
 
       // Call the vote function
       await vote(disputeId, voteType)
-      
+
       // Mark as voted in session storage only after successful confirmation
       markDisputeAsVoted(disputeId)
-      
+
       toast.success(`Vote submitted successfully for ${voteType}`, {
         duration: 3000,
       })
 
       // Reset voting state
-      setVotingStates(prev => ({
+      setVotingStates((prev) => ({
         ...prev,
-        [disputeId]: { isVoting: false, isConfirming: false }
+        [disputeId]: { isVoting: false, isConfirming: false },
       }))
-
     } catch (error) {
       console.error("Error voting:", error)
       toast.error("Failed to submit vote. Please try again.", {
         duration: 3000,
       })
-      
+
       // Reset voting state on error
-      setVotingStates(prev => ({
+      setVotingStates((prev) => ({
         ...prev,
-        [disputeId]: { isVoting: false, isConfirming: false }
+        [disputeId]: { isVoting: false, isConfirming: false },
       }))
     }
   }
 
   // Handle sending a new message
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim()) return
 
     console.log("Sending message:", newMessage)
-    // In a real implementation, this would call the postMessage function on the smart contract
-    // sendMessage(newMessage);
-    sendMessage(selectedDispute?.id.toString() || "", newMessage)
-    // Reset message input
-    setNewMessage("")
+
+    try {
+      // Send the message with the correct dispute ID
+      const disputeId = selectedDispute?.id.toString() || selectedJuryDispute?.id.toString() || ""
+      await sendMessage(disputeId, newMessage)
+
+      // Reset message input immediately
+      setNewMessage("")
+
+      // Refresh the component data
+      setIsRefreshing(true)
+
+      // Force a re-render by updating the selected dispute
+      if (selectedDispute) {
+        // Find and update the selected dispute with new message
+        const updatedDispute = myDisputes.find((d) => d.id === selectedDispute.id)
+        if (updatedDispute) {
+          setSelectedDispute(updatedDispute)
+        }
+      }
+
+      if (selectedJuryDispute) {
+        // Find and update the selected jury dispute with new message
+        const updatedJuryDispute = disputes.find((d) => d.id === selectedJuryDispute.id)
+        if (updatedJuryDispute) {
+          setSelectedJuryDispute(updatedJuryDispute)
+        }
+      }
+
+      // Small delay to allow backend to process
+      setTimeout(() => {
+        setIsRefreshing(false)
+        // Force component refresh by triggering a re-render
+        window.location.reload()
+      }, 1000)
+    } catch (error) {
+      console.error("Error sending message:", error)
+      toast.error("Failed to send message. Please try again.", {
+        duration: 3000,
+      })
+    }
   }
 
   // Format timestamp
@@ -529,61 +585,61 @@ export default function DisputesPage() {
                     <div className="space-y-4">
                       <h3 className="font-varien text-lg font-normal tracking-wider text-foreground">Messages</h3>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto p-2">
-                        {selectedDispute.messages.map((message: any, index: number) => (
-                          <div
-                            key={index}
-                            className={`flex gap-3 ${
-                              message.role === "worker"
-                                ? "justify-end"
-                                : message.role === "employer"
-                                  ? "justify-start"
-                                  : "justify-center"
-                            }`}
-                          >
-                            {message.role !== "worker" && (
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
-                                <AvatarFallback>
-                                  {message.role === "employer" ? (
-                                    <Briefcase className="h-4 w-4" />
-                                  ) : (
-                                    <Gavel className="h-4 w-4" />
-                                  )}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
+                        {selectedDispute.messages
+                          .filter((message: any) => message.disputeId === selectedDispute.id || !message.disputeId)
+                          .map((message: any, index: number) => (
                             <div
-                              className={`max-w-[80%] rounded-lg p-3 ${
+                              key={index}
+                              className={`flex gap-3 ${
                                 message.role === "worker"
-                                  ? "bg-accent/20 text-foreground"
+                                  ? "justify-end"
                                   : message.role === "employer"
-                                    ? "bg-muted text-foreground"
-                                    : "bg-secondary text-foreground border border-border"
+                                    ? "justify-start"
+                                    : "justify-center"
                               }`}
                             >
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="font-medium text-sm font-varela">
-                                  {message.senderName}{" "}
-                                  <Badge variant="outline" className="text-xs ml-1 font-varela">
-                                    {message.role}
-                                  </Badge>
-                                </span>
-                                <span className="text-xs text-muted-foreground font-varela">
-                                  {message.timestamp}
-                                </span>
+                              {message.role !== "worker" && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
+                                  <AvatarFallback>
+                                    {message.role === "employer" ? (
+                                      <Briefcase className="h-4 w-4" />
+                                    ) : (
+                                      <Gavel className="h-4 w-4" />
+                                    )}
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                              <div
+                                className={`max-w-[80%] rounded-lg p-3 ${
+                                  message.role === "worker"
+                                    ? "bg-accent/20 text-foreground"
+                                    : message.role === "employer"
+                                      ? "bg-muted text-foreground"
+                                      : "bg-secondary text-foreground border border-border"
+                                }`}
+                              >
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-medium text-sm font-varela">
+                                    {message.senderName}{" "}
+                                    <Badge variant="outline" className="text-xs ml-1 font-varela">
+                                      {message.role}
+                                    </Badge>
+                                  </span>
+                                  <span className="text-xs text-muted-foreground font-varela">{message.timestamp}</span>
+                                </div>
+                                <p className="text-sm">{message.content}</p>
                               </div>
-                              <p className="text-sm">{message.content}</p>
+                              {message.role === "worker" && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
+                                  <AvatarFallback>
+                                    <User className="h-4 w-4" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
                             </div>
-                            {message.role === "worker" && (
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
-                                <AvatarFallback>
-                                  <User className="h-4 w-4" />
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
-                          </div>
-                        ))}
+                          ))}
                       </div>
 
                       {selectedDispute.status === "pending" && (
@@ -593,13 +649,14 @@ export default function DisputesPage() {
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
                             className="min-h-[80px] font-varela"
+                            disabled={isRefreshing}
                           />
                           <Button
                             className="self-end bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
                             onClick={handleSendMessage}
-                            disabled={!newMessage.trim()}
+                            disabled={!newMessage.trim() || isRefreshing}
                           >
-                            <Send className="h-4 w-4" />
+                            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                           </Button>
                         </div>
                       )}
@@ -798,61 +855,63 @@ export default function DisputesPage() {
                     <div className="space-y-4">
                       <h3 className="text-md font-semibold text-foreground">Messages</h3>
                       <div className="space-y-4 max-h-[400px] overflow-y-auto p-2">
-                        {selectedJuryDispute.messages.map((message: any, index: number) => (
-                          <div
-                            key={index}
-                            className={`flex gap-3 ${
-                              message.role === "worker"
-                                ? "justify-end"
-                                : message.role === "employer"
-                                  ? "justify-start"
-                                  : "justify-center"
-                            }`}
-                          >
-                            {message.role !== "worker" && (
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
-                                <AvatarFallback>
-                                  {message.role === "employer" ? (
-                                    <Briefcase className="h-4 w-4" />
-                                  ) : (
-                                    <Gavel className="h-4 w-4" />
-                                  )}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
+                        {selectedJuryDispute.messages
+                          .filter((message: any) => message.disputeId === selectedJuryDispute.id || !message.disputeId)
+                          .map((message: any, index: number) => (
                             <div
-                              className={`max-w-[80%] rounded-lg p-3 ${
+                              key={index}
+                              className={`flex gap-3 ${
                                 message.role === "worker"
-                                  ? "bg-accent/20 text-foreground"
+                                  ? "justify-end"
                                   : message.role === "employer"
-                                    ? "bg-muted text-foreground"
-                                    : "bg-secondary text-foreground border border-border"
+                                    ? "justify-start"
+                                    : "justify-center"
                               }`}
                             >
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="font-medium text-sm font-varela">
-                                  {message.senderName}{" "}
-                                  <Badge variant="outline" className="text-xs ml-1 font-varela">
-                                    {message.role}
-                                  </Badge>
-                                </span>
-                                <span className="text-xs text-muted-foreground font-varela">
-                                  {formatTimestamp(message.timestamp)}
-                                </span>
+                              {message.role !== "worker" && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
+                                  <AvatarFallback>
+                                    {message.role === "employer" ? (
+                                      <Briefcase className="h-4 w-4" />
+                                    ) : (
+                                      <Gavel className="h-4 w-4" />
+                                    )}
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                              <div
+                                className={`max-w-[80%] rounded-lg p-3 ${
+                                  message.role === "worker"
+                                    ? "bg-accent/20 text-foreground"
+                                    : message.role === "employer"
+                                      ? "bg-muted text-foreground"
+                                      : "bg-secondary text-foreground border border-border"
+                                }`}
+                              >
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-medium text-sm font-varela">
+                                    {message.senderName}{" "}
+                                    <Badge variant="outline" className="text-xs ml-1 font-varela">
+                                      {message.role}
+                                    </Badge>
+                                  </span>
+                                  <span className="text-xs text-muted-foreground font-varela">
+                                    {formatTimestamp(message.timestamp)}
+                                  </span>
+                                </div>
+                                <p className="text-sm">{message.content}</p>
                               </div>
-                              <p className="text-sm">{message.content}</p>
+                              {message.role === "worker" && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
+                                  <AvatarFallback>
+                                    <User className="h-4 w-4" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
                             </div>
-                            {message.role === "worker" && (
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
-                                <AvatarFallback>
-                                  <User className="h-4 w-4" />
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
-                          </div>
-                        ))}
+                          ))}
                       </div>
 
                       <div className="flex gap-2">
@@ -861,13 +920,14 @@ export default function DisputesPage() {
                           value={newMessage}
                           onChange={(e) => setNewMessage(e.target.value)}
                           className="min-h-[80px]"
+                          disabled={isRefreshing}
                         />
                         <Button
                           className="self-end bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
                           onClick={handleSendMessage}
-                          disabled={!newMessage.trim()}
+                          disabled={!newMessage.trim() || isRefreshing}
                         >
-                          <Send className="h-4 w-4" />
+                          {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                         </Button>
                       </div>
                     </div>
@@ -880,12 +940,11 @@ export default function DisputesPage() {
                           evidence carefully before voting.
                         </p>
                         {votingStates[selectedJuryDispute.id]?.isVoting ? (
-                          <Button
-                            disabled
-                            className="w-full bg-accent/50 text-accent-foreground font-varien"
-                          >
+                          <Button disabled className="w-full bg-accent/50 text-accent-foreground font-varien">
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {votingStates[selectedJuryDispute.id]?.isConfirming ? 'Confirming Your Vote...' : 'Processing Vote...'}
+                            {votingStates[selectedJuryDispute.id]?.isConfirming
+                              ? "Confirming Your Vote..."
+                              : "Processing Vote..."}
                           </Button>
                         ) : (
                           <div className="flex flex-col sm:flex-row gap-4">
@@ -1005,12 +1064,11 @@ export default function DisputesPage() {
                             {!dispute.yourVote && !hasVotedOnDispute(dispute.id) && (
                               <>
                                 {votingStates[dispute.id]?.isVoting ? (
-                                  <Button
-                                    disabled
-                                    className="w-full bg-accent/50 text-accent-foreground font-varien"
-                                  >
+                                  <Button disabled className="w-full bg-accent/50 text-accent-foreground font-varien">
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {votingStates[dispute.id]?.isConfirming ? 'Confirming Your Vote...' : 'Processing Vote...'}
+                                    {votingStates[dispute.id]?.isConfirming
+                                      ? "Confirming Your Vote..."
+                                      : "Processing Vote..."}
                                   </Button>
                                 ) : (
                                   <div className="flex flex-col sm:flex-row gap-2">
