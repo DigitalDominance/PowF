@@ -230,37 +230,44 @@ export default function DisputesPage() {
       // Reset message input immediately
       setNewMessage("")
 
-      // Refresh the component data
+      // Show loading state briefly
       setIsRefreshing(true)
 
-      // Force a re-render by updating the selected dispute
-      if (selectedDispute) {
-        // Find and update the selected dispute with new message
-        const updatedDispute = myDisputes.find((d) => d.id === selectedDispute.id)
-        if (updatedDispute) {
-          setSelectedDispute(updatedDispute)
-        }
-      }
+      // Re-fetch the dispute data after a short delay to allow backend processing
+      setTimeout(async () => {
+        try {
+          // If there's a refresh function in your UserContext, call it here
+          // For now, we'll update the local state by finding the updated dispute
+          if (selectedDispute) {
+            const updatedDispute = myDisputes.find((d) => d.id === selectedDispute.id)
+            if (updatedDispute) {
+              setSelectedDispute({ ...updatedDispute })
+            }
+          }
 
-      if (selectedJuryDispute) {
-        // Find and update the selected jury dispute with new message
-        const updatedJuryDispute = disputes.find((d) => d.id === selectedJuryDispute.id)
-        if (updatedJuryDispute) {
-          setSelectedJuryDispute(updatedJuryDispute)
-        }
-      }
+          if (selectedJuryDispute) {
+            const updatedJuryDispute = disputes.find((d) => d.id === selectedJuryDispute.id)
+            if (updatedJuryDispute) {
+              setSelectedJuryDispute({ ...updatedJuryDispute })
+            }
+          }
 
-      // Small delay to allow backend to process
-      setTimeout(() => {
-        setIsRefreshing(false)
-        // Force component refresh by triggering a re-render
-        window.location.reload()
-      }, 1000)
+          setIsRefreshing(false)
+
+          toast.success("Message sent successfully!", {
+            duration: 2000,
+          })
+        } catch (error) {
+          console.error("Error refreshing dispute data:", error)
+          setIsRefreshing(false)
+        }
+      }, 1500)
     } catch (error) {
       console.error("Error sending message:", error)
       toast.error("Failed to send message. Please try again.", {
         duration: 3000,
       })
+      setIsRefreshing(false)
     }
   }
 
