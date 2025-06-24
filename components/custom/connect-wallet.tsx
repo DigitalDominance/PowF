@@ -36,7 +36,15 @@ export function ConnectWallet() {
   const [challenge, setChallenge] = useState(""); // State for storing the challenge
 
   const [copied, setCopied] = useState(false)
-  const [role_, setRole_] = useState(""); // State for role  
+  const [role_, setRole_] = useState(""); // State for role 
+  const [isAuthenticating, setIsAuthenticating] = useState(false); // Prevent continuous authentication 
+  const [isReAuthenticating, setIsReAuthenticating] = useState(false); // Prevent multiple re-authentication calls
+  const [isSigningUp, setIsSigningUp] = useState(false); // Track signup state
+  const isSigningUpRef = useRef(false); // Persistent reference for isSigningUp
+
+  useEffect(() => {
+    isSigningUpRef.current = isSigningUp; // Sync the ref with the state
+  }, [isSigningUp]);  
 
   const { setUserData } = useUserContext();  
 
@@ -81,6 +89,7 @@ export function ConnectWallet() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        setIsAuthenticating(true); // Prevent redundant calls
         const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${address}`);
         if (response.status === 200) {
           const response_ = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
@@ -96,21 +105,24 @@ export function ConnectWallet() {
           toast.info("Authenticating user...");
           const { data: { challenge } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address });
           setChallenge(challenge); // Store the challenge
-
+          setIsSigningUp(true); // Mark as signing up
           setIsSigned(true);
         } catch (authError) {
           toast.error("Authentication failed!");
         }        
+      } finally {
+        setIsAuthenticating(false);
       }
     }
 
-    if(isConnected && address && provider) {
+    if(isConnected && address && provider && !isAuthenticating) {
       console.log('address', address, provider)
       fetchUser();
     }
   }, [address, isConnected, provider])
 
   const handleSubmitDisplayName = async () => {
+    console.log('Handle Submit Display Name')
     try {
       const signer = await provider?.getSigner();
       const { data: { accessToken, refreshToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
@@ -126,6 +138,7 @@ export function ConnectWallet() {
 
       toast.success("Authentication successful!");
       setIsSigned(false); // Reset signing state after submission
+      // setIsSigningUp(false); // Mark as signing up
     } catch (error) {
       toast.error("Failed to submit display name!");
     }
@@ -154,22 +167,28 @@ export function ConnectWallet() {
     toast.success("Disconnected successfully!");
   };  
 
-  const refreshAccessToken = async () => {
-    try {
-      const refreshToken = localStorage.getItem("refreshToken");
-      if (!refreshToken) throw new Error("Refresh token not found");
+  // const refreshAccessToken = async () => {
+  //   try {
+  //     const refreshToken = localStorage.getItem("refreshToken");
+  //     if (!refreshToken) throw new Error("Refresh token not found");
   
-      const { data: { accessToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken });
-      localStorage.setItem("accessToken", accessToken);
-      return accessToken;
-    } catch (error) {
-      console.error("Failed to refresh access token:", error);
-      handleDisconnect();
-    }
-  };
+  //     const { data: { accessToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken });
+  //     localStorage.setItem("accessToken", accessToken);
+  //     return accessToken;
+  //   } catch (error) {
+  //     console.error("Failed to refresh access token:", error);
+  //     handleDisconnect();
+  //   }
+  // };
 
   const handleReAuthentication = async () => {
+    if (!isConnected || !address || isSigningUpRef.current) {
+      console.log("Skipping re-authentication: Wallet not connected or user is signing up.");
+      return;
+    }
+
     try {
+      console.log('Re-authenticating user', isConnected, address, isSigningUp, isSigned, isAuthenticating, isReAuthenticating);
       toast.info("Re-authenticating...");
       const { data: { challenge } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address });
       const signer = await provider?.getSigner();
@@ -192,31 +211,55 @@ export function ConnectWallet() {
     }
   };  
   
+  // let isReAuthenticating = false; // Track re-authentication state
+
   axios.interceptors.response.use(
     (response) => response,
     async (error) => {
       if (error.response?.status === 401) {
         const refreshToken = localStorage.getItem("refreshToken");
-        if (refreshToken) {
+
+        // Skip re-authentication if the user is signing up
+        if (!isConnected || !address || isSigningUp) {
+          console.log("Skipping re-authentication during signup.");
+          return Promise.reject(error);
+        } 
+  
+        if (refreshToken && !isReAuthenticating) {
+          // isReAuthenticating = true; // Prevent multiple re-authentication calls
+          setIsReAuthenticating(true); // Prevent multiple re-authentication calls
+  
           try {
             const { data: { accessToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken });
+            if (!accessToken) {
+              throw new Error("Failed to refresh token");
+            }
+
             localStorage.setItem("accessToken", accessToken);
             error.config.headers["Authorization"] = `Bearer ${accessToken}`;
-            return axios(error.config);
+            // isReAuthenticating = false; // Reset state after successful re-authentication
+            setIsReAuthenticating(false); // Reset state after successful re-authentication
+            return axios(error.config); // Retry the original request
           } catch (refreshError) {
             console.error("Token refresh failed:", refreshError);
+            // isReAuthenticating = false; // Reset state even if refresh fails
+            setIsReAuthenticating(false); // Reset state even if refresh fails
+            handleDisconnect(); // Disconnect the wallet if refresh fails
+            toast.error("Session expired. Please reconnect your wallet.");
           }
         }
   
-        // Only prompt for wallet signing if refresh fails
-        try {
-          await handleReAuthentication();
-          return axios(error.config);
-        } catch (authError) {
-          console.error("Re-authentication failed:", authError);
-          handleDisconnect(); // Disconnect if re-authentication fails
+        if (!isReAuthenticating) {
+          try {
+            await handleReAuthentication(); // Call re-authentication logic
+            return axios(error.config); // Retry the original request
+          } catch (authError) {
+            console.error("Re-authentication failed:", authError);
+            handleDisconnect(); // Disconnect if re-authentication fails
+          }
         }
       }
+  
       return Promise.reject(error);
     }
   );
@@ -308,7 +351,7 @@ export function ConnectWallet() {
           <button
             onClick={handleSubmitDisplayName}
             className={`mt-4 px-4 py-2 rounded-md w-full ${
-              displayName && role
+              displayName_ && role_
                 ? "bg-accent text-white hover:bg-accent-dark"
                 : "bg-gray-600 text-gray-400 cursor-not-allowed"
             }`}

@@ -1,7 +1,7 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -47,6 +47,7 @@ import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
 import { useUserContext } from "@/context/UserContext"
 import { useDisputeControl } from "@/hooks/useDisputeControl"
+import { io, Socket } from "socket.io-client";
 
 // Animation variants
 const fadeIn = (delay = 0, duration = 0.5) => ({
@@ -110,7 +111,7 @@ const disputeProcessSteps = [
 ]
 
 export default function DisputesPage() {
-  const { contracts, myDisputes, myJobs, disputes, sendMessage, refreshDisputes } = useUserContext()
+  const { wallet, displayName, contracts, myDisputes, myJobs, disputes, sendMessage, provider, setMyDisputes/*, refreshDisputes*/ } = useUserContext()
 
   const { createDispute, vote } = useDisputeControl()
   const [disputeReason, setDisputeReason] = useState("")
@@ -124,26 +125,46 @@ export default function DisputesPage() {
 
   const [votingStates, setVotingStates] = useState<Record<number, { isVoting: boolean; isConfirming: boolean }>>({})
 
-  // Auto-refresh disputes every 10 seconds and log it
-  useEffect(() => {
-    console.log("Setting up auto-refresh interval")
-    const interval = setInterval(async () => {
-      console.log("Auto-refreshing disputes...")
-      if (refreshDisputes) {
-        try {
-          await refreshDisputes()
-          console.log("Auto-refresh completed")
-        } catch (error) {
-          console.error("Auto-refresh failed:", error)
-        }
-      }
-    }, 10000)
+  const [isJuror, setIsJuror] = useState(false);
+  const [toastDisplayed, setToastDisplayed] = useState(false);
+  
+  const socket = useRef<Socket | null>(null);
 
-    return () => {
-      console.log("Clearing auto-refresh interval")
-      clearInterval(interval)
-    }
-  }, [refreshDisputes])
+  useEffect(() => {
+    const checkJurorStatus = async () => {
+      if (!contracts?.disputeDAO || !wallet || !provider) return;
+
+      try {
+        const jurorStatus = await contracts.disputeDAO.isJuror(wallet);
+        setIsJuror(jurorStatus);
+      } catch (error) {
+        console.error("Error checking juror status:", error);
+      }
+    };
+
+    checkJurorStatus();
+  }, [contracts?.disputeDAO, wallet, provider]);  
+
+  // Auto-refresh disputes every 10 seconds and log it
+  // useEffect(() => {
+  //   console.log("Setting up auto-refresh interval")
+  //   const interval = setInterval(async () => {
+  //     console.log("Auto-refreshing disputes...")
+  //     if (refreshDisputes) {
+  //       try {
+  //         await refreshDisputes()
+  //         console.log("Auto-refresh completed")
+  //       } catch (error) {
+  //         console.error("Auto-refresh failed:", error)
+  //       }
+  //     }
+  //   }, 10000)
+
+  //   return () => {
+  //     console.log("Clearing auto-refresh interval")
+  //     clearInterval(interval)
+  //   }
+  // }, [refreshDisputes])
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -247,34 +268,34 @@ export default function DisputesPage() {
     if (!newMessage.trim()) return
 
     const disputeId = selectedDispute?.id.toString() || selectedJuryDispute?.id.toString() || ""
-    const tempMessage = {
-      sender: contracts?.signer?.address || "unknown",
-      senderName: "You", // We'll use "You" for the current user
+    const tempMessage = { 
+      sender: wallet,
+      senderName: displayName, // We'll use "You" for the current user
       role: selectedDispute ? "worker" : "juror", // Determine role based on which tab we're on
       content: newMessage.trim(),
       timestamp: new Date().toLocaleString(),
     }
 
     // Optimistically add the message to the current dispute
-    if (selectedDispute) {
-      setSelectedDispute((prev) =>
-        prev
-          ? {
-              ...prev,
-              messages: [...(prev.messages || []), tempMessage],
-            }
-          : null,
-      )
-    } else if (selectedJuryDispute) {
-      setSelectedJuryDispute((prev) =>
-        prev
-          ? {
-              ...prev,
-              messages: [...(prev.messages || []), tempMessage],
-            }
-          : null,
-      )
-    }
+    // if (selectedDispute) {
+    //   setSelectedDispute((prev) =>
+    //     prev
+    //       ? {
+    //           ...prev,
+    //           messages: [...(prev.messages || []), tempMessage],
+    //         }
+    //       : null,
+    //   )
+    // } else if (selectedJuryDispute) {
+    //   setSelectedJuryDispute((prev) =>
+    //     prev
+    //       ? {
+    //           ...prev,
+    //           messages: [...(prev.messages || []), tempMessage],
+    //         }
+    //       : null,
+    //   )
+    // }
 
     // Clear the input immediately
     const messageToSend = newMessage
@@ -283,12 +304,12 @@ export default function DisputesPage() {
 
     try {
       // Send the message
-      await sendMessage(disputeId, messageToSend)
+      sendMessage(disputeId, messageToSend)
 
       // Force refresh disputes to get the real message data
-      if (refreshDisputes) {
-        await refreshDisputes()
-      }
+      // if (refreshDisputes) {
+      //   await refreshDisputes()
+      // }
 
       toast.success("Message sent successfully!", {
         duration: 2000,
@@ -297,25 +318,25 @@ export default function DisputesPage() {
       console.error("Error sending message:", error)
 
       // Remove the optimistic message on error
-      if (selectedDispute) {
-        setSelectedDispute((prev) =>
-          prev
-            ? {
-                ...prev,
-                messages: prev.messages.slice(0, -1), // Remove the last message (our optimistic one)
-              }
-            : null,
-        )
-      } else if (selectedJuryDispute) {
-        setSelectedJuryDispute((prev) =>
-          prev
-            ? {
-                ...prev,
-                messages: prev.messages.slice(0, -1),
-              }
-            : null,
-        )
-      }
+      // if (selectedDispute) {
+      //   setSelectedDispute((prev) =>
+      //     prev
+      //       ? {
+      //           ...prev,
+      //           messages: prev.messages.slice(0, -1), // Remove the last message (our optimistic one)
+      //         }
+      //       : null,
+      //   )
+      // } else if (selectedJuryDispute) {
+      //   setSelectedJuryDispute((prev) =>
+      //     prev
+      //       ? {
+      //           ...prev,
+      //           messages: prev.messages.slice(0, -1),
+      //         }
+      //       : null,
+      //   )
+      // }
 
       // Restore the message in the input
       setNewMessage(messageToSend)
@@ -327,6 +348,41 @@ export default function DisputesPage() {
       setIsRefreshing(false)
     }
   }
+
+  // WebSocket setup for real-time chat
+  useEffect(() => {
+    socket.current = io(process.env.NEXT_PUBLIC_SOCKET_API);
+
+    // Join the dispute room when a dispute is selected
+    const disputeId = selectedDispute?.id; // || selectedJuryDispute?.id;
+
+    console.log('Socket DisputeId', disputeId, selectedDispute)
+    if (disputeId) {
+      socket.current.emit("joinRoom", disputeId);
+    }
+
+    socket.current.on("newMessage", (msg) => {
+      const { disputeId, ...message } = msg;
+
+      console.log('Socket New Message', msg)
+
+      // Update messages in myDisputes
+      setMyDisputes((prev) =>
+        prev.map((dispute) =>
+          dispute.id === disputeId
+            ? { ...dispute, messages: [...(dispute.messages || []), message] }
+            : dispute
+        )
+      );
+    });
+
+    return () => {
+      // socket.off("newMessage");
+      if (socket.current) {
+        socket.current.disconnect();
+      }
+    };
+  }, [selectedDispute?.id, selectedJuryDispute?.id]);  
 
   // Update selected disputes when main dispute data changes
   useEffect(() => {
@@ -360,11 +416,19 @@ export default function DisputesPage() {
 
   const currentMessages = getCurrentMessages()
 
-  // Format timestamp
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp)
-    return date.toLocaleString()
-  }
+  const handleTabChange = (tab: string) => {
+    console.log('Jury', tab, isJuror, toastDisplayed)
+    if (tab === "jury-duty" && !isJuror) {
+      if (!toastDisplayed) {
+        setToastDisplayed(true); // Mark the toast as displayed
+        toast.error("You are not authorized to access Jury Duty.");
+      }
+      return;
+    }
+    setToastDisplayed(false); // Reset the flag when switching to a valid tab
+    setActiveTab(tab);
+  };
+
 
   return (
     <div className="flex flex-col items-center">
@@ -579,7 +643,7 @@ export default function DisputesPage() {
 
       {/* Disputes Tabs */}
       <SectionWrapper id="disputes" padding="py-8 md:py-12">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid grid-cols-2 mb-8">
             <TabsTrigger value="my-disputes" className="text-sm sm:text-base font-varien">
               <Shield className="mr-2 h-4 w-4" />
@@ -687,9 +751,9 @@ export default function DisputesPage() {
                           onClick={async () => {
                             setIsRefreshing(true)
                             try {
-                              if (refreshDisputes) {
-                                await refreshDisputes()
-                              }
+                              // if (refreshDisputes) {
+                              //   await refreshDisputes()
+                              // }
                             } catch (error) {
                               console.error("Manual refresh failed:", error)
                             } finally {
@@ -978,9 +1042,9 @@ export default function DisputesPage() {
                           onClick={async () => {
                             setIsRefreshing(true)
                             try {
-                              if (refreshDisputes) {
-                                await refreshDisputes()
-                              }
+                              // if (refreshDisputes) {
+                              //   await refreshDisputes()
+                              // }
                             } catch (error) {
                               console.error("Manual refresh failed:", error)
                             } finally {

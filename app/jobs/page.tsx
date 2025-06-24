@@ -155,16 +155,47 @@ export default function JobsPage() {
       console.log("Application submitted:", tx);
 
       setApplicationText("")
-      setSelectedJob(null)      
+      setSelectedJob(null)
+
+      // Fetch the updated application details
+      const [applicantAddress, application, appliedAt, isActive, status, reviewedAt, wasAccepted] = await jobContract.getApplicant(address);
+
+      const isWorker = await jobContract.isWorker(address);
+
+      // Determine the application status
+      let applicationStatus = "pending";
+      if (isWorker) {
+        applicationStatus = "hired"; // The applicant is already working
+      } else if (status === 1) { // REVIEWED
+        applicationStatus = wasAccepted ? "hired" : "rejected";
+      }
+
+      // Fetch job title and employer for display
+      const [jobTitle, employer] = await Promise.all([
+        jobContract.title(),
+        jobContract.employer(),
+      ]);
+
+      const employerName = await fetchEmployerDisplayName(employer);
+
+      const newApplication = {
+        jobAddress,
+        jobTitle,
+        employer: employerName,
+        application,
+        appliedAt: new Date(Number(appliedAt) * 1000).toLocaleDateString(),
+        status: applicationStatus,
+      };      
+      setMyApplications((prev) => [...prev, newApplication]);
     } catch (error) {
       console.error("Error submitting application:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to submit application.";
-      toast.error(errorMessage);
+      // const errorMessage = error instanceof Error ? error.message : "Failed to submit application.";
+      // toast.error(errorMessage);
     }
   };  
 
   // Handle job application
-  const handleApply = () => {
+  const handleApply = async () => {
     if (role !== "worker") {
       toast.error("Only workers can apply for jobs.", { duration: 3000 });
       return;
@@ -182,8 +213,24 @@ export default function JobsPage() {
       return;
     }    
 
-    handleSubmitApplication(selectedJob.address, applicationText);
-    // In a real implementation, this would call a smart contract function
+    try {
+      // Check if the user has already applied for the job
+      const jobContract = new ethers.Contract(selectedJob.address, PROOF_OF_WORK_JOB_ABI, provider);
+      const hasApplied = await jobContract.hasApplied(address);
+  
+      if (hasApplied) {
+        toast.info("You have already applied for this job.");
+        return;
+      }
+  
+      console.log("Applying to job:", selectedJob.address, "with text:", applicationText);
+  
+      // Submit the application
+      handleSubmitApplication(selectedJob.address, applicationText);
+    } catch (error) {
+      console.error("Error checking application status:", error);
+      toast.error("Failed to check application status.");
+    }
   }
 
   // Handle dispute submission
@@ -339,10 +386,15 @@ export default function JobsPage() {
   
       toast.success("Application withdrawn successfully!");
       console.log("Application withdrawn:", tx);
+
+      // Remove the application from myApplications
+      setMyApplications((prev) =>
+        prev.filter((application) => application.jobAddress !== jobAddress)
+      );      
     } catch (error) {
       console.error("Error withdrawing application:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to withdraw application.";
-      toast.error(errorMessage);
+      // const errorMessage = error instanceof Error ? error.message : "Failed to withdraw application.";
+      // toast.error(errorMessage);
     }
   }; 
 

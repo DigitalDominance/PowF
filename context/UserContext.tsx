@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
-import { BrowserProvider, Eip1193Provider, ethers } from "ethers";
+import { BrowserProvider, Eip1193Provider, ethers, EventLog } from "ethers";
 import React, { createContext, useState, useContext, useMemo, useEffect } from "react";
 import JOB_FACTORY_ABI from "../lib/contracts/JobFactory.json";
 import DISPUTE_DAO_ABI from "../lib/contracts/DisputeDAO.json";
@@ -25,7 +25,14 @@ interface UserContextType {
   myJobs: any[];
   disputes: any[];
   myDisputes: any[];
+  employerJobs: string[];
+  setEmployerJobs: React.Dispatch<React.SetStateAction<string[]>>; // Add this
+  jobDetails: any[];
+  setJobDetails: React.Dispatch<React.SetStateAction<any[]>>; // Add this
+  applicants: any[];
+  setApplicants: React.Dispatch<React.SetStateAction<any[]>>; // Add this
   sendMessage: (disputeId: string, content: string) => void;
+  setMyDisputes: React.Dispatch<React.SetStateAction<any[]>>; // Add this
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -78,6 +85,153 @@ export const getAverageRating = async (reputationContract: ethers.Contract, user
   }
 };
 
+const fetchAssignedWorkersLength = async (jobContract: ethers.Contract) => {
+  try {
+    const assignedWorkers = await jobContract.getAssignedWorkers(); // Fetch the entire array
+    console.log("Assigned Workers:", assignedWorkers);
+    return assignedWorkers.length; // Return the length of the array
+  } catch (error) {
+    console.error("Error fetching assigned workers:", error);
+    return 0;
+  }
+};
+
+const fetchAllJobAddresses = async (jobFactoryContract: ethers.Contract) => {
+  try {
+    const jobAddresses = await jobFactoryContract.getAllJobs();
+    console.log("Fetched job addresses:", jobAddresses);
+    return jobAddresses;
+  } catch (error) {
+    console.error("Error fetching job addresses:", error);
+    return [];
+  }
+};
+
+const fetchDisputeDAOAddress = async (jobFactoryContract: ethers.Contract) => {
+  try {
+    const disputeDAOAddress = await jobFactoryContract.disputeDAOAddress();
+    console.log("Fetched DisputeDAO Address:", disputeDAOAddress);
+    return disputeDAOAddress;
+  } catch (error) {
+    console.error("Error fetching DisputeDAO address:", error);
+    return null;
+  }
+};
+
+export const fetchJobsByEmployerFromEvents = async (jobFactoryContract: ethers.Contract, employerAddress: string) => {
+  try {
+    const filter = jobFactoryContract.filters.JobCreated(
+      null,
+      employerAddress
+    );
+    const events = await jobFactoryContract.queryFilter(filter);
+    return events.map((ev) => (ev as EventLog).args?.jobAddress);
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+};
+
+const fetchTags = async (c: ethers.Contract) => {
+  const tags: string[] = [];
+  let i = 0;
+  while (true) {
+    try {
+      tags.push(await c.tags(i++));
+    } catch {
+      break;
+    }
+  }
+  return tags;
+};
+
+
+export const fetchJobDetails = async (
+  jobAddresses: string[],
+  provider: ethers.Provider
+) => {
+  try {
+    const results = [];
+    for (const addr of jobAddresses) {
+      const c = new ethers.Contract(addr, PROOF_OF_WORK_JOB_ABI, provider);
+      const [
+        _emp,
+        title,
+        _desc,
+        duration,
+        positions,
+        payType,
+        totalPay,
+        createdAt,
+        totalApps,
+      ] = await Promise.all([
+        c.employer(),
+        c.title(),
+        c.description(),
+        c.durationWeeks(),
+        c.positions(),
+        c.payType(),
+        c.totalPay(),
+        c.createdAt(),
+        c.getTotalApplications(),
+      ]);
+      results.push({
+        address: addr,
+        title,
+        duration,
+        positions: positions.toString(),
+        payType: payType === BigInt(0) ? "weekly" : "oneoff",
+        totalPay: ethers.formatEther(totalPay),
+        postedDate: Number(createdAt) * 1000,
+        applicants: totalApps.toString(),
+      });
+    }
+    return results;
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+};
+
+const fetchApplicantsForJobs = async (
+  jobAddresses: string[],
+  provider: ethers.Provider
+) => {
+  const all: any[] = [];
+  for (const addr of jobAddresses) {
+    const c = new ethers.Contract(addr, PROOF_OF_WORK_JOB_ABI, provider);
+    const [title] = await Promise.all([c.title()]);
+    const addresses = await c.getAllApplicants();
+    const tags = await fetchTags(c);
+    const repAddr = await c.reputation();
+    const rep = new ethers.Contract(repAddr, REPUTATION_SYSTEM_ABI, provider);
+    for (const a of addresses) {
+      const [addrDetail, application, appliedAt, isActive] = await c.getApplicant(
+        a
+      );
+      const isCurrent = await c.isWorker(a);
+      // const [workerScore] = await rep.getScores(a);
+      const ratingData = await getAverageRating(rep, a);
+      const averageRating = ratingData ? ratingData.averageRating : 0;
+      const info = await fetchEmployerInfo(a);
+      all.push({
+        id: `${addr}-${a}`,
+        address: a,
+        jobAddress: addr,
+        jobTitle: title,
+        name: info.displayName,
+        application,
+        appliedDate: Number(appliedAt) * 1000,
+        status: isCurrent ? "reviewed" : "pending",
+        rating: averageRating,
+        tags,
+      });
+    }
+  }
+  return all;
+};
+
+
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [wallet, setWallet] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -87,6 +241,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [myJobs, setMyJobs] = useState<any[]>([]);
   const [disputes, setDisputes] = useState<any[]>([]);
   const [myDisputes, setMyDisputes] = useState<any[]>([]);
+  const [employerJobs, setEmployerJobs] = useState<string[]>([]);
+  const [jobDetails, setJobDetails] = useState<any[]>([]);
+  const [applicants, setApplicants] = useState<any[]>([]);
 
   // Wallet and contract state
   const { address, isConnected } = useAppKitAccount();
@@ -129,39 +286,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Error fetching tags:", error);
       return [];
-    }
-  };
-
-  const fetchAssignedWorkersLength = async (jobContract: ethers.Contract) => {
-    try {
-      const assignedWorkers = await jobContract.getAssignedWorkers(); // Fetch the entire array
-      console.log("Assigned Workers:", assignedWorkers);
-      return assignedWorkers.length; // Return the length of the array
-    } catch (error) {
-      console.error("Error fetching assigned workers:", error);
-      return 0;
-    }
-  };
-
-  const fetchAllJobAddresses = async (jobFactoryContract: ethers.Contract) => {
-    try {
-      const jobAddresses = await jobFactoryContract.getAllJobs();
-      console.log("Fetched job addresses:", jobAddresses);
-      return jobAddresses;
-    } catch (error) {
-      console.error("Error fetching job addresses:", error);
-      return [];
-    }
-  };
-
-  const fetchDisputeDAOAddress = async (jobFactoryContract: ethers.Contract) => {
-    try {
-      const disputeDAOAddress = await jobFactoryContract.disputeDAOAddress();
-      console.log("Fetched DisputeDAO Address:", disputeDAOAddress);
-      return disputeDAOAddress;
-    } catch (error) {
-      console.error("Error fetching DisputeDAO address:", error);
-      return null;
     }
   };
 
@@ -273,6 +397,36 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     fetchAllJobs();
   }, [contracts?.jobFactory, provider]);
+
+  useEffect(() => {
+    const activeProvider = provider || publicProvider;
+
+    if (contracts?.jobFactory || publicProvider) {
+      try {
+        // Fetch job factory contract using the active provider
+        const jobFactory = contracts?.jobFactory || new ethers.Contract(
+          process.env.NEXT_PUBLIC_JOBFACTORY_ADDRESS || "",
+          JOB_FACTORY_ABI,
+          activeProvider
+        );
+        fetchJobsByEmployerFromEvents(jobFactory, wallet).then(setEmployerJobs);
+      } catch (error) {
+        console.error("Error fetching employer jobs:", error);
+      }
+    }
+  }, [contracts?.jobFactory, address, provider])
+
+  useEffect(() => {
+    if (employerJobs.length && provider) {
+      fetchJobDetails(employerJobs, provider).then(setJobDetails);
+    }
+  }, [employerJobs, provider, address]);  
+
+  useEffect(() => {
+    if (employerJobs.length && provider) {
+      fetchApplicantsForJobs(employerJobs, provider).then(setApplicants);
+    }
+  }, [employerJobs, address, provider]);  
 
   const fetchAllDisputes = async (disputeDAOContract: ethers.Contract) => {
     try {
@@ -520,29 +674,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchDisputes();
   }, [contracts?.disputeDAO]);
 
-  // WebSocket setup for real-time chat
-  useEffect(() => {
-    const socket = io(process.env.NEXT_PUBLIC_API);
-
-    socket.on("newMessage", (msg) => {
-      const { disputeId, ...message } = msg;
-
-      // Update messages in myDisputes
-      setMyDisputes((prev) =>
-        prev.map((dispute) =>
-          dispute.id === disputeId
-            ? { ...dispute, messages: [...(dispute.messages || []), message] }
-            : dispute
-        )
-      );
-    });
-
-    return () => {
-      socket.off("newMessage");
-      socket.disconnect();
-    };
-  }, []);
-
   const sendMessage = async (disputeId: string, content: string) => {
     try {
       // Send the message to the backend
@@ -555,14 +686,36 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
   
       const newMessage = response.data; // The saved message object returned by the backend
+
+      console.log('My Disputes', myDisputes)
+
+      // Transform the newMessage structure
+      const employer = myDisputes.find((dispute) => dispute.id === Number(disputeId))?.employer.address || "";
+      const assignedWorker = myDisputes.find((dispute) => dispute.id === Number(disputeId))?.worker.address || "";
+
+      console.log('Employer and Assigned Workers', employer, assignedWorker)
+
+      const transformedMessage = {
+        sender: newMessage.sender,
+        senderName: await fetchEmployerDisplayName(newMessage.sender),
+        role: newMessage.sender === employer.toLowerCase()
+          ? "employer"
+          : newMessage.sender === assignedWorker.toLowerCase()
+          ? "worker"
+          : "juror",
+        content: newMessage.content,
+        timestamp: new Date(newMessage.createdAt).toLocaleString(),
+      };      
+
+      console.log('New Messsage', transformedMessage)
   
       // Update the messages in myDisputes
       setMyDisputes((prev) =>
         prev.map((dispute) =>
-          dispute.id === disputeId
+          dispute.id === Number(disputeId)
             ? {
                 ...dispute,
-                messages: [...(dispute.messages || []), newMessage], // Append the new message
+                messages: [...(dispute.messages || []), transformedMessage], // Append the new message
               }
             : dispute
         )
@@ -574,44 +727,44 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };  
 
-  // Function to authenticate the wallet and get a new access token
-  const authenticateWallet = async (wallet: string) => {
-    try {
-      // Request a challenge from the server
-      const { data: challengeResponse } = await axios.post(
-        `${process.env.NEXT_PUBLIC_API}/auth/challenge`,
-        { wallet }
-      );
+  // // Function to authenticate the wallet and get a new access token
+  // const authenticateWallet = async (wallet: string) => {
+  //   try {
+  //     // Request a challenge from the server
+  //     const { data: challengeResponse } = await axios.post(
+  //       `${process.env.NEXT_PUBLIC_API}/auth/challenge`,
+  //       { wallet }
+  //     );
 
-      const challenge = challengeResponse.challenge;
+  //     const challenge = challengeResponse.challenge;
 
-      // Sign the challenge with the wallet
-      const signer = await provider?.getSigner();
-      const signature = await signer?.signMessage(challenge);
+  //     // Sign the challenge with the wallet
+  //     const signer = await provider?.getSigner();
+  //     const signature = await signer?.signMessage(challenge);
 
-      // Verify the signature and get the access token
-      const { data: authResponse } = await axios.post(
-        `${process.env.NEXT_PUBLIC_API}/auth/verify`,
-        { wallet, signature }
-      );
+  //     // Verify the signature and get the access token
+  //     const { data: authResponse } = await axios.post(
+  //       `${process.env.NEXT_PUBLIC_API}/auth/verify`,
+  //       { wallet, signature }
+  //     );
 
-      const newAccessToken = authResponse.accessToken;
+  //     const newAccessToken = authResponse.accessToken;
 
-      // Store the new access token in localStorage and state
-      localStorage.setItem("accessToken", newAccessToken);
+  //     // Store the new access token in localStorage and state
+  //     localStorage.setItem("accessToken", newAccessToken);
 
-      console.log("Authenticated wallet:", wallet);
-    } catch (error) {
-      console.error("Error authenticating wallet:", error);
-    }
-  };
+  //     console.log("Authenticated wallet:", wallet);
+  //   } catch (error) {
+  //     console.error("Error authenticating wallet:", error);
+  //   }
+  // };
 
   // Detect wallet changes and reauthenticate
-  useEffect(() => {
-    if (address) {
-      authenticateWallet(address);
-    }
-  }, [address]);  
+  // useEffect(() => {
+  //   if (address) {
+  //     authenticateWallet(address);
+  //   }
+  // }, [address]);  
 
   return (
     <UserContext.Provider
@@ -630,7 +783,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         myJobs,
         disputes,
         myDisputes,
-        sendMessage
+        employerJobs,
+        jobDetails,
+        applicants,
+        setApplicants,
+        sendMessage,
+        setEmployerJobs,
+        setJobDetails,
+        setMyDisputes
       }}
     >
       {children}

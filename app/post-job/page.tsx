@@ -14,8 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type React from "react";
-import { useEffect, useState } from "react";
-
+import { useState } from "react";
 import {
   ArrowRight,
   CheckCircle,
@@ -35,10 +34,10 @@ import { motion } from "framer-motion";
 import { InteractiveCard } from "@/components/custom/interactive-card";
 import { Balancer } from "react-wrap-balancer";
 import { toast } from "sonner";
-import { ethers, EventLog } from "ethers";
-import { fetchEmployerInfo, getAverageRating, useUserContext } from "@/context/UserContext";
+import { ethers } from "ethers";
+import { fetchJobDetails, fetchJobsByEmployerFromEvents, useUserContext } from "@/context/UserContext";
 import PROOF_OF_WORK_JOB_ABI from "@/lib/contracts/ProofOfWorkJob.json";
-import REPUTATION_SYSTEM_ABI from "@/lib/contracts/ReputationSystem.json";
+import { instructionSteps } from "@/constants/constants";
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -73,7 +72,7 @@ const SectionWrapper = ({
 );
 
 export default function PostJobPage() {
-  const { wallet, role, contracts, provider } = useUserContext();
+  const { wallet, role, contracts, provider, jobDetails, applicants, setApplicants, setEmployerJobs, setJobDetails } = useUserContext();
   const [paymentType, setPaymentType] = useState<"weekly" | "oneoff">("weekly");
   const [formData, setFormData] = useState<{
     jobTitle: string;
@@ -90,37 +89,6 @@ export default function PostJobPage() {
     positions: "1",
     tags: [],
   });
-
-  const [employerJobs, setEmployerJobs] = useState<string[]>([]);
-  const [jobDetails, setJobDetails] = useState<any[]>([]);
-  const [applicants, setApplicants] = useState<any[]>([]);
-
-  const instructionSteps = [
-    {
-      icon: <FileText className="h-8 w-8 text-accent" />,
-      title: "Create Your Listing",
-      description:
-        "Define job requirements, payment terms, and duration. All terms are locked in smart contracts.",
-    },
-    {
-      icon: <Lock className="h-8 w-8 text-accent" />,
-      title: "Lock Funds",
-      description:
-        "Deposit KAS tokens into the job contract. Funds are held securely until work completion.",
-    },
-    {
-      icon: <Users className="h-8 w-8 text-accent" />,
-      title: "Review Applicants",
-      description:
-        "Browse worker profiles, check on-chain reputation scores, and select the best candidates.",
-    },
-    {
-      icon: <CheckCircle className="h-8 w-8 text-accent" />,
-      title: "Automatic Payments",
-      description:
-        "Workers get paid automatically based on your predefined schedule. No manual intervention needed.",
-    },
-  ];
 
   const handleInputChange = (field: string, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -187,146 +155,25 @@ export default function PostJobPage() {
       const tx = await txPromise;
       await tx.wait();
       toast.success("Job created successfully!");
+
+      // Fetch the updated employer jobs
+      const updatedEmployerJobs = await fetchJobsByEmployerFromEvents(
+        contracts.jobFactory,
+        wallet
+      );
+      setEmployerJobs(updatedEmployerJobs); // Update employerJobs in UserContext
+
+      // Fetch the updated job details
+      if (provider) {
+        const updatedJobDetails = await fetchJobDetails(updatedEmployerJobs, provider);
+        setJobDetails(updatedJobDetails); // Update jobDetails in UserContext
+      } else {
+        console.error("Provider is null. Cannot fetch job details.");
+      }  
     } catch (err: any) {
       console.error("Error creating job:", err);
     }
   };
-
-  const fetchJobsByEmployerFromEvents = async (employerAddress: string) => {
-    try {
-      if (!contracts?.jobFactory) {
-        toast.error("Please connect your wallet first", { duration: 3000 });
-        return [];
-      }
-      const filter = contracts.jobFactory.filters.JobCreated(
-        null,
-        employerAddress
-      );
-      const events = await contracts.jobFactory.queryFilter(filter);
-      return events.map((ev) => (ev as EventLog).args?.jobAddress);
-    } catch (err) {
-      console.error(err);
-      return [];
-    }
-  };
-
-  useEffect(() => {
-    if (wallet) {
-      fetchJobsByEmployerFromEvents(wallet).then((jobs) =>
-        setEmployerJobs(jobs || [])
-      );
-    }
-  }, [wallet]);
-
-  const fetchJobDetails = async (
-    jobAddresses: string[],
-    provider: ethers.Provider
-  ) => {
-    try {
-      const results = [];
-      for (const addr of jobAddresses) {
-        const c = new ethers.Contract(addr, PROOF_OF_WORK_JOB_ABI, provider);
-        const [
-          _emp,
-          title,
-          _desc,
-          duration,
-          positions,
-          payType,
-          totalPay,
-          createdAt,
-          totalApps,
-        ] = await Promise.all([
-          c.employer(),
-          c.title(),
-          c.description(),
-          c.durationWeeks(),
-          c.positions(),
-          c.payType(),
-          c.totalPay(),
-          c.createdAt(),
-          c.getTotalApplications(),
-        ]);
-        results.push({
-          address: addr,
-          title,
-          duration,
-          positions: positions.toString(),
-          payType: payType === BigInt(0) ? "weekly" : "oneoff",
-          totalPay: ethers.formatEther(totalPay),
-          postedDate: Number(createdAt) * 1000,
-          applicants: totalApps.toString(),
-        });
-      }
-      return results;
-    } catch (err) {
-      console.error(err);
-      return [];
-    }
-  };
-
-  useEffect(() => {
-    if (employerJobs.length && provider) {
-      fetchJobDetails(employerJobs, provider).then(setJobDetails);
-    }
-  }, [employerJobs]);
-
-  const fetchTags = async (c: ethers.Contract) => {
-    const tags: string[] = [];
-    let i = 0;
-    while (true) {
-      try {
-        tags.push(await c.tags(i++));
-      } catch {
-        break;
-      }
-    }
-    return tags;
-  };
-
-  const fetchApplicantsForJobs = async (
-    jobAddresses: string[],
-    provider: ethers.Provider
-  ) => {
-    const all: any[] = [];
-    for (const addr of jobAddresses) {
-      const c = new ethers.Contract(addr, PROOF_OF_WORK_JOB_ABI, provider);
-      const [title] = await Promise.all([c.title()]);
-      const addresses = await c.getAllApplicants();
-      const tags = await fetchTags(c);
-      const repAddr = await c.reputation();
-      const rep = new ethers.Contract(repAddr, REPUTATION_SYSTEM_ABI, provider);
-      for (const a of addresses) {
-        const [addrDetail, application, appliedAt, isActive] = await c.getApplicant(
-          a
-        );
-        const isCurrent = await c.isWorker(a);
-        // const [workerScore] = await rep.getScores(a);
-        const ratingData = await getAverageRating(rep, a);
-        const averageRating = ratingData ? ratingData.averageRating : 0;
-        const info = await fetchEmployerInfo(a);
-        all.push({
-          id: `${addr}-${a}`,
-          address: a,
-          jobAddress: addr,
-          jobTitle: title,
-          name: info.displayName,
-          application,
-          appliedDate: Number(appliedAt) * 1000,
-          status: isCurrent ? "reviewed" : "pending",
-          rating: averageRating,
-          tags,
-        });
-      }
-    }
-    return all;
-  };
-
-  useEffect(() => {
-    if (employerJobs.length && provider) {
-      fetchApplicantsForJobs(employerJobs, provider).then(setApplicants);
-    }
-  }, [employerJobs]);
 
   const updateApplicantStatus = (id: string) => {
     setApplicants((prev) =>
@@ -812,6 +659,11 @@ export default function PostJobPage() {
                           className="bg-accent hover:bg-accent-hover text-accent-foreground"
                           onClick={async () => {
                             try {
+                              if (applicant.status === "reviewed") {
+                                toast.info("This application has already been reviewed.");
+                                return;
+                              }
+
                               if (!provider) {
                                 toast.error(
                                   "Provider is not available. Please connect your wallet."
@@ -824,25 +676,22 @@ export default function PostJobPage() {
                                 PROOF_OF_WORK_JOB_ABI,
                                 signer
                               );
-                              // const tx = await c.acceptApplication(applicant.address);
-                              // await tx.wait();
-                              // Use toast.promise to handle the transaction
-                              await toast.promise(
-                                (async () => {
-                                  const tx = await c.acceptApplication(applicant.address);
-                                  await tx.wait();
-                                })(),
+                              const txPromise = c.acceptApplication(applicant.address);
+
+                              toast.promise(
+                                txPromise,
                                 {
                                   loading: "Processing application...",
                                   success: "Application accepted successfully!",
                                   error: "Failed to accept application.",
                                 }
                               );
+                              const tx = await txPromise;
+                              await tx.wait();
                               toast.success("Application accepted successfully!");
                               updateApplicantStatus(applicant.id);
                             } catch (err) {
                               console.error(err);
-                              toast.error("Failed to accept application.");
                             }
                           }}
                         >
@@ -855,6 +704,11 @@ export default function PostJobPage() {
                           className="bg-red-500 hover:bg-red-600 text-white"
                           onClick={async () => {
                             try {
+                              if (applicant.status === "reviewed") {
+                                toast.info("This application has already been reviewed.");
+                                return;
+                              }
+
                               if (!provider) {
                                 toast.error(
                                   "Provider is not available. Please connect your wallet."
@@ -867,27 +721,26 @@ export default function PostJobPage() {
                                 PROOF_OF_WORK_JOB_ABI,
                                 signer
                               );
-                              // const tx = await c.declineApplication(
-                              //   applicant.address
-                              // );
-                              // await tx.wait();
-                              // Use toast.promise to handle the transaction
-                              await toast.promise(
-                                (async () => {
-                                  const tx = await c.declineApplication(applicant.address);
-                                  await tx.wait();
-                                })(),
+
+                              const txPromise = c.declineApplication(applicant.address);
+
+                              toast.promise(
+                                txPromise,
                                 {
                                   loading: "Processing decline request...",
                                   success: "Application declined successfully!",
                                   error: "Failed to decline application.",
                                 }
-                              );                              
+                              );   
+                              
+                              const tx = await txPromise;
+
+                              await tx.wait();
+
                               toast.success("Application declined successfully!");
                               updateApplicantStatus(applicant.id);
                             } catch (err) {
                               console.error(err);
-                              toast.error("Failed to decline application.");
                             }
                           }}
                         >
