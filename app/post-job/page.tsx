@@ -286,7 +286,7 @@ export default function PostJobPage() {
               <InteractiveCard className="h-full text-center">
                 <div className="flex flex-col items-center">
                   <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">{step.icon}</div>
-                  <h3 className="text-lg font-semibold mb-2 text-foreground">{step.title}</h3>
+                  <h3 className="font-varien text-lg font-semibold mb-2 text-foreground">{step.title}</h3>
                   <p className="text-sm text-muted-foreground">
                     <Balancer>{step.description}</Balancer>
                   </p>
