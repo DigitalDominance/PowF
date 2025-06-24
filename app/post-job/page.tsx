@@ -87,6 +87,16 @@ export default function PostJobPage() {
     tags: [],
   })
 
+  const [applicantStates, setApplicantStates] = useState<
+    Record<
+      string,
+      {
+        acceptState: "idle" | "processing" | "confirming" | "success"
+        declineState: "idle" | "processing" | "confirming" | "success"
+      }
+    >
+  >({})
+
   const handleInputChange = (field: string, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
@@ -650,7 +660,15 @@ export default function PostJobPage() {
                         </Button>
                         <Button
                           size="sm"
-                          className="bg-accent hover:bg-accent-hover text-accent-foreground"
+                          disabled={
+                            applicantStates[applicant.id]?.acceptState !== "idle" &&
+                            applicantStates[applicant.id]?.acceptState !== undefined
+                          }
+                          className={`${
+                            applicantStates[applicant.id]?.acceptState === "success"
+                              ? "bg-green-500 hover:bg-green-600 text-white"
+                              : "bg-accent hover:bg-accent-hover text-accent-foreground"
+                          }`}
                           onClick={async () => {
                             try {
                               if (applicant.status === "reviewed") {
@@ -662,31 +680,112 @@ export default function PostJobPage() {
                                 toast.error("Provider is not available. Please connect your wallet.")
                                 return
                               }
+
+                              // Set processing state
+                              setApplicantStates((prev) => ({
+                                ...prev,
+                                [applicant.id]: {
+                                  ...prev[applicant.id],
+                                  acceptState: "processing",
+                                },
+                              }))
+
                               const signer = await provider.getSigner()
                               const c = new ethers.Contract(applicant.jobAddress, PROOF_OF_WORK_JOB_ABI, signer)
-                              const txPromise = c.acceptApplication(applicant.address)
+                              const tx = await c.acceptApplication(applicant.address)
 
-                              toast.promise(txPromise, {
-                                loading: "Processing application...",
-                                success: "Application accepted successfully!",
-                                error: "Failed to accept application.",
-                              })
-                              const tx = await txPromise
+                              // Set confirming state
+                              setApplicantStates((prev) => ({
+                                ...prev,
+                                [applicant.id]: {
+                                  ...prev[applicant.id],
+                                  acceptState: "confirming",
+                                },
+                              }))
+
                               await tx.wait()
+
+                              // Set success state
+                              setApplicantStates((prev) => ({
+                                ...prev,
+                                [applicant.id]: {
+                                  ...prev[applicant.id],
+                                  acceptState: "success",
+                                },
+                              }))
+
                               toast.success("Application accepted successfully!")
                               updateApplicantStatus(applicant.id)
+
+                              // Reset state after 2 seconds
+                              setTimeout(() => {
+                                setApplicantStates((prev) => ({
+                                  ...prev,
+                                  [applicant.id]: {
+                                    ...prev[applicant.id],
+                                    acceptState: "idle",
+                                  },
+                                }))
+                              }, 2000)
                             } catch (err) {
                               console.error(err)
+                              setApplicantStates((prev) => ({
+                                ...prev,
+                                [applicant.id]: {
+                                  ...prev[applicant.id],
+                                  acceptState: "idle",
+                                },
+                              }))
+                              toast.error("Failed to accept application.")
                             }
                           }}
                         >
-                          <CheckCircle className="mr-1 h-4 w-4" />
-                          Accept
+                          {(() => {
+                            const state = applicantStates[applicant.id]?.acceptState || "idle"
+                            switch (state) {
+                              case "processing":
+                                return (
+                                  <>
+                                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                                    Accepting Application
+                                  </>
+                                )
+                              case "confirming":
+                                return (
+                                  <>
+                                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                                    Confirming...
+                                  </>
+                                )
+                              case "success":
+                                return (
+                                  <>
+                                    <Check className="mr-1 h-4 w-4" />
+                                    Application Accepted
+                                  </>
+                                )
+                              default:
+                                return (
+                                  <>
+                                    <CheckCircle className="mr-1 h-4 w-4" />
+                                    Accept
+                                  </>
+                                )
+                            }
+                          })()}
                         </Button>
 
                         <Button
                           size="sm"
-                          className="bg-red-500 hover:bg-red-600 text-white"
+                          disabled={
+                            applicantStates[applicant.id]?.declineState !== "idle" &&
+                            applicantStates[applicant.id]?.declineState !== undefined
+                          }
+                          className={`${
+                            applicantStates[applicant.id]?.declineState === "success"
+                              ? "bg-gray-500 hover:bg-gray-600 text-white"
+                              : "bg-red-500 hover:bg-red-600 text-white"
+                          }`}
                           onClick={async () => {
                             try {
                               if (applicant.status === "reviewed") {
@@ -698,30 +797,99 @@ export default function PostJobPage() {
                                 toast.error("Provider is not available. Please connect your wallet.")
                                 return
                               }
+
+                              // Set processing state
+                              setApplicantStates((prev) => ({
+                                ...prev,
+                                [applicant.id]: {
+                                  ...prev[applicant.id],
+                                  declineState: "processing",
+                                },
+                              }))
+
                               const signer = await provider.getSigner()
                               const c = new ethers.Contract(applicant.jobAddress, PROOF_OF_WORK_JOB_ABI, signer)
+                              const tx = await c.declineApplication(applicant.address)
 
-                              const txPromise = c.declineApplication(applicant.address)
-
-                              toast.promise(txPromise, {
-                                loading: "Processing decline request...",
-                                success: "Application declined successfully!",
-                                error: "Failed to decline application.",
-                              })
-
-                              const tx = await txPromise
+                              // Set confirming state
+                              setApplicantStates((prev) => ({
+                                ...prev,
+                                [applicant.id]: {
+                                  ...prev[applicant.id],
+                                  declineState: "confirming",
+                                },
+                              }))
 
                               await tx.wait()
 
+                              // Set success state
+                              setApplicantStates((prev) => ({
+                                ...prev,
+                                [applicant.id]: {
+                                  ...prev[applicant.id],
+                                  declineState: "success",
+                                },
+                              }))
+
                               toast.success("Application declined successfully!")
                               updateApplicantStatus(applicant.id)
+
+                              // Reset state after 2 seconds
+                              setTimeout(() => {
+                                setApplicantStates((prev) => ({
+                                  ...prev,
+                                  [applicant.id]: {
+                                    ...prev[applicant.id],
+                                    declineState: "idle",
+                                  },
+                                }))
+                              }, 2000)
                             } catch (err) {
                               console.error(err)
+                              setApplicantStates((prev) => ({
+                                ...prev,
+                                [applicant.id]: {
+                                  ...prev[applicant.id],
+                                  declineState: "idle",
+                                },
+                              }))
+                              toast.error("Failed to decline application.")
                             }
                           }}
                         >
-                          <Trash2 className="mr-1 h-4 w-4" />
-                          Decline
+                          {(() => {
+                            const state = applicantStates[applicant.id]?.declineState || "idle"
+                            switch (state) {
+                              case "processing":
+                                return (
+                                  <>
+                                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                                    Denying Application
+                                  </>
+                                )
+                              case "confirming":
+                                return (
+                                  <>
+                                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                                    Confirming...
+                                  </>
+                                )
+                              case "success":
+                                return (
+                                  <>
+                                    <Check className="mr-1 h-4 w-4" />
+                                    Application Denied
+                                  </>
+                                )
+                              default:
+                                return (
+                                  <>
+                                    <Trash2 className="mr-1 h-4 w-4" />
+                                    Decline
+                                  </>
+                                )
+                            }
+                          })()}
                         </Button>
                       </div>
                     </div>
