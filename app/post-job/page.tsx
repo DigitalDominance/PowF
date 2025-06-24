@@ -24,6 +24,10 @@ import {
   Trash2,
   Loader2,
   Check,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
@@ -233,6 +237,10 @@ export default function PostJobPage() {
   }
 
   const isSubmitting = submitState !== "idle"
+
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageInput, setPageInput] = useState("")
+  const applicationsPerPage = 3
 
   return (
     <div className="flex flex-col items-center">
@@ -578,330 +586,529 @@ export default function PostJobPage() {
 
         <div className="space-y-6">
           {applicants.length > 0 ? (
-            applicants.map((applicant, i) => (
-              <motion.div variants={fadeIn(i * 0.1)} key={applicant.id}>
-                <InteractiveCard>
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={`https://effigy.im/a/${applicant.address}.svg`} alt={applicant.address} />
-                        <AvatarFallback className="bg-accent/10 text-accent font-semibold">
-                          {applicant.address.charAt(2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="text-lg font-semibold text-foreground">{applicant.name}</h3>
-                        <p className="text-sm text-muted-foreground">Applied for: {applicant.jobTitle}</p>
-                        <div>
-                          {applicant.application.length > 100 ? (
-                            <>
-                              <p className="text-sm text-muted-foreground">
-                                {applicant.showFullApplication
-                                  ? applicant.application
-                                  : `${applicant.application.slice(0, 100)}...`}
-                              </p>
-                              <a
-                                href="#"
-                                className="text-blue-500 hover:underline text-sm"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  setApplicants((prev) =>
-                                    prev.map((a) =>
-                                      a.id === applicant.id
-                                        ? {
-                                            ...a,
-                                            showFullApplication: !a.showFullApplication,
-                                          }
-                                        : a,
-                                    ),
-                                  )
-                                }}
-                              >
-                                {applicant.showFullApplication ? "View Less" : "View More"}
-                              </a>
-                            </>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">{applicant.application}</p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4 mt-1">
-                          <span className="text-sm text-muted-foreground">{applicant.experience} experience</span>
-                          <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                            <span className="text-sm font-medium text-foreground">{applicant.rating}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+            <>
+              {/* Sort applicants by applied date (newest first) and paginate */}
+              {(() => {
+                const sortedApplicants = [...applicants].sort(
+                  (a, b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime(),
+                )
+                const totalPages = Math.ceil(sortedApplicants.length / applicationsPerPage)
+                const startIndex = (currentPage - 1) * applicationsPerPage
+                const endIndex = startIndex + applicationsPerPage
+                const currentApplicants = sortedApplicants.slice(startIndex, endIndex)
 
-                    <div className="flex flex-col md:items-end gap-3">
-                      <div className="flex flex-wrap gap-2">
-                        {applicant.tags.map((tag: any) => (
-                          <Badge key={tag} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={applicant.status === "reviewed" ? "default" : "secondary"}
-                          className={applicant.status === "reviewed" ? "bg-accent text-accent-foreground" : ""}
+                return (
+                  <>
+                    {/* Applications List */}
+                    <div className="space-y-6">
+                      {currentApplicants.map((applicant, i) => (
+                        <motion.div
+                          variants={fadeIn(i * 0.1)}
+                          key={applicant.id}
+                          initial="hidden"
+                          animate="visible"
+                          transition={{ delay: i * 0.1 }}
                         >
-                          {applicant.status}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(applicant.appliedDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="border-accent/50 text-accent hover:bg-accent/10">
-                          <MessageSquare className="mr-1 h-4 w-4" />
-                          Message
-                        </Button>
-
-                        {applicant.status !== "reviewed" && (
-                          <>
-                            <Button
-                              size="sm"
-                              disabled={
-                                applicantStates[applicant.id]?.acceptState !== "idle" &&
-                                applicantStates[applicant.id]?.acceptState !== undefined
-                              }
-                              className={`${
-                                applicantStates[applicant.id]?.acceptState === "success"
-                                  ? "bg-green-500 hover:bg-green-600 text-white"
-                                  : "bg-accent hover:bg-accent-hover text-accent-foreground"
-                              }`}
-                              onClick={async () => {
-                                try {
-                                  if (applicant.status === "reviewed") {
-                                    toast.info("This application has already been reviewed.")
-                                    return
-                                  }
-
-                                  if (!provider) {
-                                    toast.error("Provider is not available. Please connect your wallet.")
-                                    return
-                                  }
-
-                                  // Set processing state
-                                  setApplicantStates((prev) => ({
-                                    ...prev,
-                                    [applicant.id]: {
-                                      ...prev[applicant.id],
-                                      acceptState: "processing",
-                                    },
-                                  }))
-
-                                  const signer = await provider.getSigner()
-                                  const c = new ethers.Contract(applicant.jobAddress, PROOF_OF_WORK_JOB_ABI, signer)
-                                  const tx = await c.acceptApplication(applicant.address)
-
-                                  // Set confirming state
-                                  setApplicantStates((prev) => ({
-                                    ...prev,
-                                    [applicant.id]: {
-                                      ...prev[applicant.id],
-                                      acceptState: "confirming",
-                                    },
-                                  }))
-
-                                  await tx.wait()
-
-                                  // Set success state
-                                  setApplicantStates((prev) => ({
-                                    ...prev,
-                                    [applicant.id]: {
-                                      ...prev[applicant.id],
-                                      acceptState: "success",
-                                    },
-                                  }))
-
-                                  toast.success("Application accepted successfully!")
-                                  updateApplicantStatus(applicant.id)
-
-                                  // Reset state after 2 seconds
-                                  setTimeout(() => {
-                                    setApplicantStates((prev) => ({
-                                      ...prev,
-                                      [applicant.id]: {
-                                        ...prev[applicant.id],
-                                        acceptState: "idle",
-                                      },
-                                    }))
-                                  }, 2000)
-                                } catch (err) {
-                                  console.error(err)
-                                  setApplicantStates((prev) => ({
-                                    ...prev,
-                                    [applicant.id]: {
-                                      ...prev[applicant.id],
-                                      acceptState: "idle",
-                                    },
-                                  }))
-                                  toast.error("Failed to accept application.")
-                                }
-                              }}
-                            >
-                              {(() => {
-                                const state = applicantStates[applicant.id]?.acceptState || "idle"
-                                switch (state) {
-                                  case "processing":
-                                    return (
+                          <InteractiveCard>
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                              <div className="flex items-center gap-4">
+                                <Avatar className="h-12 w-12">
+                                  <AvatarImage
+                                    src={`https://effigy.im/a/${applicant.address}.svg`}
+                                    alt={applicant.address}
+                                  />
+                                  <AvatarFallback className="bg-accent/10 text-accent font-semibold">
+                                    {applicant.address.charAt(2)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <h3 className="text-lg font-semibold text-foreground">{applicant.name}</h3>
+                                  <p className="text-sm text-muted-foreground">Applied for: {applicant.jobTitle}</p>
+                                  <div>
+                                    {applicant.application.length > 100 ? (
                                       <>
-                                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                                        Accepting Application
+                                        <p className="text-sm text-muted-foreground">
+                                          {applicant.showFullApplication
+                                            ? applicant.application
+                                            : `${applicant.application.slice(0, 100)}...`}
+                                        </p>
+                                        <a
+                                          href="#"
+                                          className="text-accent hover:text-accent-hover hover:underline text-sm transition-colors"
+                                          onClick={(e) => {
+                                            e.preventDefault()
+                                            setApplicants((prev) =>
+                                              prev.map((a) =>
+                                                a.id === applicant.id
+                                                  ? {
+                                                      ...a,
+                                                      showFullApplication: !a.showFullApplication,
+                                                    }
+                                                  : a,
+                                              ),
+                                            )
+                                          }}
+                                        >
+                                          {applicant.showFullApplication ? "View Less" : "View More"}
+                                        </a>
                                       </>
-                                    )
-                                  case "confirming":
-                                    return (
-                                      <>
-                                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                                        Confirming...
-                                      </>
-                                    )
-                                  case "success":
-                                    return (
-                                      <>
-                                        <Check className="mr-1 h-4 w-4" />
-                                        Application Accepted
-                                      </>
-                                    )
-                                  default:
-                                    return (
-                                      <>
-                                        <CheckCircle className="mr-1 h-4 w-4" />
-                                        Accept
-                                      </>
-                                    )
-                                }
-                              })()}
-                            </Button>
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground">{applicant.application}</p>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-4 mt-1">
+                                    <span className="text-sm text-muted-foreground">
+                                      {applicant.experience} experience
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                                      <span className="text-sm font-medium text-foreground">{applicant.rating}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
 
-                            <Button
-                              size="sm"
-                              disabled={
-                                applicantStates[applicant.id]?.declineState !== "idle" &&
-                                applicantStates[applicant.id]?.declineState !== undefined
-                              }
-                              className={`${
-                                applicantStates[applicant.id]?.declineState === "success"
-                                  ? "bg-gray-500 hover:bg-gray-600 text-white"
-                                  : "bg-red-500 hover:bg-red-600 text-white"
-                              }`}
-                              onClick={async () => {
-                                try {
-                                  if (applicant.status === "reviewed") {
-                                    toast.info("This application has already been reviewed.")
-                                    return
-                                  }
+                              <div className="flex flex-col md:items-end gap-3">
+                                <div className="flex flex-wrap gap-2">
+                                  {applicant.tags.map((tag: any) => (
+                                    <Badge key={tag} variant="secondary" className="text-xs">
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge
+                                    variant={applicant.status === "reviewed" ? "default" : "secondary"}
+                                    className={
+                                      applicant.status === "reviewed" ? "bg-accent text-accent-foreground" : ""
+                                    }
+                                  >
+                                    {applicant.status}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(applicant.appliedDate).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-accent/50 text-accent hover:bg-accent/10"
+                                  >
+                                    <MessageSquare className="mr-1 h-4 w-4" />
+                                    Message
+                                  </Button>
 
-                                  if (!provider) {
-                                    toast.error("Provider is not available. Please connect your wallet.")
-                                    return
-                                  }
+                                  {applicant.status !== "reviewed" && (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        disabled={
+                                          applicantStates[applicant.id]?.acceptState !== "idle" &&
+                                          applicantStates[applicant.id]?.acceptState !== undefined
+                                        }
+                                        className={`${
+                                          applicantStates[applicant.id]?.acceptState === "success"
+                                            ? "bg-green-500 hover:bg-green-600 text-white"
+                                            : "bg-accent hover:bg-accent-hover text-accent-foreground"
+                                        }`}
+                                        onClick={async () => {
+                                          try {
+                                            if (applicant.status === "reviewed") {
+                                              toast.info("This application has already been reviewed.")
+                                              return
+                                            }
 
-                                  // Set processing state
-                                  setApplicantStates((prev) => ({
-                                    ...prev,
-                                    [applicant.id]: {
-                                      ...prev[applicant.id],
-                                      declineState: "processing",
-                                    },
-                                  }))
+                                            if (!provider) {
+                                              toast.error("Provider is not available. Please connect your wallet.")
+                                              return
+                                            }
 
-                                  const signer = await provider.getSigner()
-                                  const c = new ethers.Contract(applicant.jobAddress, PROOF_OF_WORK_JOB_ABI, signer)
-                                  const tx = await c.declineApplication(applicant.address)
+                                            // Set processing state
+                                            setApplicantStates((prev) => ({
+                                              ...prev,
+                                              [applicant.id]: {
+                                                ...prev[applicant.id],
+                                                acceptState: "processing",
+                                              },
+                                            }))
 
-                                  // Set confirming state
-                                  setApplicantStates((prev) => ({
-                                    ...prev,
-                                    [applicant.id]: {
-                                      ...prev[applicant.id],
-                                      declineState: "confirming",
-                                    },
-                                  }))
+                                            const signer = await provider.getSigner()
+                                            const c = new ethers.Contract(
+                                              applicant.jobAddress,
+                                              PROOF_OF_WORK_JOB_ABI,
+                                              signer,
+                                            )
+                                            const tx = await c.acceptApplication(applicant.address)
 
-                                  await tx.wait()
+                                            // Set confirming state
+                                            setApplicantStates((prev) => ({
+                                              ...prev,
+                                              [applicant.id]: {
+                                                ...prev[applicant.id],
+                                                acceptState: "confirming",
+                                              },
+                                            }))
 
-                                  // Set success state
-                                  setApplicantStates((prev) => ({
-                                    ...prev,
-                                    [applicant.id]: {
-                                      ...prev[applicant.id],
-                                      declineState: "success",
-                                    },
-                                  }))
+                                            await tx.wait()
 
-                                  toast.success("Application declined successfully!")
-                                  updateApplicantStatus(applicant.id)
+                                            // Set success state
+                                            setApplicantStates((prev) => ({
+                                              ...prev,
+                                              [applicant.id]: {
+                                                ...prev[applicant.id],
+                                                acceptState: "success",
+                                              },
+                                            }))
 
-                                  // Reset state after 2 seconds
-                                  setTimeout(() => {
-                                    setApplicantStates((prev) => ({
-                                      ...prev,
-                                      [applicant.id]: {
-                                        ...prev[applicant.id],
-                                        declineState: "idle",
-                                      },
-                                    }))
-                                  }, 2000)
-                                } catch (err) {
-                                  console.error(err)
-                                  setApplicantStates((prev) => ({
-                                    ...prev,
-                                    [applicant.id]: {
-                                      ...prev[applicant.id],
-                                      declineState: "idle",
-                                    },
-                                  }))
-                                  toast.error("Failed to decline application.")
-                                }
-                              }}
-                            >
-                              {(() => {
-                                const state = applicantStates[applicant.id]?.declineState || "idle"
-                                switch (state) {
-                                  case "processing":
-                                    return (
-                                      <>
-                                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                                        Denying Application
-                                      </>
-                                    )
-                                  case "confirming":
-                                    return (
-                                      <>
-                                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                                        Confirming...
-                                      </>
-                                    )
-                                  case "success":
-                                    return (
-                                      <>
-                                        <Check className="mr-1 h-4 w-4" />
-                                        Application Denied
-                                      </>
-                                    )
-                                  default:
-                                    return (
-                                      <>
-                                        <Trash2 className="mr-1 h-4 w-4" />
-                                        Decline
-                                      </>
-                                    )
-                                }
-                              })()}
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                                            toast.success("Application accepted successfully!")
+                                            updateApplicantStatus(applicant.id)
+
+                                            // Reset state after 2 seconds
+                                            setTimeout(() => {
+                                              setApplicantStates((prev) => ({
+                                                ...prev,
+                                                [applicant.id]: {
+                                                  ...prev[applicant.id],
+                                                  acceptState: "idle",
+                                                },
+                                              }))
+                                            }, 2000)
+                                          } catch (err) {
+                                            console.error(err)
+                                            setApplicantStates((prev) => ({
+                                              ...prev,
+                                              [applicant.id]: {
+                                                ...prev[applicant.id],
+                                                acceptState: "idle",
+                                              },
+                                            }))
+                                            toast.error("Failed to accept application.")
+                                          }
+                                        }}
+                                      >
+                                        {(() => {
+                                          const state = applicantStates[applicant.id]?.acceptState || "idle"
+                                          switch (state) {
+                                            case "processing":
+                                              return (
+                                                <>
+                                                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                                                  Accepting Application
+                                                </>
+                                              )
+                                            case "confirming":
+                                              return (
+                                                <>
+                                                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                                                  Confirming...
+                                                </>
+                                              )
+                                            case "success":
+                                              return (
+                                                <>
+                                                  <Check className="mr-1 h-4 w-4" />
+                                                  Application Accepted
+                                                </>
+                                              )
+                                            default:
+                                              return (
+                                                <>
+                                                  <CheckCircle className="mr-1 h-4 w-4" />
+                                                  Accept
+                                                </>
+                                              )
+                                          }
+                                        })()}
+                                      </Button>
+
+                                      <Button
+                                        size="sm"
+                                        disabled={
+                                          applicantStates[applicant.id]?.declineState !== "idle" &&
+                                          applicantStates[applicant.id]?.declineState !== undefined
+                                        }
+                                        className={`${
+                                          applicantStates[applicant.id]?.declineState === "success"
+                                            ? "bg-gray-500 hover:bg-gray-600 text-white"
+                                            : "bg-red-500 hover:bg-red-600 text-white"
+                                        }`}
+                                        onClick={async () => {
+                                          try {
+                                            if (applicant.status === "reviewed") {
+                                              toast.info("This application has already been reviewed.")
+                                              return
+                                            }
+
+                                            if (!provider) {
+                                              toast.error("Provider is not available. Please connect your wallet.")
+                                              return
+                                            }
+
+                                            // Set processing state
+                                            setApplicantStates((prev) => ({
+                                              ...prev,
+                                              [applicant.id]: {
+                                                ...prev[applicant.id],
+                                                declineState: "processing",
+                                              },
+                                            }))
+
+                                            const signer = await provider.getSigner()
+                                            const c = new ethers.Contract(
+                                              applicant.jobAddress,
+                                              PROOF_OF_WORK_JOB_ABI,
+                                              signer,
+                                            )
+                                            const tx = await c.declineApplication(applicant.address)
+
+                                            // Set confirming state
+                                            setApplicantStates((prev) => ({
+                                              ...prev,
+                                              [applicant.id]: {
+                                                ...prev[applicant.id],
+                                                declineState: "confirming",
+                                              },
+                                            }))
+
+                                            await tx.wait()
+
+                                            // Set success state
+                                            setApplicantStates((prev) => ({
+                                              ...prev,
+                                              [applicant.id]: {
+                                                ...prev[applicant.id],
+                                                declineState: "success",
+                                              },
+                                            }))
+
+                                            toast.success("Application declined successfully!")
+                                            updateApplicantStatus(applicant.id)
+
+                                            // Reset state after 2 seconds
+                                            setTimeout(() => {
+                                              setApplicantStates((prev) => ({
+                                                ...prev,
+                                                [applicant.id]: {
+                                                  ...prev[applicant.id],
+                                                  declineState: "idle",
+                                                },
+                                              }))
+                                            }, 2000)
+                                          } catch (err) {
+                                            console.error(err)
+                                            setApplicantStates((prev) => ({
+                                              ...prev,
+                                              [applicant.id]: {
+                                                ...prev[applicant.id],
+                                                declineState: "idle",
+                                              },
+                                            }))
+                                            toast.error("Failed to decline application.")
+                                          }
+                                        }}
+                                      >
+                                        {(() => {
+                                          const state = applicantStates[applicant.id]?.declineState || "idle"
+                                          switch (state) {
+                                            case "processing":
+                                              return (
+                                                <>
+                                                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                                                  Denying Application
+                                                </>
+                                              )
+                                            case "confirming":
+                                              return (
+                                                <>
+                                                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                                                  Confirming...
+                                                </>
+                                              )
+                                            case "success":
+                                              return (
+                                                <>
+                                                  <Check className="mr-1 h-4 w-4" />
+                                                  Application Denied
+                                                </>
+                                              )
+                                            default:
+                                              return (
+                                                <>
+                                                  <Trash2 className="mr-1 h-4 w-4" />
+                                                  Decline
+                                                </>
+                                              )
+                                          }
+                                        })()}
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </InteractiveCard>
+                        </motion.div>
+                      ))}
                     </div>
-                  </div>
-                </InteractiveCard>
-              </motion.div>
-            ))
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <motion.div
+                        variants={fadeIn(0.3)}
+                        initial="hidden"
+                        animate="visible"
+                        className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 p-6 bg-gradient-to-r from-accent/5 via-accent/10 to-accent/5 rounded-xl border border-accent/20"
+                      >
+                        {/* Page Info */}
+                        <div className="text-sm text-muted-foreground font-varela">
+                          Showing <span className="font-semibold text-accent">{startIndex + 1}</span> to{" "}
+                          <span className="font-semibold text-accent">
+                            {Math.min(endIndex, sortedApplicants.length)}
+                          </span>{" "}
+                          of <span className="font-semibold text-accent">{sortedApplicants.length}</span> applications
+                        </div>
+
+                        {/* Pagination Controls */}
+                        <div className="flex items-center gap-2">
+                          {/* First Page */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage(1)
+                              setPageInput("")
+                            }}
+                            disabled={currentPage === 1}
+                            className="border-accent/30 hover:bg-accent/10 hover:border-accent/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                          >
+                            <ChevronsLeft className="h-4 w-4" />
+                          </Button>
+
+                          {/* Previous Page */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage((prev) => Math.max(1, prev - 1))
+                              setPageInput("")
+                            }}
+                            disabled={currentPage === 1}
+                            className="border-accent/30 hover:bg-accent/10 hover:border-accent/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+
+                          {/* Page Numbers */}
+                          <div className="flex items-center gap-1">
+                            {(() => {
+                              const pages = []
+                              const showPages = 5
+                              let startPage = Math.max(1, currentPage - Math.floor(showPages / 2))
+                              const endPage = Math.min(totalPages, startPage + showPages - 1)
+
+                              if (endPage - startPage + 1 < showPages) {
+                                startPage = Math.max(1, endPage - showPages + 1)
+                              }
+
+                              for (let i = startPage; i <= endPage; i++) {
+                                pages.push(
+                                  <Button
+                                    key={i}
+                                    variant={currentPage === i ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => {
+                                      setCurrentPage(i)
+                                      setPageInput("")
+                                    }}
+                                    className={`min-w-[2.5rem] transition-all duration-200 ${
+                                      currentPage === i
+                                        ? "bg-accent text-accent-foreground shadow-lg scale-105"
+                                        : "border-accent/30 hover:bg-accent/10 hover:border-accent/50 hover:scale-105"
+                                    }`}
+                                  >
+                                    {i}
+                                  </Button>,
+                                )
+                              }
+                              return pages
+                            })()}
+                          </div>
+
+                          {/* Next Page */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                              setPageInput("")
+                            }}
+                            disabled={currentPage === totalPages}
+                            className="border-accent/30 hover:bg-accent/10 hover:border-accent/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+
+                          {/* Last Page */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage(totalPages)
+                              setPageInput("")
+                            }}
+                            disabled={currentPage === totalPages}
+                            className="border-accent/30 hover:bg-accent/10 hover:border-accent/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                          >
+                            <ChevronsRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {/* Go to Page Input */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground font-varela">Go to:</span>
+                          <Input
+                            type="number"
+                            min="1"
+                            max={totalPages}
+                            value={pageInput}
+                            onChange={(e) => setPageInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                const page = Number.parseInt(pageInput)
+                                if (page >= 1 && page <= totalPages) {
+                                  setCurrentPage(page)
+                                  setPageInput("")
+                                }
+                              }
+                            }}
+                            placeholder={currentPage.toString()}
+                            className="w-16 h-8 text-center border-accent/30 focus:border-accent text-sm"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const page = Number.parseInt(pageInput)
+                              if (page >= 1 && page <= totalPages) {
+                                setCurrentPage(page)
+                                setPageInput("")
+                              }
+                            }}
+                            disabled={
+                              !pageInput || Number.parseInt(pageInput) < 1 || Number.parseInt(pageInput) > totalPages
+                            }
+                            className="border-accent/30 hover:bg-accent/10 hover:border-accent/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                          >
+                            Go
+                          </Button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </>
+                )
+              })()}
+            </>
           ) : (
             <motion.div variants={fadeIn()} key="no-applicants" className="col-span-full flex justify-center">
               <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
