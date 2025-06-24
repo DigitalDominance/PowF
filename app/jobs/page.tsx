@@ -118,28 +118,28 @@ export default function JobsPage() {
   const [disputeState, setDisputeState] = useState<"idle" | "processing" | "confirming" | "success">("idle")
 
   // Filter jobs based on search and filters
-  const filteredJobs =
-    allJobs?.filter((job) => {
-      // Search term filter
-      const matchesSearch =
-        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.employer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.tags.some((tag: any) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredAndSortedJobs =
+    allJobs
+      ?.filter((job) => {
+        // Search term filter
+        const matchesSearch =
+          job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          job.employer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          job.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          job.tags.some((tag: any) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
 
-      // Payment type filter
-      const matchesPayType = payTypeFilter === "all" || job.payType === payTypeFilter
+        // Payment type filter
+        const matchesPayType = payTypeFilter === "all" || job.payType === payTypeFilter
 
-      // Minimum pay filter
-      const payAmount = job.payType === "WEEKLY" ? Number.parseFloat(job.weeklyPay) : Number.parseFloat(job.totalPay)
-      const matchesMinPay = payAmount >= minPayFilter[0]
+        // Minimum pay filter
+        const payAmount = job.payType === "WEEKLY" ? Number.parseFloat(job.weeklyPay) : Number.parseFloat(job.totalPay)
+        const matchesMinPay = payAmount >= minPayFilter[0]
 
-      console.log("matchesSearch", matchesSearch, matchesPayType, matchesMinPay)
+        return matchesSearch && matchesPayType && matchesMinPay
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || []
 
-      return matchesSearch && matchesPayType && matchesMinPay
-    }) || []
-
-  console.log("filteredJobs", filteredJobs)
+  console.log("filteredAndSortedJobs", filteredAndSortedJobs)
 
   const handleSubmitApplication = async (jobAddress: string, applicationText: string) => {
     if (!provider || !contracts) {
@@ -802,7 +802,7 @@ export default function JobsPage() {
             {(() => {
               const startIndex = (browseCurrentPage - 1) * itemsPerPage
               const endIndex = startIndex + itemsPerPage
-              const currentJobs = filteredJobs.slice(startIndex, endIndex)
+              const currentJobs = filteredAndSortedJobs.slice(startIndex, endIndex)
 
               return (
                 <>
@@ -996,7 +996,7 @@ export default function JobsPage() {
                     setCurrentPage={setBrowseCurrentPage}
                     pageInput={browsePageInput}
                     setPageInput={setBrowsePageInput}
-                    totalItems={filteredJobs.length}
+                    totalItems={filteredAndSortedJobs.length}
                     itemsPerPage={itemsPerPage}
                     itemName="jobs"
                   />
