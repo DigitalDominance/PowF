@@ -1,25 +1,18 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type React from "react";
-import { useState } from "react";
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import type React from "react"
+import { useState } from "react"
 import {
   ArrowRight,
   CheckCircle,
   Users,
-  Lock,
   FileText,
   DollarSign,
   Eye,
@@ -29,20 +22,22 @@ import {
   Plus,
   Edit,
   Trash2,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { InteractiveCard } from "@/components/custom/interactive-card";
-import { Balancer } from "react-wrap-balancer";
-import { toast } from "sonner";
-import { ethers } from "ethers";
-import { fetchJobDetails, fetchJobsByEmployerFromEvents, useUserContext } from "@/context/UserContext";
-import PROOF_OF_WORK_JOB_ABI from "@/lib/contracts/ProofOfWorkJob.json";
-import { instructionSteps } from "@/constants/constants";
+  Loader2,
+  Check,
+} from "lucide-react"
+import { motion } from "framer-motion"
+import { InteractiveCard } from "@/components/custom/interactive-card"
+import { Balancer } from "react-wrap-balancer"
+import { toast } from "sonner"
+import { ethers } from "ethers"
+import { fetchJobDetails, fetchJobsByEmployerFromEvents, useUserContext } from "@/context/UserContext"
+import PROOF_OF_WORK_JOB_ABI from "@/lib/contracts/ProofOfWorkJob.json"
+import { instructionSteps } from "@/constants/constants"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { delay, duration, ease: "easeOut" } },
-});
+})
 
 const staggerContainer = (staggerChildren = 0.1, delayChildren = 0) => ({
   hidden: {},
@@ -52,7 +47,7 @@ const staggerContainer = (staggerChildren = 0.1, delayChildren = 0) => ({
       delayChildren,
     },
   },
-});
+})
 
 const SectionWrapper = ({
   children,
@@ -60,27 +55,29 @@ const SectionWrapper = ({
   id,
   padding = "py-16 md:py-20 lg:py-24",
 }: {
-  children: React.ReactNode;
-  className?: string;
-  id?: string;
-  padding?: string;
+  children: React.ReactNode
+  className?: string
+  id?: string
+  padding?: string
 }) => (
   <section id={id} className={`w-full relative ${padding} ${className}`}>
     <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-background/3 dark:via-black/5 to-transparent opacity-20" />
     <div className="container px-4 md:px-6 relative z-10">{children}</div>
   </section>
-);
+)
 
 export default function PostJobPage() {
-  const { wallet, role, contracts, provider, jobDetails, applicants, setApplicants, setEmployerJobs, setJobDetails } = useUserContext();
-  const [paymentType, setPaymentType] = useState<"weekly" | "oneoff">("weekly");
+  const { wallet, role, contracts, provider, jobDetails, applicants, setApplicants, setEmployerJobs, setJobDetails } =
+    useUserContext()
+  const [paymentType, setPaymentType] = useState<"weekly" | "oneoff">("weekly")
+  const [submitState, setSubmitState] = useState<"idle" | "submitting" | "confirming" | "success">("idle")
   const [formData, setFormData] = useState<{
-    jobTitle: string;
-    description: string;
-    payAmount: string;
-    duration: string;
-    positions: string;
-    tags: string[];
+    jobTitle: string
+    description: string
+    payAmount: string
+    duration: string
+    positions: string
+    tags: string[]
   }>({
     jobTitle: "",
     description: "",
@@ -88,52 +85,61 @@ export default function PostJobPage() {
     duration: "",
     positions: "1",
     tags: [],
-  });
+  })
 
   const handleInputChange = (field: string, value: string | string[]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
 
   const handleAddTag = (tag: string) => {
     if (tag && !formData.tags.includes(tag)) {
-      setFormData((prev) => ({ ...prev, tags: [...prev.tags, tag] }));
+      setFormData((prev) => ({ ...prev, tags: [...prev.tags, tag] }))
     }
-  };
+  }
 
   const handleRemoveTag = (tag: string) => {
     setFormData((prev) => ({
       ...prev,
       tags: prev.tags.filter((t) => t !== tag),
-    }));
-  };
+    }))
+  }
+
+  const resetForm = () => {
+    setFormData({
+      jobTitle: "",
+      description: "",
+      payAmount: "",
+      duration: "",
+      positions: "1",
+      tags: [],
+    })
+    setPaymentType("weekly")
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (role !== "employer") {
-      toast.error("Only employers can create job listings.", { duration: 3000 });
-      return;
+      toast.error("Only employers can create job listings.", { duration: 3000 })
+      return
     }
     if (!contracts?.jobFactory) {
-      toast.error("Please connect your wallet first", { duration: 3000 });
-      return;
+      toast.error("Please connect your wallet first", { duration: 3000 })
+      return
     }
+
     try {
-      const weeklyPayWei =
-        paymentType === "weekly"
-          ? ethers.parseEther(formData.payAmount)
-          : BigInt(0);
-      const durationWeeks = BigInt(formData.duration || "0");
+      setSubmitState("submitting")
+
+      const weeklyPayWei = paymentType === "weekly" ? ethers.parseEther(formData.payAmount) : BigInt(0)
+      const durationWeeks = BigInt(formData.duration || "0")
       const totalPayWei =
         paymentType === "oneoff"
           ? ethers.parseEther(formData.payAmount)
-          : ethers.parseEther(formData.payAmount) * durationWeeks;
-      const fee = (totalPayWei * BigInt(75)) / BigInt(10000);
-      const value =
-        paymentType === "weekly"
-          ? weeklyPayWei * durationWeeks + fee
-          : totalPayWei + fee;
+          : ethers.parseEther(formData.payAmount) * durationWeeks
+      const fee = (totalPayWei * BigInt(75)) / BigInt(10000)
+      const value = paymentType === "weekly" ? weeklyPayWei * durationWeeks + fee : totalPayWei + fee
 
-      const txPromise = contracts.jobFactory.createJob(
+      const tx = await contracts.jobFactory.createJob(
         wallet,
         paymentType === "weekly" ? 0 : 1,
         weeklyPayWei,
@@ -143,45 +149,80 @@ export default function PostJobPage() {
         formData.description,
         formData.positions,
         formData.tags,
-        { value }
-      );
+        { value },
+      )
 
-      toast.promise(txPromise, {
-        loading: "Please wait for confirmation...",
-        success: "Confirming...",
-        error: (err) => `Failed to create job: ${err.message}`,
-      });
+      setSubmitState("confirming")
+      await tx.wait()
+      setSubmitState("success")
 
-      const tx = await txPromise;
-      await tx.wait();
-      toast.success("Job created successfully!");
+      toast.success("Job created successfully!")
 
       // Fetch the updated employer jobs
-      const updatedEmployerJobs = await fetchJobsByEmployerFromEvents(
-        contracts.jobFactory,
-        wallet
-      );
-      setEmployerJobs(updatedEmployerJobs); // Update employerJobs in UserContext
+      const updatedEmployerJobs = await fetchJobsByEmployerFromEvents(contracts.jobFactory, wallet)
+      setEmployerJobs(updatedEmployerJobs)
 
       // Fetch the updated job details
       if (provider) {
-        const updatedJobDetails = await fetchJobDetails(updatedEmployerJobs, provider);
-        setJobDetails(updatedJobDetails); // Update jobDetails in UserContext
+        const updatedJobDetails = await fetchJobDetails(updatedEmployerJobs, provider)
+        setJobDetails(updatedJobDetails)
       } else {
-        console.error("Provider is null. Cannot fetch job details.");
-      }  
+        console.error("Provider is null. Cannot fetch job details.")
+      }
+
+      // Reset form after successful submission
+      setTimeout(() => {
+        resetForm()
+        setSubmitState("idle")
+      }, 2000)
     } catch (err: any) {
-      console.error("Error creating job:", err);
+      console.error("Error creating job:", err)
+      setSubmitState("idle")
+      toast.error(`Failed to create job: ${err.message || "Unknown error"}`, {
+        duration: 5000,
+      })
     }
-  };
+  }
 
   const updateApplicantStatus = (id: string) => {
-    setApplicants((prev) =>
-      prev.map((app) =>
-        app.id === id ? { ...app, status: "reviewed" } : app
-      )
-    );
-  };
+    setApplicants((prev) => prev.map((app) => (app.id === id ? { ...app, status: "reviewed" } : app)))
+  }
+
+  const getButtonContent = () => {
+    switch (submitState) {
+      case "submitting":
+        return (
+          <>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Creating Job...
+          </>
+        )
+      case "confirming":
+        return (
+          <>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Confirming Transaction...
+          </>
+        )
+      case "success":
+        return (
+          <>
+            <Check className="mr-2 h-5 w-5" />
+            Job Created Successfully!
+          </>
+        )
+      default:
+        return (
+          <>
+            <Plus className="mr-2 h-5 w-5" />
+            Create Job Listing
+            <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+          </>
+        )
+    }
+  }
+
+  const isSubmitting = submitState !== "idle"
 
   return (
     <div className="flex flex-col items-center">
@@ -204,9 +245,8 @@ export default function PostJobPage() {
             className="mt-10 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
           >
             <Balancer>
-              Hire top talent with guaranteed payments and transparent terms.
-              All job contracts are secured on-chain for maximum trust and
-              accountability.
+              Hire top talent with guaranteed payments and transparent terms. All job contracts are secured on-chain for
+              maximum trust and accountability.
             </Balancer>
           </motion.p>
         </div>
@@ -219,10 +259,7 @@ export default function PostJobPage() {
             How <span className="text-accent">It Works</span>
           </h2>
           <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-            <Balancer>
-              Simple steps to post your job and start hiring with
-              blockchain-powered security.
-            </Balancer>
+            <Balancer>Simple steps to post your job and start hiring with blockchain-powered security.</Balancer>
           </p>
         </motion.div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -230,12 +267,8 @@ export default function PostJobPage() {
             <motion.div variants={fadeIn(i * 0.1)} key={step.title}>
               <InteractiveCard className="h-full text-center">
                 <div className="flex flex-col items-center">
-                  <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
-                    {step.icon}
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2 text-foreground">
-                    {step.title}
-                  </h3>
+                  <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">{step.icon}</div>
+                  <h3 className="text-lg font-semibold mb-2 text-foreground">{step.title}</h3>
                   <p className="text-sm text-muted-foreground">
                     <Balancer>{step.description}</Balancer>
                   </p>
@@ -254,8 +287,7 @@ export default function PostJobPage() {
           </h2>
           <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
             <Balancer>
-              Fill out the details below to create your job posting and lock
-              funds in the smart contract.
+              Fill out the details below to create your job posting and lock funds in the smart contract.
             </Balancer>
           </p>
         </motion.div>
@@ -271,6 +303,7 @@ export default function PostJobPage() {
                 <Select
                   value={paymentType}
                   onValueChange={(v: "weekly" | "oneoff") => setPaymentType(v)}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger className="border-border focus:border-accent">
                     <SelectValue placeholder="Select payment type" />
@@ -297,6 +330,7 @@ export default function PostJobPage() {
                     value={formData.payAmount}
                     onChange={(e) => handleInputChange("payAmount", e.target.value)}
                     className="pl-10 border-border focus:border-accent"
+                    disabled={isSubmitting}
                     required
                   />
                 </div>
@@ -318,6 +352,7 @@ export default function PostJobPage() {
                       value={formData.duration}
                       onChange={(e) => handleInputChange("duration", e.target.value)}
                       className="pl-10 border-border focus:border-accent"
+                      disabled={isSubmitting}
                       required
                     />
                   </div>
@@ -336,6 +371,7 @@ export default function PostJobPage() {
                   value={formData.jobTitle}
                   onChange={(e) => handleInputChange("jobTitle", e.target.value)}
                   className="border-border focus:border-accent"
+                  disabled={isSubmitting}
                   required
                 />
               </div>
@@ -351,6 +387,7 @@ export default function PostJobPage() {
                   value={formData.description}
                   onChange={(e) => handleInputChange("description", e.target.value)}
                   className="min-h-[120px] border-border focus:border-accent resize-none"
+                  disabled={isSubmitting}
                   required
                 />
               </div>
@@ -372,6 +409,7 @@ export default function PostJobPage() {
                         type="button"
                         onClick={() => handleRemoveTag(tag)}
                         className="text-red-500 hover:text-red-600"
+                        disabled={isSubmitting}
                       >
                         ✕
                       </button>
@@ -384,12 +422,13 @@ export default function PostJobPage() {
                   placeholder="Type a tag and press Enter"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddTag(e.currentTarget.value.trim());
-                      e.currentTarget.value = "";
+                      e.preventDefault()
+                      handleAddTag(e.currentTarget.value.trim())
+                      e.currentTarget.value = ""
                     }
                   }}
                   className="border-border focus:border-accent"
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -405,6 +444,7 @@ export default function PostJobPage() {
                   value={formData.positions}
                   onChange={(e) => handleInputChange("positions", e.target.value)}
                   className="border-border focus:border-accent"
+                  disabled={isSubmitting}
                   required
                 />
               </div>
@@ -412,12 +452,21 @@ export default function PostJobPage() {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg hover:shadow-accent/40 transition-all duration-300 transform hover:scale-105 group"
+                disabled={isSubmitting}
+                className={`w-full transition-all duration-300 transform hover:scale-105 group ${
+                  submitState === "success"
+                    ? "bg-green-500 hover:bg-green-600 text-white"
+                    : "bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg hover:shadow-accent/40"
+                }`}
               >
-                <Plus className="mr-2 h-5 w-5" />
-                Create Job Listing
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                {getButtonContent()}
               </Button>
+
+              {submitState === "success" && (
+                <div className="text-center text-sm text-green-600 dark:text-green-400 font-medium">
+                  Your job has been created and is now live on the blockchain!
+                </div>
+              )}
             </form>
           </InteractiveCard>
         </motion.div>
@@ -430,9 +479,7 @@ export default function PostJobPage() {
             Your Current <span className="text-accent">Listings</span>
           </h2>
           <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-            <Balancer>
-              Manage your active job postings and track applicant interest.
-            </Balancer>
+            <Balancer>Manage your active job postings and track applicant interest.</Balancer>
           </p>
         </motion.div>
 
@@ -443,19 +490,13 @@ export default function PostJobPage() {
                 <InteractiveCard className="h-full">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-1">
-                        {listing.title}
-                      </h3>
+                      <h3 className="text-lg font-semibold text-foreground mb-1">{listing.title}</h3>
                     </div>
                     <div className="flex gap-2">
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-500 hover:text-red-600"
-                      >
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -464,35 +505,25 @@ export default function PostJobPage() {
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Payment:</span>
-                      <span className="font-medium text-foreground">
-                        {listing.totalPay} KAS
-                      </span>
+                      <span className="font-medium text-foreground">{listing.totalPay} KAS</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Type:</span>
-                      <span className="font-medium text-foreground capitalize">
-                        {listing.payType}
-                      </span>
+                      <span className="font-medium text-foreground capitalize">{listing.payType}</span>
                     </div>
                     {listing.payType === "weekly" && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Duration:</span>
-                        <span className="font-medium text-foreground">
-                          {listing.duration}
-                        </span>
+                        <span className="font-medium text-foreground">{listing.duration}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Positions:</span>
-                      <span className="font-medium text-foreground">
-                        {listing.positions}
-                      </span>
+                      <span className="font-medium text-foreground">{listing.positions}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Applicants:</span>
-                      <span className="font-medium text-accent">
-                        {listing.applicants}
-                      </span>
+                      <span className="font-medium text-accent">{listing.applicants}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Posted:</span>
@@ -513,19 +544,11 @@ export default function PostJobPage() {
               </motion.div>
             ))
           ) : (
-            <motion.div
-              variants={fadeIn()}
-              key="no-listings"
-              className="col-span-full flex justify-center"
-            >
+            <motion.div variants={fadeIn()} key="no-listings" className="col-span-full flex justify-center">
               <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
                 <FileText className="h-12 w-12 text-accent mb-4 mx-auto" />
-                <h3 className="font-varien text-lg font-semibold text-foreground mb-2">
-                  No Listings Found
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Create a listing above to get started.
-                </p>
+                <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Listings Found</h3>
+                <p className="text-sm text-muted-foreground">Create a listing above to get started.</p>
               </InteractiveCard>
             </motion.div>
           )}
@@ -539,10 +562,7 @@ export default function PostJobPage() {
             Review <span className="text-accent">Applicants</span>
           </h2>
           <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-            <Balancer>
-              Evaluate candidates based on their on-chain reputation and
-              experience.
-            </Balancer>
+            <Balancer>Evaluate candidates based on their on-chain reputation and experience.</Balancer>
           </p>
         </motion.div>
 
@@ -554,21 +574,14 @@ export default function PostJobPage() {
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage
-                          src={`https://effigy.im/a/${applicant.address}.svg`}
-                          alt={applicant.address}
-                        />
+                        <AvatarImage src={`https://effigy.im/a/${applicant.address}.svg`} alt={applicant.address} />
                         <AvatarFallback className="bg-accent/10 text-accent font-semibold">
                           {applicant.address.charAt(2)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <h3 className="text-lg font-semibold text-foreground">
-                          {applicant.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Applied for: {applicant.jobTitle}
-                        </p>
+                        <h3 className="text-lg font-semibold text-foreground">{applicant.name}</h3>
+                        <p className="text-sm text-muted-foreground">Applied for: {applicant.jobTitle}</p>
                         <div>
                           {applicant.application.length > 100 ? (
                             <>
@@ -581,40 +594,31 @@ export default function PostJobPage() {
                                 href="#"
                                 className="text-blue-500 hover:underline text-sm"
                                 onClick={(e) => {
-                                  e.preventDefault();
+                                  e.preventDefault()
                                   setApplicants((prev) =>
                                     prev.map((a) =>
                                       a.id === applicant.id
                                         ? {
                                             ...a,
-                                            showFullApplication:
-                                              !a.showFullApplication,
+                                            showFullApplication: !a.showFullApplication,
                                           }
-                                        : a
-                                    )
-                                  );
+                                        : a,
+                                    ),
+                                  )
                                 }}
                               >
-                                {applicant.showFullApplication
-                                  ? "View Less"
-                                  : "View More"}
+                                {applicant.showFullApplication ? "View Less" : "View More"}
                               </a>
                             </>
                           ) : (
-                            <p className="text-sm text-muted-foreground">
-                              {applicant.application}
-                            </p>
+                            <p className="text-sm text-muted-foreground">{applicant.application}</p>
                           )}
                         </div>
                         <div className="flex items-center gap-4 mt-1">
-                          <span className="text-sm text-muted-foreground">
-                            {applicant.experience} experience
-                          </span>
+                          <span className="text-sm text-muted-foreground">{applicant.experience} experience</span>
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                            <span className="text-sm font-medium text-foreground">
-                              {applicant.rating}
-                            </span>
+                            <span className="text-sm font-medium text-foreground">{applicant.rating}</span>
                           </div>
                         </div>
                       </div>
@@ -630,14 +634,8 @@ export default function PostJobPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge
-                          variant={
-                            applicant.status === "reviewed" ? "default" : "secondary"
-                          }
-                          className={
-                            applicant.status === "reviewed"
-                              ? "bg-accent text-accent-foreground"
-                              : ""
-                          }
+                          variant={applicant.status === "reviewed" ? "default" : "secondary"}
+                          className={applicant.status === "reviewed" ? "bg-accent text-accent-foreground" : ""}
                         >
                           {applicant.status}
                         </Badge>
@@ -646,11 +644,7 @@ export default function PostJobPage() {
                         </span>
                       </div>
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-accent/50 text-accent hover:bg-accent/10"
-                        >
+                        <Button variant="outline" size="sm" className="border-accent/50 text-accent hover:bg-accent/10">
                           <MessageSquare className="mr-1 h-4 w-4" />
                           Message
                         </Button>
@@ -660,38 +654,29 @@ export default function PostJobPage() {
                           onClick={async () => {
                             try {
                               if (applicant.status === "reviewed") {
-                                toast.info("This application has already been reviewed.");
-                                return;
+                                toast.info("This application has already been reviewed.")
+                                return
                               }
 
                               if (!provider) {
-                                toast.error(
-                                  "Provider is not available. Please connect your wallet."
-                                );
-                                return;
+                                toast.error("Provider is not available. Please connect your wallet.")
+                                return
                               }
-                              const signer = await provider.getSigner();
-                              const c = new ethers.Contract(
-                                applicant.jobAddress,
-                                PROOF_OF_WORK_JOB_ABI,
-                                signer
-                              );
-                              const txPromise = c.acceptApplication(applicant.address);
+                              const signer = await provider.getSigner()
+                              const c = new ethers.Contract(applicant.jobAddress, PROOF_OF_WORK_JOB_ABI, signer)
+                              const txPromise = c.acceptApplication(applicant.address)
 
-                              toast.promise(
-                                txPromise,
-                                {
-                                  loading: "Processing application...",
-                                  success: "Application accepted successfully!",
-                                  error: "Failed to accept application.",
-                                }
-                              );
-                              const tx = await txPromise;
-                              await tx.wait();
-                              toast.success("Application accepted successfully!");
-                              updateApplicantStatus(applicant.id);
+                              toast.promise(txPromise, {
+                                loading: "Processing application...",
+                                success: "Application accepted successfully!",
+                                error: "Failed to accept application.",
+                              })
+                              const tx = await txPromise
+                              await tx.wait()
+                              toast.success("Application accepted successfully!")
+                              updateApplicantStatus(applicant.id)
                             } catch (err) {
-                              console.error(err);
+                              console.error(err)
                             }
                           }}
                         >
@@ -705,42 +690,33 @@ export default function PostJobPage() {
                           onClick={async () => {
                             try {
                               if (applicant.status === "reviewed") {
-                                toast.info("This application has already been reviewed.");
-                                return;
+                                toast.info("This application has already been reviewed.")
+                                return
                               }
 
                               if (!provider) {
-                                toast.error(
-                                  "Provider is not available. Please connect your wallet."
-                                );
-                                return;
+                                toast.error("Provider is not available. Please connect your wallet.")
+                                return
                               }
-                              const signer = await provider.getSigner();
-                              const c = new ethers.Contract(
-                                applicant.jobAddress,
-                                PROOF_OF_WORK_JOB_ABI,
-                                signer
-                              );
+                              const signer = await provider.getSigner()
+                              const c = new ethers.Contract(applicant.jobAddress, PROOF_OF_WORK_JOB_ABI, signer)
 
-                              const txPromise = c.declineApplication(applicant.address);
+                              const txPromise = c.declineApplication(applicant.address)
 
-                              toast.promise(
-                                txPromise,
-                                {
-                                  loading: "Processing decline request...",
-                                  success: "Application declined successfully!",
-                                  error: "Failed to decline application.",
-                                }
-                              );   
-                              
-                              const tx = await txPromise;
+                              toast.promise(txPromise, {
+                                loading: "Processing decline request...",
+                                success: "Application declined successfully!",
+                                error: "Failed to decline application.",
+                              })
 
-                              await tx.wait();
+                              const tx = await txPromise
 
-                              toast.success("Application declined successfully!");
-                              updateApplicantStatus(applicant.id);
+                              await tx.wait()
+
+                              toast.success("Application declined successfully!")
+                              updateApplicantStatus(applicant.id)
                             } catch (err) {
-                              console.error(err);
+                              console.error(err)
                             }
                           }}
                         >
@@ -757,17 +733,13 @@ export default function PostJobPage() {
             <motion.div variants={fadeIn()} key="no-applicants" className="col-span-full flex justify-center">
               <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
                 <Users className="h-12 w-12 text-accent mb-4 mx-auto" />
-                <h3 className="font-varien text-lg font-semibold text-foreground mb-2">
-                  No Applicants Found
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  No applicants have applied yet.
-                </p>
+                <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Applicants Found</h3>
+                <p className="text-sm text-muted-foreground">No applicants have applied yet.</p>
               </InteractiveCard>
             </motion.div>
           )}
         </div>
       </SectionWrapper>
     </div>
-  );
+  )
 }
