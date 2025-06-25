@@ -615,9 +615,10 @@ export default function JobsPage() {
         </div>
       ) : messages.length > 0 ? (
         messages.map((message: any, index: number) => {
-          // Check if the message is from the current user by comparing wallet addresses
+          // Check if the message is from the current user
+          // If current user sent it: sender = currentUserAddress, receiver = otherPartyAddress
+          // If other party sent it: sender = otherPartyAddress, receiver = currentUserAddress
           const isFromMe = message.sender?.toLowerCase() === currentUserAddress?.toLowerCase()
-          const isFromOtherParty = message.sender?.toLowerCase() === otherPartyAddress?.toLowerCase()
 
           return (
             <div key={index} className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}>
@@ -634,47 +635,47 @@ export default function JobsPage() {
                   isFromMe
                     ? "bg-green-100 dark:bg-green-900/30 text-foreground border border-green-200 dark:border-green-700"
                     : "bg-red-100 dark:bg-red-900/30 text-foreground border border-red-200 dark:border-red-700"
-                }`}
-              >
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-medium text-sm font-varela">
-                    {isFromMe ? displayName || "You" : otherPartyName}{" "}
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ml-1 font-varela ${
-                        isFromMe
-                          ? "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
-                          : "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30"
-                      }`}
-                    >
-                      {isFromMe ? "You" : "Employer"}
-                    </Badge>
-                  </span>
-                  <span className="text-xs text-muted-foreground font-varela">
-                    {new Date(message.createdAt).toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-sm font-varela">{message.content}</p>
+              }`}
+            >
+              <div className="flex justify-between items-center mb-1">
+                <span className="font-medium text-sm font-varela">
+                  {isFromMe ? displayName || "You" : otherPartyName}{" "}
+                  <Badge
+                    variant="outline"
+                    className={`text-xs ml-1 font-varela ${
+                      isFromMe
+                        ? "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
+                        : "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30"
+                    }`}
+                  >
+                    {isFromMe ? "You" : "Employer"}
+                  </Badge>
+                </span>
+                <span className="text-xs text-muted-foreground font-varela">
+                  {new Date(message.createdAt).toLocaleString()}
+                </span>
               </div>
-              {isFromMe && (
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={`https://effigy.im/a/${currentUserAddress}.svg`} alt={currentUserAddress} />
-                  <AvatarFallback>
-                    <User className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-              )}
+              <p className="text-sm font-varela">{message.content}</p>
             </div>
-          )
-        })
-      ) : (
-        <div className="text-center py-8">
-          <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground font-varela">No messages yet. Start the conversation!</p>
-        </div>
-      )}
-    </div>
-  )
+            {isFromMe && (
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={`https://effigy.im/a/${currentUserAddress}.svg`} alt={currentUserAddress} />
+                <AvatarFallback>
+                  <User className="h-4 w-4" />
+                </AvatarFallback>
+              </Avatar>
+            )}
+          </div>
+        )
+      })
+    ) : (
+      <div className="text-center py-8">
+        <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <p className="text-sm text-muted-foreground font-varela">No messages yet. Start the conversation!</p>
+      </div>
+    )}
+  </div>
+)
 
   // Pagination component
   const PaginationControls = ({
@@ -685,7 +686,7 @@ export default function JobsPage() {
     totalItems,
     itemsPerPage,
     itemName,
-  }: {
+    }: {
     currentPage: number
     setCurrentPage: (page: number) => void
     pageInput: string
@@ -1725,6 +1726,13 @@ export default function JobsPage() {
                               <div className="flex flex-col items-start md:items-end gap-3 mt-4 md:mt-0">
                                 {application.status === "pending" && (
                                   <Button
+                                    variant="outline"\
+                                )}
+                              </div>
+\
+                              <div className="flex flex-col items-start md:items-end gap-3 mt-4 md:mt-0">
+                                {application.status === "pending" && (
+                                  <Button
                                     variant="outline"
                                     disabled={withdrawState !== "idle"}
                                     className={`font-varien ${
@@ -1774,13 +1782,13 @@ export default function JobsPage() {
                     )}
                   </div>
 
-                  <PaginationControls
-                    currentPage={applicationsCurrentPage}
-                    setCurrentPage={setApplicationsCurrentPage}
-                    pageInput={applicationsPageInput}
-                    setPageInput={setApplicationsPageInput}
-                    totalItems={sortedApplications.length}
-                    itemsPerPage={itemsPerPage}
+                  <PaginationControls\
+                    currentPage={applicationsCurrentPage}\
+                    setCurrentPage={setApplicationsCurrentPage}\
+                    pageInput={applicationsPageInput}\
+                    setPageInput={setApplicationsPageInput}\
+                    totalItems={sortedApplications.length}\
+                    itemsPerPage={itemsPerPage}\
                     itemName="applications"
                   />
                 </>
@@ -1790,5 +1798,5 @@ export default function JobsPage() {
         </Tabs>
       </SectionWrapper>
     </div>
-  )
+  )\
 }
