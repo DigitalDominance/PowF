@@ -19,20 +19,21 @@ interface UserContextType {
   provider: BrowserProvider | null;
   address: string | undefined;
   isConnected: boolean;
-  allJobs: any[]; // Add this
-  jobAddresses: string[]; // Add this
-  setJobAddresses: React.Dispatch<React.SetStateAction<string[]>>; // Add this
+  allJobs: any[];
+  jobAddresses: string[];
+  setJobAddresses: React.Dispatch<React.SetStateAction<string[]>>;
   myJobs: any[];
   disputes: any[];
   myDisputes: any[];
   employerJobs: string[];
-  setEmployerJobs: React.Dispatch<React.SetStateAction<string[]>>; // Add this
+  setEmployerJobs: React.Dispatch<React.SetStateAction<string[]>>;
   jobDetails: any[];
-  setJobDetails: React.Dispatch<React.SetStateAction<any[]>>; // Add this
+  setJobDetails: React.Dispatch<React.SetStateAction<any[]>>;
   applicants: any[];
-  setApplicants: React.Dispatch<React.SetStateAction<any[]>>; // Add this
+  setApplicants: React.Dispatch<React.SetStateAction<any[]>>;
   sendMessage: (disputeId: string, content: string) => void;
-  setMyDisputes: React.Dispatch<React.SetStateAction<any[]>>; // Add this
+  sendP2PMessage: (to: string, content: string) => Promise<void>;
+  setMyDisputes: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -673,7 +674,20 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     fetchDisputes();
   }, [contracts?.disputeDAO]);
-
+  
+   const sendP2PMessage = async (to: string, content: string) => {
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API}/chat/messages`,
+        { to, content },
+        { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` } }
+      );
+      console.log(`P2P message sent to ${to}:`, response.data);
+    } catch (error) {
+      console.error(`Error sending P2P message to ${to}:`, error);
+    }
+  };
+  
   const sendMessage = async (disputeId: string, content: string) => {
     try {
       // Send the message to the backend
@@ -778,8 +792,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         address,
         isConnected,
         allJobs,
-        jobAddresses, // Provide jobAddresses
-        setJobAddresses, // Provide setJobAddresses
+        jobAddresses,
+        setJobAddresses,
         myJobs,
         disputes,
         myDisputes,
@@ -788,6 +802,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         applicants,
         setApplicants,
         sendMessage,
+        sendP2PMessage,
         setEmployerJobs,
         setJobDetails,
         setMyDisputes
