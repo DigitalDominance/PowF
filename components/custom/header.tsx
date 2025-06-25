@@ -8,7 +8,6 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { ConnectWallet } from "./connect-wallet"
 import { ThemeSwitch } from "./theme-switch"
-import { NotificationSystem } from "./notification-system"
 import Image from "next/image"
 
 const navItems = [
@@ -70,13 +69,10 @@ export function Header() {
           // Mobile Navigation
           <div className="md:hidden flex items-center justify-end w-full ml-2">
             <div className="flex items-center gap-1">
-              <div className="scale-60 translate-x-6">
-                <NotificationSystem />
-              </div>
               <div className="scale-[0.5]">
                 <ThemeSwitch />
               </div>
-              <div className="block md:hidden scale-[0.65] -mx-12">
+              <div className="block md:hidden scale-[0.65] -mx-8">
                 <ConnectWallet />
               </div>
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -163,7 +159,6 @@ export function Header() {
                 </motion.div>
               ))}
             </nav>
-            <NotificationSystem />
             <div className="hidden md:block">
               <ConnectWallet />
             </div>
@@ -171,18 +166,6 @@ export function Header() {
           </div>
         )}
       </div>
-
-      {/* CreateJob Modal */}
-      {/* <Sheet open={isCreateJobOpen} onOpenChange={setIsCreateJobOpen}>
-        <SheetContent side="right" className="w-[400px] sm:w-[500px] glass-effect">
-          <div className="flex flex-col h-full">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-foreground">Post a Job</h2>
-            </div>
-            <CreateJob />
-          </div>
-        </SheetContent>
-      </Sheet>       */}
     </motion.header>
   )
 }
