@@ -93,8 +93,19 @@ const SectionWrapper = ({
 )
 
 export default function JobsPage() {
-  const { contracts, provider, role, address, allJobs, jobAddresses, myJobs, displayName, wallet, sendP2PMessage } =
-    useUserContext()
+  const {
+    contracts,
+    provider,
+    role,
+    address,
+    allJobs,
+    jobAddresses,
+    myJobs,
+    displayName,
+    wallet,
+    sendP2PMessage,
+    fetchP2PMessages,
+  } = useUserContext()
 
   // State for job filters
   const [searchTerm, setSearchTerm] = useState("")
@@ -181,23 +192,18 @@ export default function JobsPage() {
     }
   }, [chatMessages])
 
-  // Fetch chat messages
+  // Fetch chat messages using the UserContext function
   const fetchChatMessages = async (employerAddress: string) => {
-    if (!address) return
+    if (!address || !fetchP2PMessages) return
 
     setIsLoadingMessages(true)
     try {
-      // Try without authentication first, or use a context function if available
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/chat/messages/${employerAddress}`)
-
-      if (response.ok) {
-        const messages = await response.json()
-        setChatMessages(messages)
-      } else {
-        console.error("Failed to fetch messages")
-      }
+      // Use the UserContext function to fetch messages between current user and employer
+      const messages = await fetchP2PMessages(employerAddress)
+      setChatMessages(messages)
     } catch (error) {
       console.error("Error fetching messages:", error)
+      toast.error("Failed to load messages")
     } finally {
       setIsLoadingMessages(false)
     }
@@ -205,7 +211,7 @@ export default function JobsPage() {
 
   // Send chat message
   const handleSendChatMessage = async () => {
-    if (!newChatMessage.trim() || !selectedEmployer || !address) return
+    if (!newChatMessage.trim() || !selectedEmployer || !address || !sendP2PMessage) return
 
     setIsSendingMessage(true)
     try {
