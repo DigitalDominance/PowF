@@ -93,7 +93,7 @@ const SectionWrapper = ({
 )
 
 export default function JobsPage() {
-  const { contracts, provider, role, address, allJobs, jobAddresses, myJobs, displayName, token } = useUserContext()
+  const { contracts, provider, role, address, allJobs, jobAddresses, myJobs, displayName, wallet } = useUserContext()
 
   // State for job filters
   const [searchTerm, setSearchTerm] = useState("")
@@ -184,18 +184,10 @@ export default function JobsPage() {
   const fetchChatMessages = async (employerAddress: string) => {
     if (!address) return
 
-    if (!token) {
-      toast.error("Authentication required")
-      return
-    }
-
     setIsLoadingMessages(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/chat/messages/${employerAddress}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      // Try without authentication first, or use a context function if available
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/chat/messages/${employerAddress}`)
 
       if (response.ok) {
         const messages = await response.json()
@@ -214,20 +206,16 @@ export default function JobsPage() {
   const handleSendChatMessage = async () => {
     if (!newChatMessage.trim() || !selectedEmployer || !address) return
 
-    if (!token) {
-      toast.error("Authentication required")
-      return
-    }
-
     setIsSendingMessage(true)
     try {
+      // Try without authentication first, or use a context function if available
       const response = await fetch(`${process.env.NEXT_PUBLIC_API}/chat/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          from: address,
           to: selectedEmployer.address,
           content: newChatMessage.trim(),
         }),
