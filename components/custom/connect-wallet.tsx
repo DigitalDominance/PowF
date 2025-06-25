@@ -1,7 +1,7 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Copy, Check, ExternalLink, Briefcase, User, MessageSquare, Send, Loader2 } from "lucide-react"
+import { LogOut, Copy, Check, ExternalLink, Briefcase, User, MessageSquare, Send, Loader2, Wallet } from "lucide-react"
 // import { chains, kaspaEVMTestnet } from "@/lib/web3modal-config" // Import chains
 import { useState, useEffect, useRef } from "react"
 import {
@@ -20,7 +20,7 @@ import { useUserContext } from "@/context/UserContext"
 // import { useContracts } from "@/hooks/useContract"
 import { Badge } from "@/components/ui/badge"
 
-function truncateAddress(address: string) {
+function truncateAddress(address: string | undefined) {
   if (!address) return "No Address"
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
@@ -56,7 +56,7 @@ export function ConnectWallet() {
     isReAuthenticatingRef.current = isReAuthenticating // Sync the ref with the state
   }, [isSigningUp, isReAuthenticating])
 
-  const { setUserData } = useUserContext()
+  const { setUserData, sendP2PMessage, fetchP2PMessages } = useUserContext()
 
   const handleCopyAddress = () => {
     if (address) {
@@ -341,6 +341,21 @@ export function ConnectWallet() {
     </div>
   )
 
+  if (!isConnected || !address) {
+    return (
+      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <Button
+          onClick={handleConnectWallet}
+          variant="outline"
+          className="font-varien border-accent text-accent hover:bg-accent/10 hover:text-accent group tracking-wider"
+        >
+          <Wallet className="mr-2 h-4 w-4 group-hover:animate-pulse-glow" />
+          Connect Wallet
+        </Button>
+      </motion.div>
+    )
+  }
+
   return (
     <div className="flex flex-col items-center gap-4">
       <DropdownMenu>
@@ -352,7 +367,7 @@ export function ConnectWallet() {
             >
               <Avatar className="h-6 w-6">
                 <AvatarImage src={`https://effigy.im/a/${address}.svg`} alt={address} />
-                <AvatarFallback>{address.charAt(2)}</AvatarFallback>
+                <AvatarFallback>{address?.charAt(2) || "?"}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col items-start">
                 <span>{displayName || truncateAddress(address)}</span>
@@ -365,7 +380,7 @@ export function ConnectWallet() {
           <DropdownMenuLabel className="flex items-center gap-2">
             <Avatar className="h-8 w-8">
               <AvatarImage src={`https://effigy.im/a/${address}.svg`} alt={address} />
-              <AvatarFallback>{address.charAt(2)}</AvatarFallback>
+              <AvatarFallback>{address?.charAt(2) || "?"}</AvatarFallback>
             </Avatar>
             <div>
               <p className="font-medium">{truncateAddress(address)}</p>
@@ -393,7 +408,7 @@ export function ConnectWallet() {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onClick={handleDisconnect} // Disconnect wallet
+            onClick={disconnect} // Disconnect wallet
             className="text-red-500 hover:!text-red-500 focus:!text-red-500 hover:!bg-red-500/10"
           >
             <LogOut className="mr-2 h-4 w-4" />
