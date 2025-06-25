@@ -17,8 +17,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 
 import {
   ArrowRight,
@@ -34,7 +35,6 @@ import {
   XCircle,
   Clock3,
   MessageSquare,
-  ExternalLink,
   ChevronDown,
   ChevronUp,
   AlertTriangle,
@@ -44,6 +44,8 @@ import {
   ChevronsRight,
   Loader2,
   Check,
+  Send,
+  User,
 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -54,6 +56,7 @@ import PROOF_OF_WORK_JOB_ABI from "@/lib/contracts/ProofOfWorkJob.json"
 import DISPUTE_DAO_ABI from "@/lib/contracts/DisputeDAO.json"
 import { toast } from "sonner"
 import { fetchEmployerDisplayName, useUserContext } from "@/context/UserContext"
+import { io, type Socket } from "socket.io-client"
 
 // Animation variants
 const fadeIn = (delay = 0, duration = 0.5) => ({
@@ -90,7 +93,7 @@ const SectionWrapper = ({
 )
 
 export default function JobsPage() {
-  const { contracts, provider, role, address, allJobs, jobAddresses, myJobs } = useUserContext()
+  const { contracts, provider, role, address, allJobs, jobAddresses, myJobs, displayName } = useUserContext()
 
   // State for job filters
   const [searchTerm, setSearchTerm] = useState("")
@@ -102,6 +105,13 @@ export default function JobsPage() {
   const [disputeReason, setDisputeReason] = useState("")
   const [selectedJobForDispute, setSelectedJobForDispute] = useState<(typeof myJobs)[0] | null>(null)
   const [myApplications, setMyApplications] = useState<any[]>([])
+
+  // Messaging states
+  const [selectedEmployer, setSelectedEmployer] = useState<any | null>(null)
+  const [chatMessages, setChatMessages] = useState<any[]>([])
+  const [newChatMessage, setNewChatMessage] = useState("")
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
+  const [isSendingMessage, setIsSendingMessage] = useState(false)
 
   // Pagination states
   const [browseCurrentPage, setBrowseCurrentPage] = useState(1)
@@ -116,6 +126,8 @@ export default function JobsPage() {
   const [applyState, setApplyState] = useState<"idle" | "processing" | "confirming" | "success">("idle")
   const [withdrawState, setWithdrawState] = useState<"idle" | "processing" | "confirming" | "success">("idle")
   const [disputeState, setDisputeState] = useState<"idle" | "processing" | "confirming" | "success">("idle")
+
+  const socket = useRef<Socket | null>(null)
 
   // Filter jobs based on search and filters
   const filteredAndSortedJobs =
@@ -139,7 +151,103 @@ export default function JobsPage() {
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || []
 
-  console.log("filteredAndSortedJobs", filteredAndSortedJobs)
+  // WebSocket setup for real-time chat
+  useEffect(() => {
+    if (selectedEmployer && address) {
+      socket.current = io(process.env.NEXT_PUBLIC_API)
+
+      const participants = [address, selectedEmployer.address].sort()
+      const room = `chat_${participants.join("_")}`
+      socket.current.emit("joinRoom", room)
+
+      socket.current.on("newChatMessage", (message) => {
+        setChatMessages((prev) => [...prev, message])
+      })
+
+      return () => {
+        if (socket.current) {
+          socket.current.disconnect()
+        }
+      }
+    }
+  }, [selectedEmployer, address])
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    const messageContainer = document.querySelector(".chat-messages-container")
+    if (messageContainer) {
+      messageContainer.scrollTop = messageContainer.scrollHeight
+    }
+  }, [chatMessages])
+
+  // Fetch chat messages
+  const fetchChatMessages = async (employerAddress: string) => {
+    if (!address) return
+
+    setIsLoadingMessages(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/chat/messages/${employerAddress}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (response.ok) {
+        const messages = await response.json()
+        setChatMessages(messages)
+      } else {
+        console.error("Failed to fetch messages")
+      }
+    } catch (error) {
+      console.error("Error fetching messages:", error)
+    } finally {
+      setIsLoadingMessages(false)
+    }
+  }
+
+  // Send chat message
+  const handleSendChatMessage = async () => {
+    if (!newChatMessage.trim() || !selectedEmployer || !address) return
+
+    setIsSendingMessage(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/chat/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          to: selectedEmployer.address,
+          content: newChatMessage.trim(),
+        }),
+      })
+
+      if (response.ok) {
+        const message = await response.json()
+        setChatMessages((prev) => [...prev, message])
+        setNewChatMessage("")
+        toast.success("Message sent successfully!")
+      } else {
+        toast.error("Failed to send message")
+      }
+    } catch (error) {
+      console.error("Error sending message:", error)
+      toast.error("Failed to send message")
+    } finally {
+      setIsSendingMessage(false)
+    }
+  }
+
+  // Handle opening chat
+  const handleOpenChat = async (job: any) => {
+    const employer = {
+      address: job.employerAddress,
+      name: job.employer,
+    }
+    setSelectedEmployer(employer)
+    await fetchChatMessages(job.employerAddress)
+  }
 
   const handleSubmitApplication = async (jobAddress: string, applicationText: string) => {
     if (!provider || !contracts) {
@@ -970,10 +1078,147 @@ export default function JobsPage() {
                                 </DialogContent>
                               </Dialog>
 
-                              <Button variant="outline" className="border-accent/50 text-accent hover:bg-accent/10">
-                                <ExternalLink className="h-4 w-4" />
-                                <span className="sr-only">View Details</span>
-                              </Button>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className="border-accent/50 text-accent hover:bg-accent/10 font-varien"
+                                    onClick={() => handleOpenChat(job)}
+                                  >
+                                    <MessageSquare className="h-4 w-4" />
+                                    <span className="sr-only">Message Employer</span>
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[600px] bg-gradient-to-br from-background via-background/95 to-accent/5 border border-accent/20">
+                                  <DialogHeader>
+                                    <DialogTitle className="font-varien text-xl tracking-wider">
+                                      Message {selectedEmployer?.name}
+                                    </DialogTitle>
+                                    <DialogDescription className="font-varela">
+                                      Send a direct message to the employer about this job opportunity.
+                                    </DialogDescription>
+                                  </DialogHeader>
+
+                                  <div className="space-y-4">
+                                    {/* Messages Container */}
+                                    <div className="space-y-4 max-h-[400px] overflow-y-auto p-2 chat-messages-container">
+                                      {isLoadingMessages ? (
+                                        <div className="flex justify-center items-center py-8">
+                                          <Loader2 className="h-6 w-6 animate-spin text-accent" />
+                                          <span className="ml-2 text-sm text-muted-foreground font-varela">
+                                            Loading messages...
+                                          </span>
+                                        </div>
+                                      ) : chatMessages.length > 0 ? (
+                                        chatMessages.map((message: any, index: number) => {
+                                          const isFromMe = message.sender === address
+                                          const isFromEmployer = message.sender === selectedEmployer?.address
+
+                                          return (
+                                            <div
+                                              key={index}
+                                              className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}
+                                            >
+                                              {!isFromMe && (
+                                                <Avatar className="h-8 w-8">
+                                                  <AvatarImage
+                                                    src={`https://effigy.im/a/${message.sender}.svg`}
+                                                    alt={message.sender}
+                                                  />
+                                                  <AvatarFallback>
+                                                    <Briefcase className="h-4 w-4" />
+                                                  </AvatarFallback>
+                                                </Avatar>
+                                              )}
+                                              <div
+                                                className={`max-w-[80%] rounded-lg p-3 ${
+                                                  isFromMe
+                                                    ? "bg-green-100 dark:bg-green-900/30 text-foreground border border-green-200 dark:border-green-700"
+                                                    : "bg-red-100 dark:bg-red-900/30 text-foreground border border-red-200 dark:border-red-700"
+                                                }`}
+                                              >
+                                                <div className="flex justify-between items-center mb-1">
+                                                  <span className="font-medium text-sm font-varela">
+                                                    {isFromMe ? displayName || "You" : selectedEmployer?.name}{" "}
+                                                    <Badge
+                                                      variant="outline"
+                                                      className={`text-xs ml-1 font-varela ${
+                                                        isFromMe
+                                                          ? "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
+                                                          : "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30"
+                                                      }`}
+                                                    >
+                                                      {isFromMe ? "You" : "Employer"}
+                                                    </Badge>
+                                                  </span>
+                                                  <span className="text-xs text-muted-foreground font-varela">
+                                                    {new Date(message.createdAt).toLocaleString()}
+                                                  </span>
+                                                </div>
+                                                <p className="text-sm font-varela">{message.content}</p>
+                                              </div>
+                                              {isFromMe && (
+                                                <Avatar className="h-8 w-8">
+                                                  <AvatarImage
+                                                    src={`https://effigy.im/a/${address}.svg`}
+                                                    alt={address}
+                                                  />
+                                                  <AvatarFallback>
+                                                    <User className="h-4 w-4" />
+                                                  </AvatarFallback>
+                                                </Avatar>
+                                              )}
+                                            </div>
+                                          )
+                                        })
+                                      ) : (
+                                        <div className="text-center py-8">
+                                          <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                          <p className="text-sm text-muted-foreground font-varela">
+                                            No messages yet. Start the conversation!
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Message Input */}
+                                    <div className="flex gap-2">
+                                      <Textarea
+                                        placeholder="Type your message here..."
+                                        value={newChatMessage}
+                                        onChange={(e) => setNewChatMessage(e.target.value)}
+                                        className="min-h-[80px] border-accent/30 focus:border-accent font-varela"
+                                        disabled={isSendingMessage}
+                                      />
+                                      <Button
+                                        className="self-end bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
+                                        onClick={handleSendChatMessage}
+                                        disabled={!newChatMessage.trim() || isSendingMessage}
+                                      >
+                                        {isSendingMessage ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <Send className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  <DialogFooter>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setSelectedEmployer(null)
+                                        setChatMessages([])
+                                        setNewChatMessage("")
+                                      }}
+                                      className="font-varien"
+                                    >
+                                      Close
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
                             </div>
                           </InteractiveCard>
                         </motion.div>
