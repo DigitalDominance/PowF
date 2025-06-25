@@ -496,48 +496,34 @@ export function ConnectWallet() {
 
       {/* Messages Popup */}
       {showMessagesPopup && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50">
+        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50 p-4 md:p-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="w-full max-w-4xl h-[80vh] md:h-[80vh] h-[90vh] bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden"
+            className="w-full h-full md:w-full md:max-w-4xl md:h-[80vh] bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-none md:rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden"
           >
-            <div className="flex flex-col md:flex-row h-full">
+            <div className="flex h-full">
               {/* Conversations List */}
-              <div className="w-full md:w-1/3 border-r-0 md:border-r border-accent/20 border-b md:border-b-0 border-accent/20 flex flex-col max-h-[40vh] md:max-h-none">
+              <div className="w-1/3 border-r border-accent/20 flex flex-col">
                 <div className="p-4 md:p-6 border-b border-accent/20">
                   <div className="flex items-center justify-between">
                     <h2 className="font-varien text-lg md:text-xl font-bold text-foreground tracking-wider">
                       Messages
                     </h2>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowMessagesPopup(false)
-                          setSelectedConversation(null)
-                          setConversationMessages([])
-                        }}
-                        className="text-muted-foreground hover:text-foreground md:hidden block"
-                      >
-                        ✕
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowMessagesPopup(false)
-                          setSelectedConversation(null)
-                          setConversationMessages([])
-                        }}
-                        className="text-muted-foreground hover:text-foreground hidden md:block"
-                      >
-                        ✕
-                      </Button>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setShowMessagesPopup(false)
+                        setSelectedConversation(null)
+                        setConversationMessages([])
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      ✕
+                    </Button>
                   </div>
                 </div>
 
@@ -548,7 +534,7 @@ export function ConnectWallet() {
                       <span className="ml-2 text-sm text-muted-foreground font-varela">Loading conversations...</span>
                     </div>
                   ) : conversations.length > 0 ? (
-                    <div className="space-y-1 p-1 md:p-2">
+                    <div className="space-y-1 p-2">
                       {conversations.map((conversation, index) => (
                         <motion.div
                           key={conversation.otherPartyAddress}
@@ -559,27 +545,27 @@ export function ConnectWallet() {
                             setSelectedConversation(conversation)
                             fetchConversationMessages(conversation.otherPartyAddress)
                           }}
-                          className={`p-2 md:p-4 rounded-xl cursor-pointer transition-all duration-200 ${
+                          className={`p-3 md:p-4 rounded-xl cursor-pointer transition-all duration-200 ${
                             selectedConversation?.otherPartyAddress === conversation.otherPartyAddress
                               ? "bg-accent/20 border border-accent/30"
                               : "hover:bg-accent/10 border border-transparent"
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
+                            <Avatar className="h-8 w-8 md:h-10 md:w-10">
                               <AvatarImage
                                 src={`https://effigy.im/a/${conversation.otherPartyAddress}.svg`}
                                 alt={conversation.otherPartyAddress}
                               />
                               <AvatarFallback>
-                                <User className="h-5 w-5" />
+                                <User className="h-4 w-4 md:h-5 md:w-5" />
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground font-varela truncate">
+                              <p className="font-medium text-foreground font-varela truncate text-sm md:text-base">
                                 {conversation.otherPartyName}
                               </p>
-                              <p className="text-sm text-muted-foreground font-varela truncate">
+                              <p className="text-xs md:text-sm text-muted-foreground font-varela truncate">
                                 {conversation.lastMessage.content}
                               </p>
                               <p className="text-xs text-muted-foreground font-varela">
@@ -600,26 +586,26 @@ export function ConnectWallet() {
               </div>
 
               {/* Chat Area */}
-              <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 flex flex-col">
                 {selectedConversation ? (
                   <>
                     {/* Chat Header */}
                     <div className="p-4 md:p-6 border-b border-accent/20">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
+                        <Avatar className="h-8 w-8 md:h-10 md:w-10">
                           <AvatarImage
                             src={`https://effigy.im/a/${selectedConversation.otherPartyAddress}.svg`}
                             alt={selectedConversation.otherPartyAddress}
                           />
                           <AvatarFallback>
-                            <User className="h-5 w-5" />
+                            <User className="h-4 w-4 md:h-5 md:w-5" />
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h3 className="font-varien text-lg font-medium text-foreground">
+                          <h3 className="font-varien text-base md:text-lg font-medium text-foreground">
                             {selectedConversation.otherPartyName}
                           </h3>
-                          <p className="text-sm text-muted-foreground font-varela">
+                          <p className="text-xs md:text-sm text-muted-foreground font-varela">
                             {selectedConversation.otherPartyAddress.slice(0, 6)}...
                             {selectedConversation.otherPartyAddress.slice(-4)}
                           </p>
@@ -628,7 +614,7 @@ export function ConnectWallet() {
                     </div>
 
                     {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-2 md:p-4">
+                    <div className="flex-1 overflow-y-auto p-3 md:p-4">
                       <ChatMessageComponent
                         messages={conversationMessages}
                         currentUserAddress={address || ""}
@@ -639,7 +625,7 @@ export function ConnectWallet() {
                     </div>
 
                     {/* Message Input */}
-                    <div className="p-2 md:p-4 border-t border-accent/20">
+                    <div className="p-3 md:p-4 border-t border-accent/20">
                       <div className="flex gap-2">
                         <input
                           type="text"
@@ -652,13 +638,14 @@ export function ConnectWallet() {
                               handleSendMessage()
                             }
                           }}
-                          className="flex-1 px-4 py-2 border border-accent/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela"
+                          className="flex-1 px-3 md:px-4 py-2 border border-accent/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela text-sm md:text-base"
                           disabled={isSendingMessage}
                         />
                         <Button
                           onClick={handleSendMessage}
                           disabled={!newMessage.trim() || isSendingMessage}
                           className="bg-accent hover:bg-accent/80 text-accent-foreground font-varien"
+                          size="sm"
                         >
                           {isSendingMessage ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -670,11 +657,13 @@ export function ConnectWallet() {
                     </div>
                   </>
                 ) : (
-                  <div className="flex-1 flex items-center justify-center">
+                  <div className="flex-1 flex items-center justify-center p-4">
                     <div className="text-center">
-                      <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-varien text-lg font-medium text-foreground mb-2">Select a conversation</h3>
-                      <p className="text-muted-foreground font-varela">
+                      <MessageSquare className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="font-varien text-base md:text-lg font-medium text-foreground mb-2">
+                        Select a conversation
+                      </h3>
+                      <p className="text-muted-foreground font-varela text-sm md:text-base">
                         Choose a conversation from the left to start messaging
                       </p>
                     </div>
