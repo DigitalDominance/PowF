@@ -616,7 +616,7 @@ export default function JobsPage() {
       ) : messages.length > 0 ? (
         messages.map((message: any, index: number) => {
           // Check if the message is from the current user by comparing wallet addresses
-          const isFromMe = message.sender?.toLowerCase() === currentUserAddress?.toLowerCase()
+          const isFromMe = message.reciever?.toLowerCase() === otherPartyAddress?.toLowerCase()
           const isFromOtherParty = message.sender?.toLowerCase() === otherPartyAddress?.toLowerCase()
 
           return (
