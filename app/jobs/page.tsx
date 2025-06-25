@@ -186,7 +186,7 @@ export default function JobsPage() {
 
     setIsLoadingMessages(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/chat/messages/${employerAddress}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/chat/messages/${employerAddress}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -211,7 +211,7 @@ export default function JobsPage() {
 
     setIsSendingMessage(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/api/chat/messages`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/chat/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
