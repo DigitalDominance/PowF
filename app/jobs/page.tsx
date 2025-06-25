@@ -74,7 +74,7 @@ const staggerContainer = (staggerChildren = 0.1, delayChildren = 0) => ({
   },
 })
 
-// Section wrapper component
+
 const SectionWrapper = ({
   children,
   className,
