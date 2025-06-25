@@ -93,7 +93,8 @@ const SectionWrapper = ({
 )
 
 export default function JobsPage() {
-  const { contracts, provider, role, address, allJobs, jobAddresses, myJobs, displayName, wallet } = useUserContext()
+  const { contracts, provider, role, address, allJobs, jobAddresses, myJobs, displayName, wallet, sendP2PMessage } =
+    useUserContext()
 
   // State for job filters
   const [searchTerm, setSearchTerm] = useState("")
@@ -208,27 +209,18 @@ export default function JobsPage() {
 
     setIsSendingMessage(true)
     try {
-      // Try without authentication first, or use a context function if available
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/chat/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: address,
-          to: selectedEmployer.address,
-          content: newChatMessage.trim(),
-        }),
-      })
+      await sendP2PMessage(selectedEmployer.address, newChatMessage.trim())
 
-      if (response.ok) {
-        const message = await response.json()
-        setChatMessages((prev) => [...prev, message])
-        setNewChatMessage("")
-        toast.success("Message sent successfully!")
-      } else {
-        toast.error("Failed to send message")
+      // Optimistically add the message to the chat
+      const optimisticMessage = {
+        sender: address,
+        recipient: selectedEmployer.address,
+        content: newChatMessage.trim(),
+        createdAt: new Date().toISOString(),
       }
+      setChatMessages((prev) => [...prev, optimisticMessage])
+      setNewChatMessage("")
+      toast.success("Message sent successfully!")
     } catch (error) {
       console.error("Error sending message:", error)
       toast.error("Failed to send message")
