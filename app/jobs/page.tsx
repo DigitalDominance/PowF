@@ -1,7 +1,5 @@
 "use client"
 import { Button } from "@/components/ui/button"
-import { DialogTrigger } from "@/components/ui/dialog"
-
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -16,6 +14,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -616,10 +615,9 @@ export default function JobsPage() {
         </div>
       ) : messages.length > 0 ? (
         messages.map((message: any, index: number) => {
-          // Check if the message is from the current user
-          // If current user sent it: sender = currentUserAddress, receiver = otherPartyAddress
-          // If other party sent it: sender = otherPartyAddress, receiver = currentUserAddress
+          // Check if the message is from the current user by comparing wallet addresses
           const isFromMe = message.sender?.toLowerCase() === currentUserAddress?.toLowerCase()
+          const isFromOtherParty = message.sender?.toLowerCase() === otherPartyAddress?.toLowerCase()
 
           return (
             <div key={index} className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}>
@@ -1074,8 +1072,8 @@ export default function JobsPage() {
                       </div>
                     </div>
                   </div>
+                </motion.div>
               )}
-            </motion.div>
             </div>
 
             {/* Job Listings */}
