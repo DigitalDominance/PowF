@@ -502,26 +502,42 @@ export function ConnectWallet() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="w-full max-w-4xl h-[80vh] bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden"
+            className="w-full max-w-4xl h-[80vh] md:h-[80vh] h-[90vh] bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden"
           >
-            <div className="flex h-full">
+            <div className="flex flex-col md:flex-row h-full">
               {/* Conversations List */}
-              <div className="w-1/3 border-r border-accent/20 flex flex-col">
-                <div className="p-6 border-b border-accent/20">
+              <div className="w-full md:w-1/3 border-r-0 md:border-r border-accent/20 border-b md:border-b-0 border-accent/20 flex flex-col max-h-[40vh] md:max-h-none">
+                <div className="p-4 md:p-6 border-b border-accent/20">
                   <div className="flex items-center justify-between">
-                    <h2 className="font-varien text-xl font-bold text-foreground tracking-wider">Messages</h2>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setShowMessagesPopup(false)
-                        setSelectedConversation(null)
-                        setConversationMessages([])
-                      }}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      ✕
-                    </Button>
+                    <h2 className="font-varien text-lg md:text-xl font-bold text-foreground tracking-wider">
+                      Messages
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowMessagesPopup(false)
+                          setSelectedConversation(null)
+                          setConversationMessages([])
+                        }}
+                        className="text-muted-foreground hover:text-foreground md:hidden block"
+                      >
+                        ✕
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowMessagesPopup(false)
+                          setSelectedConversation(null)
+                          setConversationMessages([])
+                        }}
+                        className="text-muted-foreground hover:text-foreground hidden md:block"
+                      >
+                        ✕
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -532,7 +548,7 @@ export function ConnectWallet() {
                       <span className="ml-2 text-sm text-muted-foreground font-varela">Loading conversations...</span>
                     </div>
                   ) : conversations.length > 0 ? (
-                    <div className="space-y-1 p-2">
+                    <div className="space-y-1 p-1 md:p-2">
                       {conversations.map((conversation, index) => (
                         <motion.div
                           key={conversation.otherPartyAddress}
@@ -543,7 +559,7 @@ export function ConnectWallet() {
                             setSelectedConversation(conversation)
                             fetchConversationMessages(conversation.otherPartyAddress)
                           }}
-                          className={`p-4 rounded-xl cursor-pointer transition-all duration-200 ${
+                          className={`p-2 md:p-4 rounded-xl cursor-pointer transition-all duration-200 ${
                             selectedConversation?.otherPartyAddress === conversation.otherPartyAddress
                               ? "bg-accent/20 border border-accent/30"
                               : "hover:bg-accent/10 border border-transparent"
@@ -584,11 +600,11 @@ export function ConnectWallet() {
               </div>
 
               {/* Chat Area */}
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col min-h-0">
                 {selectedConversation ? (
                   <>
                     {/* Chat Header */}
-                    <div className="p-6 border-b border-accent/20">
+                    <div className="p-4 md:p-6 border-b border-accent/20">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
                           <AvatarImage
@@ -612,7 +628,7 @@ export function ConnectWallet() {
                     </div>
 
                     {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-4">
+                    <div className="flex-1 overflow-y-auto p-2 md:p-4">
                       <ChatMessageComponent
                         messages={conversationMessages}
                         currentUserAddress={address || ""}
@@ -623,7 +639,7 @@ export function ConnectWallet() {
                     </div>
 
                     {/* Message Input */}
-                    <div className="p-4 border-t border-accent/20">
+                    <div className="p-2 md:p-4 border-t border-accent/20">
                       <div className="flex gap-2">
                         <input
                           type="text"
