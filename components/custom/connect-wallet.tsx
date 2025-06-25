@@ -41,10 +41,13 @@ export function ConnectWallet() {
   const [isReAuthenticating, setIsReAuthenticating] = useState(false); // Prevent multiple re-authentication calls
   const [isSigningUp, setIsSigningUp] = useState(false); // Track signup state
   const isSigningUpRef = useRef(false); // Persistent reference for isSigningUp
+  const isReAuthenticatingRef = useRef(false); // Persistent reference for re-authentication
+  const [isDisconnected, setIsDisconnected] = useState(false); // Track disconnect state
 
   useEffect(() => {
     isSigningUpRef.current = isSigningUp; // Sync the ref with the state
-  }, [isSigningUp]);  
+    isReAuthenticatingRef.current = isReAuthenticating; // Sync the ref with the state
+  }, [isSigningUp, isReAuthenticating]);  
 
   const { setUserData } = useUserContext();  
 
@@ -164,30 +167,22 @@ export function ConnectWallet() {
     localStorage.removeItem("refreshToken");
     setUserData({ wallet: '', displayName: '', role: '' });
     disconnect();
+    setIsAuthenticating(false); // Reset authentication state
+    setIsReAuthenticating(false); // Reset re-authentication state
+    isReAuthenticatingRef.current = false; // Reset ref state
+    setIsDisconnected(true);
     toast.success("Disconnected successfully!");
   };  
 
-  // const refreshAccessToken = async () => {
-  //   try {
-  //     const refreshToken = localStorage.getItem("refreshToken");
-  //     if (!refreshToken) throw new Error("Refresh token not found");
-  
-  //     const { data: { accessToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken });
-  //     localStorage.setItem("accessToken", accessToken);
-  //     return accessToken;
-  //   } catch (error) {
-  //     console.error("Failed to refresh access token:", error);
-  //     handleDisconnect();
-  //   }
-  // };
-
   const handleReAuthentication = async () => {
-    if (!isConnected || !address || isSigningUpRef.current) {
+    if (!isConnected || !address || isSigningUpRef.current || isReAuthenticatingRef.current || isDisconnected) {
       console.log("Skipping re-authentication: Wallet not connected or user is signing up.");
       return;
     }
 
     try {
+      setIsReAuthenticating(true); // Prevent multiple calls
+      isReAuthenticatingRef.current = true;
       console.log('Re-authenticating user', isConnected, address, isSigningUp, isSigned, isAuthenticating, isReAuthenticating);
       toast.info("Re-authenticating...");
       const { data: { challenge } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address });
@@ -208,6 +203,9 @@ export function ConnectWallet() {
       console.error("Re-authentication failed:", error);
       toast.error("Re-authentication failed. Please reconnect your wallet.");
       handleDisconnect(); // Disconnect the wallet if re-authentication fails
+    } finally {
+      setIsReAuthenticating(false); // Reset re-authentication state
+      isReAuthenticatingRef.current = false;
     }
   };  
   
@@ -304,7 +302,7 @@ export function ConnectWallet() {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onClick={() => {console.log('close'); disconnect();}} // Disconnect wallet
+            onClick={handleDisconnect} // Disconnect wallet
             className="text-red-500 hover:!text-red-500 focus:!text-red-500 hover:!bg-red-500/10"
           >
             <LogOut className="mr-2 h-4 w-4" />

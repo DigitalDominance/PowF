@@ -24,6 +24,7 @@ interface UserContextType {
   setJobAddresses: React.Dispatch<React.SetStateAction<string[]>>; 
   myJobs: any[];
   disputes: any[];
+  setDisputes: React.Dispatch<React.SetStateAction<any[]>>; 
   myDisputes: any[];
   employerJobs: string[];
   setEmployerJobs: React.Dispatch<React.SetStateAction<string[]>>; 
@@ -47,15 +48,15 @@ export const fetchEmployerInfo = async (wallet: string) => {
     if (response.status === 200) {
       // Fetch employer details
       const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${wallet.toLowerCase()}`);
-      console.log("Employer Info:", data);
+      // console.log("Employer Info:", data);
       return data;
     }
   } catch (error) {
-    if (typeof error === "object" && error !== null && "response" in error && (error as any).response?.status === 404) {
-      console.error("Employer not found:", wallet);
-    } else {
-      console.error("Error fetching employer info:", error);
-    }
+    // if (typeof error === "object" && error !== null && "response" in error && (error as any).response?.status === 404) {
+    //   console.error("Employer not found:", wallet);
+    // } else {
+    //   console.error("Error fetching employer info:", error);
+    // }
     return null;
   }
 };
@@ -70,7 +71,7 @@ export const fetchEmployerDisplayName = async (employerAddress: string) => {
       return "Unknown Employer";
     }
   } catch (error) {
-    console.error("Error fetching employer display name:", error);
+    // console.error("Error fetching employer display name:", error);
     return "Unknown Employer";
   }
 };
@@ -82,7 +83,7 @@ export const getAverageRating = async (reputationContract: ethers.Contract, user
     console.log("Total Ratings:", totalRatings);
     return { averageRating: Number(average) / 100, totalRatings };
   } catch (error) {
-    console.error("Error fetching average rating:", error);
+    // console.error("Error fetching average rating:", error);
     return null;
   }
 };
@@ -93,7 +94,7 @@ const fetchAssignedWorkersLength = async (jobContract: ethers.Contract) => {
     console.log("Assigned Workers:", assignedWorkers);
     return assignedWorkers.length; // Return the length of the array
   } catch (error) {
-    console.error("Error fetching assigned workers:", error);
+    // console.error("Error fetching assigned workers:", error);
     return 0;
   }
 };
@@ -104,7 +105,7 @@ const fetchAllJobAddresses = async (jobFactoryContract: ethers.Contract) => {
     console.log("Fetched job addresses:", jobAddresses);
     return jobAddresses;
   } catch (error) {
-    console.error("Error fetching job addresses:", error);
+    // console.error("Error fetching job addresses:", error);
     return [];
   }
 };
@@ -115,7 +116,7 @@ const fetchDisputeDAOAddress = async (jobFactoryContract: ethers.Contract) => {
     console.log("Fetched DisputeDAO Address:", disputeDAOAddress);
     return disputeDAOAddress;
   } catch (error) {
-    console.error("Error fetching DisputeDAO address:", error);
+    // console.error("Error fetching DisputeDAO address:", error);
     return null;
   }
 };
@@ -166,6 +167,7 @@ export const fetchJobDetails = async (
         totalPay,
         createdAt,
         totalApps,
+        jobCancelled, // Fetch the jobCancelled state
       ] = await Promise.all([
         c.employer(),
         c.title(),
@@ -176,17 +178,21 @@ export const fetchJobDetails = async (
         c.totalPay(),
         c.createdAt(),
         c.getTotalApplications(),
+        c.jobCancelled(), // Check if the job is canceled
       ]);
-      results.push({
-        address: addr,
-        title,
-        duration,
-        positions: positions.toString(),
-        payType: payType === BigInt(0) ? "weekly" : "oneoff",
-        totalPay: ethers.formatEther(totalPay),
-        postedDate: Number(createdAt) * 1000,
-        applicants: totalApps.toString(),
-      });
+      // Only include jobs that are not canceled
+      if (!jobCancelled) {
+        results.push({
+          address: addr,
+          title,
+          duration,
+          positions: positions.toString(),
+          payType: payType === BigInt(0) ? "weekly" : "oneoff",
+          totalPay: ethers.formatEther(totalPay),
+          postedDate: Number(createdAt) * 1000,
+          applicants: totalApps.toString(),
+        });
+      }
     }
     return results;
   } catch (err) {
@@ -751,6 +757,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             : dispute
         )
       );
+
+      setDisputes((prev) =>
+        prev.map((dispute) =>
+          dispute.id === Number(disputeId)
+            ? {
+                ...dispute,
+                messages: [...(dispute.messages || []), transformedMessage], // Append the new message
+              }
+            : dispute
+        )
+      );
   
       console.log(`Message sent for dispute ${disputeId}:`, newMessage);
     } catch (error) {
@@ -813,6 +830,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setJobAddresses,
         myJobs,
         disputes,
+        setDisputes,
         myDisputes,
         employerJobs,
         jobDetails,

@@ -111,7 +111,7 @@ const disputeProcessSteps = [
 ]
 
 export default function DisputesPage() {
-  const { wallet, displayName, contracts, myDisputes, myJobs, disputes, sendMessage, provider, setMyDisputes/*, refreshDisputes*/ } = useUserContext()
+  const { wallet, displayName, contracts, myDisputes, myJobs, disputes, setDisputes, sendMessage, provider, setMyDisputes/*, refreshDisputes*/ } = useUserContext()
 
   const { createDispute, vote } = useDisputeControl()
   const [disputeReason, setDisputeReason] = useState("")
@@ -276,6 +276,8 @@ export default function DisputesPage() {
       timestamp: new Date().toLocaleString(),
     }
 
+    console.log('DisputeId', disputeId)
+
     // Optimistically add the message to the current dispute
     // if (selectedDispute) {
     //   setSelectedDispute((prev) =>
@@ -354,9 +356,9 @@ export default function DisputesPage() {
     socket.current = io(process.env.NEXT_PUBLIC_SOCKET_API);
 
     // Join the dispute room when a dispute is selected
-    const disputeId = selectedDispute?.id; // || selectedJuryDispute?.id;
+    const disputeId = selectedDispute?.id || selectedJuryDispute?.id;
 
-    console.log('Socket DisputeId', disputeId, selectedDispute)
+    console.log('Socket DisputeId', disputeId, selectedDispute, selectedJuryDispute)
     if (disputeId) {
       socket.current.emit("joinRoom", disputeId);
     }
@@ -368,6 +370,14 @@ export default function DisputesPage() {
 
       // Update messages in myDisputes
       setMyDisputes((prev) =>
+        prev.map((dispute) =>
+          dispute.id === disputeId
+            ? { ...dispute, messages: [...(dispute.messages || []), message] }
+            : dispute
+        )
+      );
+
+      setDisputes((prev) =>
         prev.map((dispute) =>
           dispute.id === disputeId
             ? { ...dispute, messages: [...(dispute.messages || []), message] }

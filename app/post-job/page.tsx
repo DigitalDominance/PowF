@@ -514,7 +514,40 @@ export default function PostJobPage() {
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600">
+                      <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-red-500 hover:text-red-600"
+                      onClick={async () => {
+                        try {
+                          if (!provider) {
+                            toast.error("Provider is not available. Please connect your wallet.");
+                            return;
+                          }
+                    
+                          const signer = await provider.getSigner();
+                          const contract = new ethers.Contract(listing.address, PROOF_OF_WORK_JOB_ABI, signer);
+                    
+                          const canCancel = await contract.canCancelJob();
+                          if (!canCancel) {
+                            toast.error("Job cannot be canceled. Ensure no workers are assigned or payments made.");
+                            return;
+                          }
+                    
+                          const tx = await contract.cancelJob();
+                          toast.info("Cancelling job...");
+                          await tx.wait();
+                    
+                          toast.success("Job canceled successfully!");
+                          
+                          // Update the UI by removing the job from the list
+                          setEmployerJobs((prevJobs) => prevJobs.filter((job) => job !== listing.address));
+                        } catch (err) {
+                          console.error("Error canceling job:", err);
+                          toast.error("Failed to cancel job.");
+                        }
+                      }}                      
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

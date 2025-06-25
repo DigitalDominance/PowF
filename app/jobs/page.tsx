@@ -112,6 +112,8 @@ export default function JobsPage() {
   const [payTypeFilter, setPayTypeFilter] = useState<string>("all")
   const [minPayFilter, setMinPayFilter] = useState<number[]>([0])
   const [showFilters, setShowFilters] = useState(false)
+  const [openPositionsFilter, setOpenPositionsFilter] = useState(false); // State for "open positions" switch
+  const [highRatedFilter, setHighRatedFilter] = useState(false); // State for "high-rated employers" switch
   const [selectedJob, setSelectedJob] = useState<any | null>(null)
   const [applicationText, setApplicationText] = useState("")
   const [disputeReason, setDisputeReason] = useState("")
@@ -167,7 +169,13 @@ export default function JobsPage() {
         const payAmount = job.payType === "WEEKLY" ? Number.parseFloat(job.weeklyPay) : Number.parseFloat(job.totalPay)
         const matchesMinPay = payAmount >= minPayFilter[0]
 
-        return matchesSearch && matchesPayType && matchesMinPay
+        // Open positions filter
+        const matchesOpenPositions = !openPositionsFilter || job.positionsFilled < job.positions;
+
+        // High-rated employers filter
+        const matchesHighRated = !highRatedFilter || job.employerRating >= 4.5;        
+
+        return matchesSearch && matchesPayType && matchesMinPay && matchesOpenPositions && matchesHighRated;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || []
 
@@ -1063,11 +1071,19 @@ export default function JobsPage() {
                     <Label className="text-foreground font-varien">Other Filters</Label>
                     <div className="space-y-4 pt-2">
                       <div className="flex items-center space-x-2">
-                        <Switch id="open-positions" />
+                        <Switch 
+                        id="open-positions" 
+                        checked={openPositionsFilter}
+                        onCheckedChange={setOpenPositionsFilter}
+                        />
                         <Label htmlFor="open-positions">Only show jobs with open positions</Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Switch id="high-rated" />
+                        <Switch 
+                        id="high-rated" 
+                        checked={highRatedFilter}
+                        onCheckedChange={setHighRatedFilter}
+                        />
                         <Label htmlFor="high-rated">Only high-rated employers (4.5+)</Label>
                       </div>
                     </div>
