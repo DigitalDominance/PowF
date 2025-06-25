@@ -16,7 +16,7 @@ import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { useAppKit, useDisconnect } from "@reown/appkit/react"
 import axios from "axios"
-import { useUserContext } from "@/context/UserContext"
+import { fetchEmployerDisplayName, useUserContext } from "@/context/UserContext"
 // import { useContracts } from "@/hooks/useContract"
 import { Badge } from "@/components/ui/badge"
 
@@ -189,19 +189,20 @@ export function ConnectWallet() {
         }
       }
 
-      // Fetch display names for all conversation partners
+      // Fetch display names for all conversation partners using fetchEmployerDisplayName
       const conversationsWithNames = await Promise.all(
         Array.from(conversationMap.values()).map(async (conv) => {
           try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${conv.otherPartyAddress}`)
+            const displayName = await fetchEmployerDisplayName(conv.otherPartyAddress)
             return {
               ...conv,
-              otherPartyName: response.data.displayName || conv.otherPartyAddress,
+              otherPartyName: displayName || truncateAddress(conv.otherPartyAddress),
             }
           } catch (error) {
+            console.error("Error fetching display name for:", conv.otherPartyAddress, error)
             return {
               ...conv,
-              otherPartyName: conv.otherPartyAddress,
+              otherPartyName: truncateAddress(conv.otherPartyAddress),
             }
           }
         }),
@@ -312,7 +313,7 @@ export function ConnectWallet() {
                           : "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30"
                       }`}
                     >
-                      {isFromMe ? "You" : "Other"}
+                      {isFromMe ? "You" : "Contact"}
                     </Badge>
                   </span>
                   <span className="text-xs text-muted-foreground font-varela">
