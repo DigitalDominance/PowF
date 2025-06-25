@@ -74,7 +74,7 @@ const staggerContainer = (staggerChildren = 0.1, delayChildren = 0) => ({
   },
 })
 
-
+// Section wrapper component
 const SectionWrapper = ({
   children,
   className,
@@ -281,10 +281,12 @@ export default function JobsPage() {
       // Optimistically add the message to the chat
       const optimisticMessage = {
         sender: address,
-        recipient: selectedEmployer.address,
+        receiver: selectedEmployer.address,
         content: newChatMessage.trim(),
         createdAt: new Date().toISOString(),
       }
+      console.log('optimisticMessage', optimisticMessage)
+
       setChatMessages((prev) => [...prev, optimisticMessage])
       setNewChatMessage("")
       toast.success("Message sent successfully!")
@@ -624,8 +626,11 @@ export default function JobsPage() {
       ) : messages.length > 0 ? (
         messages.map((message: any, index: number) => {
           // Check if the message is from the current user by comparing wallet addresses
-          const isFromMe = message.reciever?.toLowerCase() === otherPartyAddress?.toLowerCase()
+          const isFromMe = message.receiver?.toLowerCase() === otherPartyAddress?.toLowerCase()
           const isFromOtherParty = message.sender?.toLowerCase() === otherPartyAddress?.toLowerCase()
+
+          console.log("Message from:", message.sender, "to:", message.receiver)
+          console.log("Is from me:", isFromMe, "Is from other party:", isFromOtherParty, otherPartyAddress, otherPartyName)
 
           return (
             <div key={index} className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}>

@@ -40,26 +40,49 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+// Cache for employer information
+const employerInfoCache: Record<string, any> = {};
+const pendingPromises: Record<string, Promise<any>> = {}; // Cache for pending promises
 
 export const fetchEmployerInfo = async (wallet: string) => {
-  try {
-    // Check if the employer exists
-    const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${wallet.toLowerCase()}`);
-    if (response.status === 200) {
-      // Fetch employer details
-      const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${wallet.toLowerCase()}`);
-      // console.log("Employer Info:", data);
-      return data;
-    }
-  } catch (error) {
-    // if (typeof error === "object" && error !== null && "response" in error && (error as any).response?.status === 404) {
-    //   console.error("Employer not found:", wallet);
-    // } else {
-    //   console.error("Error fetching employer info:", error);
-    // }
-    return null;
+  const normalizedWallet = wallet.toLowerCase();
+
+  // Check if the employer info is already cached
+  if (employerInfoCache[normalizedWallet]) {
+    return employerInfoCache[normalizedWallet];
   }
+
+  // Check if a promise for this wallet is already pending
+  if (pendingPromises[normalizedWallet]) {
+    return pendingPromises[normalizedWallet];
+  }
+
+  // Create a new promise and store it in the pendingPromises cache
+  const promise = (async () => {
+    try {
+      // Check if the employer exists
+      const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${normalizedWallet}`);
+      if (response.status === 200) {
+        // Fetch employer details
+        const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${normalizedWallet}`);
+        // Cache the employer info
+        employerInfoCache[normalizedWallet] = data;
+        return data;
+      }
+      return null;
+    } catch (error) {
+      console.error(`Error fetching employer info for wallet ${wallet}:`, error);
+      return null;
+    } finally {
+      // Remove the promise from the pendingPromises cache once resolved
+      delete pendingPromises[normalizedWallet];
+    }
+  })();
+
+  pendingPromises[normalizedWallet] = promise; // Store the promise in the cache
+  return promise;
 };
+
 
 export const fetchEmployerDisplayName = async (employerAddress: string) => {
   try {
@@ -350,7 +373,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             addresses.map(async (address: string) => {
               const jobContract = new ethers.Contract(address, PROOF_OF_WORK_JOB_ABI, provider);
 
-              const [employer, title, description, payType, weeklyPay, totalPay, durationWeeks, createdAt, positions] =
+              const [employer, title, description, payType, weeklyPay, totalPay, durationWeeks, createdAt, positions, jobCancelled] =
                 await Promise.all([
                   jobContract.employer(),
                   jobContract.title(),
@@ -361,7 +384,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   jobContract.durationWeeks(),
                   jobContract.createdAt(),
                   jobContract.positions(),
+                  jobContract.jobCancelled(), // Check if the job is canceled
                 ]);
+
+              // Skip canceled jobs
+              if (jobCancelled) {
+                return null;
+              }                
 
               const tags = await fetchTags(jobContract);
 
@@ -377,6 +406,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
               const employerInfo = await fetchEmployerInfo(employer);
 
+              // const messages = await fetchMessagesWithEmployer(employer);
+
               return {
                 address,
                 employerAddress: employer,
@@ -391,12 +422,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 positions: positions.toString(),
                 tags,
                 positionsFilled: assignedWorkersLength,
-                employerRating: averageRating
+                employerRating: averageRating,
+                // messages
               };
             })
           );
 
-          setAllJobs(jobs);
+          // Filter out null values (canceled jobs)
+          const filteredJobs = jobs.filter((job) => job !== null);
+
+          setAllJobs(filteredJobs);
         } catch (error) {
           console.error("Error fetching all jobs:", error);
         }
@@ -710,6 +745,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return [];
     }
   };
+
+  const fetchMessagesWithEmployer = async (employerWallet: string, page = 1, limit = 50) => {
+    try {
+      const messages = await fetchP2PMessages(employerWallet, page, limit);
+      console.log(`Fetched messages with employer (${employerWallet}):`, messages);
+      return messages;
+    } catch (error) {
+      console.error(`Error fetching messages with employer (${employerWallet}):`, error);
+      return [];
+    }
+  };  
   
   const sendMessage = async (disputeId: string, content: string) => {
     try {
