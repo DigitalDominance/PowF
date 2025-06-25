@@ -457,7 +457,7 @@ export function ConnectWallet() {
           >
             <div className="flex h-full">
               {/* Conversations List */}
-              <div className="w-1/3 border-r border-accent/20 flex flex-col">
+              <div className="w-2/3 md:w-1/3 border-r border-accent/20 flex flex-col">
                 <div className="p-4 md:p-6 border-b border-accent/20">
                   <div className="flex items-center justify-between">
                     <h2 className="font-varien text-lg md:text-xl font-bold text-foreground tracking-wider">
@@ -537,7 +537,7 @@ export function ConnectWallet() {
               </div>
 
               {/* Chat Area */}
-              <div className="flex-1 flex flex-col">
+              <div className="w-1/3 md:flex-1 flex flex-col">
                 {selectedConversation ? (
                   <>
                     {/* Chat Header */}
