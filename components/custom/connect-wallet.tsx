@@ -16,7 +16,7 @@ import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { useAppKit, useDisconnect } from "@reown/appkit/react"
 import axios from "axios"
-import { fetchEmployerDisplayName, useUserContext } from "@/context/UserContext"
+import { useUserContext } from "@/context/UserContext"
 // import { useContracts } from "@/hooks/useContract"
 import { Badge } from "@/components/ui/badge"
 
@@ -56,7 +56,7 @@ export function ConnectWallet() {
     isReAuthenticatingRef.current = isReAuthenticating // Sync the ref with the state
   }, [isSigningUp, isReAuthenticating])
 
-  const { setUserData, sendP2PMessage, fetchP2PMessages } = useUserContext()
+  const { setUserData, sendP2PMessage, fetchP2PMessages, fetchConversations } = useUserContext()
 
   const handleCopyAddress = () => {
     if (address) {
@@ -158,61 +158,12 @@ export function ConnectWallet() {
     }
   }
 
-  const fetchConversations = async () => {
+  const fetchConversationsFromContext = async () => {
     if (!address) return
 
     setIsLoadingConversations(true)
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API}/chat/conversations`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      })
-
-      // Group messages by conversation partner
-      const conversationMap = new Map()
-
-      for (const message of response.data) {
-        const otherParty = message.sender === address ? message.receiver : message.sender
-
-        if (!conversationMap.has(otherParty)) {
-          conversationMap.set(otherParty, {
-            otherPartyAddress: otherParty,
-            lastMessage: message,
-            messages: [],
-          })
-        }
-
-        const conversation = conversationMap.get(otherParty)
-        if (new Date(message.createdAt) > new Date(conversation.lastMessage.createdAt)) {
-          conversation.lastMessage = message
-        }
-      }
-
-      // Fetch display names for all conversation partners using fetchEmployerDisplayName
-      const conversationsWithNames = await Promise.all(
-        Array.from(conversationMap.values()).map(async (conv) => {
-          try {
-            const displayName = await fetchEmployerDisplayName(conv.otherPartyAddress)
-            return {
-              ...conv,
-              otherPartyName: displayName || truncateAddress(conv.otherPartyAddress),
-            }
-          } catch (error) {
-            console.error("Error fetching display name for:", conv.otherPartyAddress, error)
-            return {
-              ...conv,
-              otherPartyName: truncateAddress(conv.otherPartyAddress),
-            }
-          }
-        }),
-      )
-
-      // Sort by last message date
-      conversationsWithNames.sort(
-        (a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime(),
-      )
-
+      const conversationsWithNames = await fetchConversations()
       setConversations(conversationsWithNames)
     } catch (error) {
       console.error("Error fetching conversations:", error)
@@ -391,7 +342,7 @@ export function ConnectWallet() {
           <DropdownMenuItem
             onClick={() => {
               setShowMessagesPopup(true)
-              fetchConversations()
+              fetchConversationsFromContext()
             }}
           >
             <MessageSquare className="mr-2 h-4 w-4" />
