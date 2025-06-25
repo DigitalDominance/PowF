@@ -118,12 +118,19 @@ export default function JobsPage() {
   const [selectedJobForDispute, setSelectedJobForDispute] = useState<(typeof myJobs)[0] | null>(null)
   const [myApplications, setMyApplications] = useState<any[]>([])
 
-  // Messaging states
+  // Messaging states for Browse Jobs
   const [selectedEmployer, setSelectedEmployer] = useState<any | null>(null)
   const [chatMessages, setChatMessages] = useState<any[]>([])
   const [newChatMessage, setNewChatMessage] = useState("")
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [isSendingMessage, setIsSendingMessage] = useState(false)
+
+  // Messaging states for Active Jobs
+  const [selectedActiveJobEmployer, setSelectedActiveJobEmployer] = useState<any | null>(null)
+  const [activeJobChatMessages, setActiveJobChatMessages] = useState<any[]>([])
+  const [newActiveJobChatMessage, setNewActiveJobChatMessage] = useState("")
+  const [isLoadingActiveJobMessages, setIsLoadingActiveJobMessages] = useState(false)
+  const [isSendingActiveJobMessage, setIsSendingActiveJobMessage] = useState(false)
 
   // Pagination states
   const [browseCurrentPage, setBrowseCurrentPage] = useState(1)
@@ -140,6 +147,7 @@ export default function JobsPage() {
   const [disputeState, setDisputeState] = useState<"idle" | "processing" | "confirming" | "success">("idle")
 
   const socket = useRef<Socket | null>(null)
+  const activeJobSocket = useRef<Socket | null>(null)
 
   // Filter jobs based on search and filters
   const filteredAndSortedJobs =
@@ -163,7 +171,7 @@ export default function JobsPage() {
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || []
 
-  // WebSocket setup for real-time chat
+  // WebSocket setup for Browse Jobs chat
   useEffect(() => {
     if (selectedEmployer && address) {
       socket.current = io(process.env.NEXT_PUBLIC_API)
@@ -184,6 +192,27 @@ export default function JobsPage() {
     }
   }, [selectedEmployer, address])
 
+  // WebSocket setup for Active Jobs chat
+  useEffect(() => {
+    if (selectedActiveJobEmployer && address) {
+      activeJobSocket.current = io(process.env.NEXT_PUBLIC_API)
+
+      const participants = [address, selectedActiveJobEmployer.address].sort()
+      const room = `chat_${participants.join("_")}`
+      activeJobSocket.current.emit("joinRoom", room)
+
+      activeJobSocket.current.on("newChatMessage", (message) => {
+        setActiveJobChatMessages((prev) => [...prev, message])
+      })
+
+      return () => {
+        if (activeJobSocket.current) {
+          activeJobSocket.current.disconnect()
+        }
+      }
+    }
+  }, [selectedActiveJobEmployer, address])
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     const messageContainer = document.querySelector(".chat-messages-container")
@@ -192,7 +221,14 @@ export default function JobsPage() {
     }
   }, [chatMessages])
 
-  // Fetch chat messages using the UserContext function
+  useEffect(() => {
+    const activeJobMessageContainer = document.querySelector(".active-job-chat-messages-container")
+    if (activeJobMessageContainer) {
+      activeJobMessageContainer.scrollTop = activeJobMessageContainer.scrollHeight
+    }
+  }, [activeJobChatMessages])
+
+  // Fetch chat messages for Browse Jobs using the UserContext function
   const fetchChatMessages = async (employerAddress: string) => {
     if (!address || !fetchP2PMessages) return
 
@@ -209,7 +245,24 @@ export default function JobsPage() {
     }
   }
 
-  // Send chat message
+  // Fetch chat messages for Active Jobs using the UserContext function
+  const fetchActiveJobChatMessages = async (employerAddress: string) => {
+    if (!address || !fetchP2PMessages) return
+
+    setIsLoadingActiveJobMessages(true)
+    try {
+      // Use the UserContext function to fetch messages between current user and employer
+      const messages = await fetchP2PMessages(employerAddress)
+      setActiveJobChatMessages(messages)
+    } catch (error) {
+      console.error("Error fetching active job messages:", error)
+      toast.error("Failed to load messages")
+    } finally {
+      setIsLoadingActiveJobMessages(false)
+    }
+  }
+
+  // Send chat message for Browse Jobs
   const handleSendChatMessage = async () => {
     if (!newChatMessage.trim() || !selectedEmployer || !address || !sendP2PMessage) return
 
@@ -235,7 +288,33 @@ export default function JobsPage() {
     }
   }
 
-  // Handle opening chat
+  // Send chat message for Active Jobs
+  const handleSendActiveJobChatMessage = async () => {
+    if (!newActiveJobChatMessage.trim() || !selectedActiveJobEmployer || !address || !sendP2PMessage) return
+
+    setIsSendingActiveJobMessage(true)
+    try {
+      await sendP2PMessage(selectedActiveJobEmployer.address, newActiveJobChatMessage.trim())
+
+      // Optimistically add the message to the chat
+      const optimisticMessage = {
+        sender: address,
+        recipient: selectedActiveJobEmployer.address,
+        content: newActiveJobChatMessage.trim(),
+        createdAt: new Date().toISOString(),
+      }
+      setActiveJobChatMessages((prev) => [...prev, optimisticMessage])
+      setNewActiveJobChatMessage("")
+      toast.success("Message sent successfully!")
+    } catch (error) {
+      console.error("Error sending active job message:", error)
+      toast.error("Failed to send message")
+    } finally {
+      setIsSendingActiveJobMessage(false)
+    }
+  }
+
+  // Handle opening chat for Browse Jobs
   const handleOpenChat = async (job: any) => {
     const employer = {
       address: job.employerAddress,
@@ -243,6 +322,16 @@ export default function JobsPage() {
     }
     setSelectedEmployer(employer)
     await fetchChatMessages(job.employerAddress)
+  }
+
+  // Handle opening chat for Active Jobs
+  const handleOpenActiveJobChat = async (job: any) => {
+    const employer = {
+      address: job.employerAddress,
+      name: job.employer,
+    }
+    setSelectedActiveJobEmployer(employer)
+    await fetchActiveJobChatMessages(job.employerAddress)
   }
 
   const handleSubmitApplication = async (jobAddress: string, applicationText: string) => {
@@ -501,6 +590,91 @@ export default function JobsPage() {
       toast.error("Failed to withdraw application. Please try again.")
     }
   }
+
+  // Chat Message Component for reusability
+  const ChatMessageComponent = ({
+    messages,
+    currentUserAddress,
+    otherPartyName,
+    otherPartyAddress,
+    isLoading,
+    containerClass,
+  }: {
+    messages: any[]
+    currentUserAddress: string
+    otherPartyName: string
+    otherPartyAddress: string
+    isLoading: boolean
+    containerClass: string
+  }) => (
+    <div className={`space-y-4 max-h-[400px] overflow-y-auto p-2 ${containerClass}`}>
+      {isLoading ? (
+        <div className="flex justify-center items-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-accent" />
+          <span className="ml-2 text-sm text-muted-foreground font-varela">Loading messages...</span>
+        </div>
+      ) : messages.length > 0 ? (
+        messages.map((message: any, index: number) => {
+          // Check if the message is from the current user by comparing wallet addresses
+          const isFromMe = message.sender?.toLowerCase() === currentUserAddress?.toLowerCase()
+          const isFromOtherParty = message.sender?.toLowerCase() === otherPartyAddress?.toLowerCase()
+
+          return (
+            <div key={index} className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}>
+              {!isFromMe && (
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} alt={message.sender} />
+                  <AvatarFallback>
+                    <Briefcase className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+              <div
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  isFromMe
+                    ? "bg-green-100 dark:bg-green-900/30 text-foreground border border-green-200 dark:border-green-700"
+                    : "bg-red-100 dark:bg-red-900/30 text-foreground border border-red-200 dark:border-red-700"
+                }`}
+              >
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-medium text-sm font-varela">
+                    {isFromMe ? displayName || "You" : otherPartyName}{" "}
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ml-1 font-varela ${
+                        isFromMe
+                          ? "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
+                          : "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30"
+                      }`}
+                    >
+                      {isFromMe ? "You" : "Employer"}
+                    </Badge>
+                  </span>
+                  <span className="text-xs text-muted-foreground font-varela">
+                    {new Date(message.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm font-varela">{message.content}</p>
+              </div>
+              {isFromMe && (
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={`https://effigy.im/a/${currentUserAddress}.svg`} alt={currentUserAddress} />
+                  <AvatarFallback>
+                    <User className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+          )
+        })
+      ) : (
+        <div className="text-center py-8">
+          <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground font-varela">No messages yet. Start the conversation!</p>
+        </div>
+      )}
+    </div>
+  )
 
   // Pagination component
   const PaginationControls = ({
@@ -1097,85 +1271,14 @@ export default function JobsPage() {
 
                                   <div className="space-y-4">
                                     {/* Messages Container */}
-                                    <div className="space-y-4 max-h-[400px] overflow-y-auto p-2 chat-messages-container">
-                                      {isLoadingMessages ? (
-                                        <div className="flex justify-center items-center py-8">
-                                          <Loader2 className="h-6 w-6 animate-spin text-accent" />
-                                          <span className="ml-2 text-sm text-muted-foreground font-varela">
-                                            Loading messages...
-                                          </span>
-                                        </div>
-                                      ) : chatMessages.length > 0 ? (
-                                        chatMessages.map((message: any, index: number) => {
-                                          const isFromMe = message.sender === address
-                                          const isFromEmployer = message.sender === selectedEmployer?.address
-
-                                          return (
-                                            <div
-                                              key={index}
-                                              className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}
-                                            >
-                                              {!isFromMe && (
-                                                <Avatar className="h-8 w-8">
-                                                  <AvatarImage
-                                                    src={`https://effigy.im/a/${message.sender}.svg`}
-                                                    alt={message.sender}
-                                                  />
-                                                  <AvatarFallback>
-                                                    <Briefcase className="h-4 w-4" />
-                                                  </AvatarFallback>
-                                                </Avatar>
-                                              )}
-                                              <div
-                                                className={`max-w-[80%] rounded-lg p-3 ${
-                                                  isFromMe
-                                                    ? "bg-green-100 dark:bg-green-900/30 text-foreground border border-green-200 dark:border-green-700"
-                                                    : "bg-red-100 dark:bg-red-900/30 text-foreground border border-red-200 dark:border-red-700"
-                                                }`}
-                                              >
-                                                <div className="flex justify-between items-center mb-1">
-                                                  <span className="font-medium text-sm font-varela">
-                                                    {isFromMe ? displayName || "You" : selectedEmployer?.name}{" "}
-                                                    <Badge
-                                                      variant="outline"
-                                                      className={`text-xs ml-1 font-varela ${
-                                                        isFromMe
-                                                          ? "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
-                                                          : "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30"
-                                                      }`}
-                                                    >
-                                                      {isFromMe ? "You" : "Employer"}
-                                                    </Badge>
-                                                  </span>
-                                                  <span className="text-xs text-muted-foreground font-varela">
-                                                    {new Date(message.createdAt).toLocaleString()}
-                                                  </span>
-                                                </div>
-                                                <p className="text-sm font-varela">{message.content}</p>
-                                              </div>
-                                              {isFromMe && (
-                                                <Avatar className="h-8 w-8">
-                                                  <AvatarImage
-                                                    src={`https://effigy.im/a/${address}.svg`}
-                                                    alt={address}
-                                                  />
-                                                  <AvatarFallback>
-                                                    <User className="h-4 w-4" />
-                                                  </AvatarFallback>
-                                                </Avatar>
-                                              )}
-                                            </div>
-                                          )
-                                        })
-                                      ) : (
-                                        <div className="text-center py-8">
-                                          <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                          <p className="text-sm text-muted-foreground font-varela">
-                                            No messages yet. Start the conversation!
-                                          </p>
-                                        </div>
-                                      )}
-                                    </div>
+                                    <ChatMessageComponent
+                                      messages={chatMessages}
+                                      currentUserAddress={address || ""}
+                                      otherPartyName={selectedEmployer?.name || ""}
+                                      otherPartyAddress={selectedEmployer?.address || ""}
+                                      isLoading={isLoadingMessages}
+                                      containerClass="chat-messages-container"
+                                    />
 
                                     {/* Message Input */}
                                     <div className="flex gap-2">
@@ -1437,10 +1540,76 @@ export default function JobsPage() {
                                     </DialogContent>
                                   </Dialog>
 
-                                  <Button variant="outline" className="border-accent/50 text-accent hover:bg-accent/10">
-                                    <MessageSquare className="h-4 w-4" />
-                                    <span className="sr-only">Message</span>
-                                  </Button>
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        className="border-accent/50 text-accent hover:bg-accent/10 font-varien"
+                                        onClick={() => handleOpenActiveJobChat(job)}
+                                      >
+                                        <MessageSquare className="h-4 w-4" />
+                                        <span className="sr-only">Message Employer</span>
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[600px] bg-gradient-to-br from-background via-background/95 to-accent/5 border border-accent/20">
+                                      <DialogHeader>
+                                        <DialogTitle className="font-varien text-xl tracking-wider">
+                                          Message {selectedActiveJobEmployer?.name}
+                                        </DialogTitle>
+                                        <DialogDescription className="font-varela">
+                                          Send a direct message to your employer about this active job.
+                                        </DialogDescription>
+                                      </DialogHeader>
+
+                                      <div className="space-y-4">
+                                        {/* Messages Container */}
+                                        <ChatMessageComponent
+                                          messages={activeJobChatMessages}
+                                          currentUserAddress={address || ""}
+                                          otherPartyName={selectedActiveJobEmployer?.name || ""}
+                                          otherPartyAddress={selectedActiveJobEmployer?.address || ""}
+                                          isLoading={isLoadingActiveJobMessages}
+                                          containerClass="active-job-chat-messages-container"
+                                        />
+
+                                        {/* Message Input */}
+                                        <div className="flex gap-2">
+                                          <Textarea
+                                            placeholder="Type your message here..."
+                                            value={newActiveJobChatMessage}
+                                            onChange={(e) => setNewActiveJobChatMessage(e.target.value)}
+                                            className="min-h-[80px] border-accent/30 focus:border-accent font-varela"
+                                            disabled={isSendingActiveJobMessage}
+                                          />
+                                          <Button
+                                            className="self-end bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
+                                            onClick={handleSendActiveJobChatMessage}
+                                            disabled={!newActiveJobChatMessage.trim() || isSendingActiveJobMessage}
+                                          >
+                                            {isSendingActiveJobMessage ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <Send className="h-4 w-4" />
+                                            )}
+                                          </Button>
+                                        </div>
+                                      </div>
+
+                                      <DialogFooter>
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => {
+                                            setSelectedActiveJobEmployer(null)
+                                            setActiveJobChatMessages([])
+                                            setNewActiveJobChatMessage("")
+                                          }}
+                                          className="font-varien"
+                                        >
+                                          Close
+                                        </Button>
+                                      </DialogFooter>
+                                    </DialogContent>
+                                  </Dialog>
                                 </div>
                               </div>
                             </div>
