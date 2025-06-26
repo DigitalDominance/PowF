@@ -269,6 +269,10 @@ export function ConnectWallet() {
 
   const fetchConversationsFromContext = async () => {
     if (!address) return
+    if (isReAuthenticatingRef.current) {
+      console.log("Skipping fetchConversations during re-authentication")
+      return
+    }
 
     setIsLoadingConversations(true)
     try {
@@ -284,6 +288,10 @@ export function ConnectWallet() {
 
   const fetchConversationMessages = async (otherPartyAddress: string) => {
     if (!address || !fetchP2PMessages) return
+    if (isReAuthenticatingRef.current) {
+      console.log("Skipping fetchConversationMessages during re-authentication")
+      return
+    }
 
     setIsLoadingMessages(true)
     try {
@@ -737,3 +745,4 @@ export function ConnectWallet() {
     </div>
   )
 }
+
