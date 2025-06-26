@@ -535,7 +535,7 @@ export function ConnectWallet() {
               w-[150vw] -ml-[25vw] h-[85vh]
               bg-gradient-to-br from-background via-background/95 to-accent/10
               border border-accent/30 rounded-lg
-              md:min-w-[400px] md:w-full md:max-w-4xl md:h-[80vh] md:rounded-2xl md:ml-0
+              md:min-w-[400px] md:w-[120vw] md:max-w-4xl md:h-[80vh] md:rounded-2xl md:ml-[60vw]
               shadow-2xl backdrop-blur-sm overflow-hidden
             "
           >
