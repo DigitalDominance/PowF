@@ -1,7 +1,7 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Copy, Check, ExternalLink, Briefcase, User, MessageSquare, Send, Loader2, Wallet } from 'lucide-react'
+import { LogOut, Copy, Check, ExternalLink, Briefcase, User, MessageSquare, Send, Loader2, Wallet } from "lucide-react"
 // import { chains, kaspaEVMTestnet } from "@/lib/web3modal-config" // Import chains
 import { useState, useEffect, useRef } from "react"
 import {
@@ -28,7 +28,19 @@ function truncateAddress(address: string | undefined) {
 export function ConnectWallet() {
   const { open, close } = useAppKit()
   const { disconnect } = useDisconnect()
-  const { provider, address, isConnected, displayName, role, setUserData, sendP2PMessage, fetchP2PMessages, fetchConversations, isReAuthenticating, setIsReAuthenticating } = useUserContext()
+  const {
+    provider,
+    address,
+    isConnected,
+    displayName,
+    role,
+    setUserData,
+    sendP2PMessage,
+    fetchP2PMessages,
+    fetchConversations,
+    isReAuthenticating,
+    setIsReAuthenticating,
+  } = useUserContext()
   const [isSigned, setIsSigned] = useState(false) // Track signing completion
   const [displayName_, setDisplayName_] = useState("") // State for displayName
   const [challenge, setChallenge] = useState("") // State for storing the challenge
@@ -129,8 +141,8 @@ export function ConnectWallet() {
       } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
         wallet: address,
         signature: await signer?.signMessage(challenge),
-        displayName: displayName_, // Use the existing displayName
-        role: role_, // Use the existing role
+        displayName: displayName || "Unknown User", // Use context displayName, not local displayName_
+        role: role || "worker", // Use context role, not local role_
       })
 
       // Store the new tokens
