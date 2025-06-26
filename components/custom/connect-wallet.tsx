@@ -1,7 +1,7 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Copy, Check, ExternalLink, Briefcase, User, MessageSquare, Send, Loader2, Wallet } from "lucide-react"
+import { LogOut, Copy, Check, ExternalLink, Briefcase, User, MessageSquare, Send, Loader2, Wallet } from 'lucide-react'
 // import { chains, kaspaEVMTestnet } from "@/lib/web3modal-config" // Import chains
 import { useState, useEffect, useRef } from "react"
 import {
@@ -28,7 +28,7 @@ function truncateAddress(address: string | undefined) {
 export function ConnectWallet() {
   const { open, close } = useAppKit()
   const { disconnect } = useDisconnect()
-  const { provider, address, isConnected, displayName, role } = useUserContext()
+  const { provider, address, isConnected, displayName, role, setUserData, sendP2PMessage, fetchP2PMessages, fetchConversations, isReAuthenticating, setIsReAuthenticating } = useUserContext()
   const [isSigned, setIsSigned] = useState(false) // Track signing completion
   const [displayName_, setDisplayName_] = useState("") // State for displayName
   const [challenge, setChallenge] = useState("") // State for storing the challenge
@@ -36,10 +36,8 @@ export function ConnectWallet() {
   const [copied, setCopied] = useState(false)
   const [role_, setRole_] = useState("") // State for role
   const [isAuthenticating, setIsAuthenticating] = useState(false) // Prevent continuous authentication
-  const [isReAuthenticating, setIsReAuthenticating] = useState(false) // Prevent multiple re-authentication calls
   const [isSigningUp, setIsSigningUp] = useState(false) // Track signup state
   const isSigningUpRef = useRef(false) // Persistent reference for isSigningUp
-  const isReAuthenticatingRef = useRef(false) // Persistent reference for re-authentication
   const [isDisconnected, setIsDisconnected] = useState(false) // Track disconnect state
 
   const [showMessagesPopup, setShowMessagesPopup] = useState(false)
@@ -53,10 +51,7 @@ export function ConnectWallet() {
 
   useEffect(() => {
     isSigningUpRef.current = isSigningUp // Sync the ref with the state
-    isReAuthenticatingRef.current = isReAuthenticating // Sync the ref with the state
-  }, [isSigningUp, isReAuthenticating])
-
-  const { setUserData, sendP2PMessage, fetchP2PMessages, fetchConversations } = useUserContext()
+  }, [isSigningUp])
 
   const handleCopyAddress = () => {
     if (address) {
@@ -103,20 +98,18 @@ export function ConnectWallet() {
     disconnect()
     setIsAuthenticating(false) // Reset authentication state
     setIsReAuthenticating(false) // Reset re-authentication state
-    isReAuthenticatingRef.current = false // Reset ref state
     setIsDisconnected(true)
     toast.success("Disconnected successfully!")
   }
 
   const handleReAuthentication = async () => {
-    if (!isConnected || !address || isSigningUpRef.current || isReAuthenticatingRef.current || isDisconnected) {
+    if (!isConnected || !address || isSigningUpRef.current || isReAuthenticating || isDisconnected) {
       console.log("Skipping re-authentication: Wallet not connected or user is signing up.")
       return
     }
 
     try {
       setIsReAuthenticating(true) // Prevent multiple calls
-      isReAuthenticatingRef.current = true
       console.log(
         "Re-authenticating user",
         isConnected,
@@ -151,7 +144,6 @@ export function ConnectWallet() {
       handleDisconnect() // Disconnect the wallet if re-authentication fails
     } finally {
       setIsReAuthenticating(false) // Reset re-authentication state
-      isReAuthenticatingRef.current = false
     }
   }
 
@@ -268,7 +260,7 @@ export function ConnectWallet() {
   }
 
   const fetchConversationsFromContext = async () => {
-    if (!address) return
+    if (!address || isReAuthenticating) return
 
     setIsLoadingConversations(true)
     try {
@@ -283,7 +275,7 @@ export function ConnectWallet() {
   }
 
   const fetchConversationMessages = async (otherPartyAddress: string) => {
-    if (!address || !fetchP2PMessages) return
+    if (!address || !fetchP2PMessages || isReAuthenticating) return
 
     setIsLoadingMessages(true)
     try {
@@ -298,7 +290,7 @@ export function ConnectWallet() {
   }
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation || !address || !sendP2PMessage) return
+    if (!newMessage.trim() || !selectedConversation || !address || !sendP2PMessage || isReAuthenticating) return
 
     setIsSendingMessage(true)
     try {
@@ -335,7 +327,7 @@ export function ConnectWallet() {
     otherPartyAddress: string
     isLoading: boolean
   }) => (
-    <div className="space-y-4 max-h-[600px] overflow-y-auto p-2">
+    <div className="space-y-4 max-h-[400px] overflow-y-auto p-2">
       {isLoading ? (
         <div className="flex justify-center items-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-accent" />
@@ -450,8 +442,10 @@ export function ConnectWallet() {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => {
-              setShowMessagesPopup(true)
-              fetchConversationsFromContext()
+              if (!isReAuthenticating) {
+                setShowMessagesPopup(true)
+                fetchConversationsFromContext()
+              }
             }}
           >
             <MessageSquare className="mr-2 h-4 w-4" />
