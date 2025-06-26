@@ -335,7 +335,7 @@ export function ConnectWallet() {
     otherPartyAddress: string
     isLoading: boolean
   }) => (
-    <div className="space-y-4 max-h-[400px] overflow-y-auto p-2">
+    <div className="space-y-4 max-h-[600px] overflow-y-auto p-2">
       {isLoading ? (
         <div className="flex justify-center items-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-accent" />
