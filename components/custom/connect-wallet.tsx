@@ -1,4 +1,3 @@
-
 "use client"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -303,7 +302,7 @@ export function ConnectWallet() {
           )
         })
       ) : (
-        <div className="text-center py-8">
+        <div className="text-center py-8">  
           <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-sm text-muted-foreground font-varela">No messages yet. Start the conversation!</p>
         </div>
@@ -439,7 +438,7 @@ export function ConnectWallet() {
               <AvatarImage src={`https://effigy.im/a/${address}.svg`} alt={address} />
               <AvatarFallback>{address.charAt(2)}</AvatarFallback>
             </Avatar>
-            <div>
+            <div>  
               <p className="font-medium">{truncateAddress(address)}</p>
             </div>
           </DropdownMenuLabel>
@@ -532,7 +531,13 @@ export function ConnectWallet() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="min-w-[600px] w-[90vw] h-[85vh] md:w-full md:max-w-4xl md:h-[80vh] bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-lg md:rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden md:mx-0 -ml-[350px]"
+            className="
+              w-[150vw] -ml-[25vw] h-[85vh]
+              bg-gradient-to-br from-background via-background/95 to-accent/10
+              border border-accent/30 rounded-lg
+              md:min-w-[400px] md:w-full md:max-w-4xl md:h-[80vh] md:rounded-2xl md:ml-0
+              shadow-2xl backdrop-blur-sm overflow-hidden
+            "
           >
             <div className="flex h-full">
               {/* Conversations List */}
@@ -707,4 +712,3 @@ export function ConnectWallet() {
     </div>
   )
 }
-
