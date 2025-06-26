@@ -556,17 +556,17 @@ export function ConnectWallet() {
 
       {/* Messages Popup */}
       {showMessagesPopup && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50 p-2 md:p-0">
+        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="w-[95vw] h-[90vh] max-w-[95vw] md:w-full md:max-w-4xl md:h-[80vh] bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-lg md:rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden mx-auto"
+            className="min-w-[300px] w-[90vw] h-[85vh] md:w-full md:max-w-4xl md:h-[80vh] bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-lg md:rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden"
           >
             <div className="flex h-full">
               {/* Conversations List */}
-              <div className="min-w-[300px] w-3/5 md:w-1/3 border-r border-accent/20 flex flex-col">
+              <div className="w-3/5 md:w-1/3 border-r border-accent/20 flex flex-col">
                 <div className="p-4 md:p-6 border-b border-accent/20">
                   <div className="flex items-center justify-between">
                     <h2 className="font-varien text-lg md:text-xl font-bold text-foreground tracking-wider">
