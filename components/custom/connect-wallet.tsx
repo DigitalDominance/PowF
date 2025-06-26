@@ -532,7 +532,7 @@ export function ConnectWallet() {
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
             className="
-            w-[260vw] -ml-[90vw] h-[120vh]
+            w-[260vw] -ml-[90vw] h-[85vh]
             bg-gradient-to-br from-background via-background/95 to-accent/10
             border border-accent/30 rounded-lg
             md:min-w-[400px] md:w-full md:max-w-4xl md:h-[80vh] md:ml-0 md:rounded-2xl
@@ -541,7 +541,7 @@ export function ConnectWallet() {
           >
             <div className="flex h-full">
               {/* Conversations List */}
-              <div className="w-3/5 md:w-1/3 border-r border-accent/20 flex flex-col">
+              <div className="w-1/3 md:w-1/3 border-r border-accent/20 flex flex-col">
                 <div className="p-4 md:p-6 border-b border-accent/20">
                   <div className="flex items-center justify-between">
                     <h2 className="font-varien text-lg md:text-xl font-bold text-foreground tracking-wider">
@@ -621,7 +621,7 @@ export function ConnectWallet() {
               </div>
 
               {/* Chat Area */}
-              <div className="w-2/5 md:flex-1 flex flex-col">
+              <div className="w-2/3 md:flex-1 flex flex-col">
                 {selectedConversation ? (
                   <>
                     {/* Chat Header */}
