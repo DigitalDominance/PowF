@@ -141,8 +141,8 @@ export function ConnectWallet() {
       } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
         wallet: address,
         signature: await signer?.signMessage(challenge),
-        displayName: displayName || "Unknown User", // Use context displayName, not local displayName_
-        role: role || "worker", // Use context role, not local role_
+        displayName: displayName_, // Use the existing displayName
+        role: role_, // Use the existing role
       })
 
       // Store the new tokens
