@@ -525,7 +525,7 @@ export function ConnectWallet() {
 
       {/* Messages Popup */}
       {showMessagesPopup && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50">
+        <div className="fixed inset-0 flex justify-center items-center bg-black/50 md:backdrop-blur-sm h-[100vh] z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -536,8 +536,7 @@ export function ConnectWallet() {
               bg-gradient-to-br from-background via-background/95 to-accent/10
               border border-accent/30 rounded-lg
               md:min-w-[400px] md:w-full md:max-w-4xl md:h-[80vh] md:ml-0 md:rounded-2xl
-              md:shadow-2xl md:backdrop-blur-sm
-              overflow-hidden
+              shadow-2xl backdrop-blur-sm overflow-hidden
             "
           >
             <div className="flex h-full">
