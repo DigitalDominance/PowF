@@ -1,9 +1,20 @@
-"use client"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Copy, Check, ExternalLink, Briefcase, User, MessageSquare, Send, Loader2, Wallet } from "lucide-react"
-// import { chains, kaspaEVMTestnet } from "@/lib/web3modal-config" // Import chains
-import { useState, useEffect, useRef } from "react"
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  LogOut,
+  Copy,
+  Check,
+  ExternalLink,
+  Briefcase,
+  User,
+  MessageSquare,
+  Send,
+  Loader2,
+  Wallet,
+} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,23 +22,22 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { toast } from "sonner"
-import { motion } from "framer-motion"
-import { useAppKit, useDisconnect } from "@reown/appkit/react"
-import axios from "axios"
-import { useUserContext } from "@/context/UserContext"
-// import { useContracts } from "@/hooks/useContract"
-import { Badge } from "@/components/ui/badge"
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { useAppKit, useDisconnect } from "@reown/appkit/react";
+import axios from "axios";
+import { useUserContext } from "@/context/UserContext";
+import { Badge } from "@/components/ui/badge";
 
 function truncateAddress(address: string | undefined) {
-  if (!address) return "No Address"
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
+  if (!address) return "No Address";
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 export function ConnectWallet() {
-  const { open, close } = useAppKit()
-  const { disconnect } = useDisconnect()
+  const { open } = useAppKit();
+  const { disconnect } = useDisconnect();
   const {
     provider,
     address,
@@ -40,51 +50,53 @@ export function ConnectWallet() {
     fetchConversations,
     isReAuthenticating,
     setIsReAuthenticating,
-  } = useUserContext()
-  const [isSigned, setIsSigned] = useState(false) // Track signing completion
-  const [displayName_, setDisplayName_] = useState("") // State for displayName
-  const [challenge, setChallenge] = useState("") // State for storing the challenge
+  } = useUserContext();
 
-  const [copied, setCopied] = useState(false)
-  const [role_, setRole_] = useState("") // State for role
-  const [isAuthenticating, setIsAuthenticating] = useState(false) // Prevent continuous authentication
-  const [isSigningUp, setIsSigningUp] = useState(false) // Track signup state
-  const isSigningUpRef = useRef(false) // Persistent reference for isSigningUp
-  const [isDisconnected, setIsDisconnected] = useState(false) // Track disconnect state
+  const [isSigned, setIsSigned] = useState(false);
+  const [displayName_, setDisplayName_] = useState("");
+  const [challenge, setChallenge] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [role_, setRole_] = useState("");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isSigningUp, setIsSigningUp] = useState(false);
+  const isSigningUpRef = useRef(false);
+  const isReAuthenticatingRef = useRef(false);
+  const [isDisconnected, setIsDisconnected] = useState(false);
 
-  const [showMessagesPopup, setShowMessagesPopup] = useState(false)
-  const [conversations, setConversations] = useState<any[]>([])
-  const [selectedConversation, setSelectedConversation] = useState<any | null>(null)
-  const [conversationMessages, setConversationMessages] = useState<any[]>([])
-  const [newMessage, setNewMessage] = useState("")
-  const [isLoadingConversations, setIsLoadingConversations] = useState(false)
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
-  const [isSendingMessage, setIsSendingMessage] = useState(false)
+  const [showMessagesPopup, setShowMessagesPopup] = useState(false);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
+  const [conversationMessages, setConversationMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   useEffect(() => {
-    isSigningUpRef.current = isSigningUp // Sync the ref with the state
-  }, [isSigningUp])
+    isSigningUpRef.current = isSigningUp;
+    isReAuthenticatingRef.current = isReAuthenticating;
+  }, [isSigningUp, isReAuthenticating]);
 
   const handleCopyAddress = () => {
     if (address) {
-      navigator.clipboard.writeText(address)
-      setCopied(true)
-      toast.success("Address copied to clipboard!")
-      setTimeout(() => setCopied(false), 2000)
+      navigator.clipboard.writeText(address);
+      setCopied(true);
+      toast.success("Address copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
     }
-  }
+  };
 
   const getBlockExplorerUrl = () => {
     if (address) {
-      return `https://frontend.kasplextest.xyz/address/${address}` // Example block explorer URL
+      return `https://frontend.kasplextest.xyz/address/${address}`;
     }
-    return "#"
-  }
+    return "#";
+  };
 
   const handleConnectWallet = async () => {
-    console.log("connect")
-    await open() // Open WalletConnect modal
-  }
+    console.log("connect");
+    await open();
+  };
 
   const renderRoleIcon = () => {
     if (role === "employer") {
@@ -92,239 +104,209 @@ export function ConnectWallet() {
         <span className="flex items-center gap-1 text-green-500">
           <Briefcase className="h-4 w-4" /> Employer
         </span>
-      )
+      );
     } else if (role === "worker") {
       return (
         <span className="flex items-center gap-1 text-blue-500">
           <User className="h-4 w-4" /> Worker
         </span>
-      )
+      );
     }
-    return null // No role assigned
-  }
+    return null;
+  };
 
   const handleDisconnect = () => {
-    localStorage.removeItem("accessToken")
-    localStorage.removeItem("refreshToken")
-    setUserData({ wallet: "", displayName: "", role: "" })
-    disconnect()
-    setIsAuthenticating(false) // Reset authentication state
-    setIsReAuthenticating(false) // Reset re-authentication state
-    setIsDisconnected(true)
-    toast.success("Disconnected successfully!")
-  }
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    setUserData({ wallet: "", displayName: "", role: "" });
+    disconnect();
+    setIsAuthenticating(false);
+    setIsReAuthenticating(false);
+    isReAuthenticatingRef.current = false;
+    setIsDisconnected(true);
+    toast.success("Disconnected successfully!");
+  };
 
   const handleReAuthentication = async () => {
-    if (!isConnected || !address || isSigningUpRef.current || isReAuthenticating || isDisconnected) {
-      console.log("Skipping re-authentication: Wallet not connected or user is signing up.")
-      return
+    if (
+      !isConnected ||
+      !address ||
+      isSigningUpRef.current ||
+      isReAuthenticatingRef.current ||
+      isDisconnected
+    ) {
+      console.log("Skipping re-authentication.");
+      return;
     }
-
     try {
-      setIsReAuthenticating(true) // Prevent multiple calls
-      console.log(
-        "Re-authenticating user",
-        isConnected,
-        address,
-        isSigningUp,
-        isSigned,
-        isAuthenticating,
-        isReAuthenticating,
-      )
-      toast.info("Re-authenticating...")
+      setIsReAuthenticating(true);
+      isReAuthenticatingRef.current = true;
+      toast.info("Re-authenticating...");
       const {
         data: { challenge },
-      } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
-      const signer = await provider?.getSigner()
+      } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address });
+      const signer = await provider?.getSigner();
       const {
         data: { accessToken, refreshToken },
       } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
         wallet: address,
         signature: await signer?.signMessage(challenge),
-        displayName: displayName_, // Use the existing displayName
-        role: role_, // Use the existing role
-      })
-
-      // Store the new tokens
-      localStorage.setItem("accessToken", accessToken)
-      localStorage.setItem("refreshToken", refreshToken)
-
-      toast.success("Re-authentication successful!")
+        displayName: displayName_,
+        role: role_,
+      });
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      toast.success("Re-authentication successful!");
     } catch (error) {
-      console.error("Re-authentication failed:", error)
-      toast.error("Re-authentication failed. Please reconnect your wallet.")
-      handleDisconnect() // Disconnect the wallet if re-authentication fails
+      console.error("Re-authentication failed:", error);
+      toast.error("Re-authentication failed. Please reconnect your wallet.");
+      handleDisconnect();
     } finally {
-      setIsReAuthenticating(false) // Reset re-authentication state
+      setIsReAuthenticating(false);
+      isReAuthenticatingRef.current = false;
     }
-  }
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        setIsAuthenticating(true) // Prevent redundant calls
-        const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
+        setIsAuthenticating(true);
+        const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${address}`);
         if (response.status === 200) {
-          const response_ = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
-          const data = response_.data
-          console.log("User data:", data)
-          setUserData({ wallet: data.wallet, displayName: data.displayName, role: data.role })
-          toast.success("User exists!")
+          const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${address}`);
+          setUserData({ wallet: data.wallet, displayName: data.displayName, role: data.role });
+          toast.success("User exists!");
         } else {
-          toast.error("User not found!")
+          toast.error("User not found!");
         }
-      } catch (error) {
+      } catch {
         try {
-          toast.info("Authenticating user...")
+          toast.info("Authenticating user...");
           const {
             data: { challenge },
-          } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
-          setChallenge(challenge) // Store the challenge
-          setIsSigningUp(true) // Mark as signing up
-          setIsSigned(true)
-        } catch (authError) {
-          toast.error("Authentication failed!")
+          } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address });
+          setChallenge(challenge);
+          setIsSigningUp(true);
+          setIsSigned(true);
+        } catch {
+          toast.error("Authentication failed!");
         }
       } finally {
-        setIsAuthenticating(false)
+        setIsAuthenticating(false);
       }
-    }
+    };
 
     if (isConnected && address && provider && !isAuthenticating) {
-      console.log("address", address, provider)
-      fetchUser()
+      fetchUser();
     }
-  }, [address, isConnected, provider])
+  }, [address, isConnected, provider]);
 
   axios.interceptors.response.use(
     (response) => response,
     async (error) => {
       if (error.response?.status === 401) {
-        const refreshToken = localStorage.getItem("refreshToken")
-
-        // Skip re-authentication if the user is signing up
-        if (!isConnected || !address || isSigningUp) {
-          console.log("Skipping re-authentication during signup.")
-          return Promise.reject(error)
+        const refreshToken = localStorage.getItem("refreshToken");
+        if (!isConnected || !address || isSigningUpRef.current) {
+          return Promise.reject(error);
         }
-
-        if (refreshToken && !isReAuthenticating) {
-          setIsReAuthenticating(true) // Prevent multiple re-authentication calls
-
+        if (refreshToken && !isReAuthenticatingRef.current) {
+          setIsReAuthenticating(true);
           try {
             const {
               data: { accessToken },
-            } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken })
-            if (!accessToken) {
-              throw new Error("Failed to refresh token")
-            }
-
-            localStorage.setItem("accessToken", accessToken)
-            error.config.headers["Authorization"] = `Bearer ${accessToken}`
-            setIsReAuthenticating(false) // Reset state after successful re-authentication
-            return axios(error.config) // Retry the original request
-          } catch (refreshError) {
-            console.error("Token refresh failed:", refreshError)
-            setIsReAuthenticating(false) // Reset state even if refresh fails
-            handleDisconnect() // Disconnect the wallet if refresh fails
-            toast.error("Session expired. Please reconnect your wallet.")
+            } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken });
+            localStorage.setItem("accessToken", accessToken);
+            error.config.headers["Authorization"] = `Bearer ${accessToken}`;
+            setIsReAuthenticating(false);
+            return axios(error.config);
+          } catch {
+            setIsReAuthenticating(false);
+            handleDisconnect();
+            toast.error("Session expired. Please reconnect your wallet.");
           }
         }
-
-        if (!isReAuthenticating) {
-          try {
-            await handleReAuthentication() // Call re-authentication logic
-            return axios(error.config) // Retry the original request
-          } catch (authError) {
-            console.error("Re-authentication failed:", authError)
-            handleDisconnect() // Disconnect if re-authentication fails
-          }
+        if (!isReAuthenticatingRef.current) {
+          await handleReAuthentication();
+          return axios(error.config);
         }
       }
-
-      return Promise.reject(error)
-    },
-  )
+      return Promise.reject(error);
+    }
+  );
 
   const handleSubmitDisplayName = async () => {
-    console.log("Handle Submit Display Name")
     try {
-      const signer = await provider?.getSigner()
+      const signer = await provider?.getSigner();
       const {
         data: { accessToken, refreshToken },
       } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
         wallet: address,
-        signature: await signer?.signMessage(challenge), // Use the signed challenge
-        displayName: displayName_, // Pass the custom displayName
+        signature: await signer?.signMessage(challenge),
+        displayName: displayName_,
         role: role_,
-      })
-
-      localStorage.setItem("accessToken", accessToken) // Save access token
-      localStorage.setItem("refreshToken", refreshToken) // Save refresh token
-      setUserData({ wallet: address || "", displayName: displayName_, role: role_ })
-
-      toast.success("Authentication successful!")
-      setIsSigned(false) // Reset signing state after submission
-      // setIsSigningUp(false); // Mark as signing up
-    } catch (error) {
-      toast.error("Failed to submit display name!")
+      });
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      setUserData({ wallet: address || "", displayName: displayName_, role: role_ });
+      toast.success("Authentication successful!");
+      setIsSigned(false);
+    } catch {
+      toast.error("Failed to submit display name!");
     }
-  }
+  };
 
   const fetchConversationsFromContext = async () => {
-    if (!address || isReAuthenticating) return
-
-    setIsLoadingConversations(true)
+    if (!address || isReAuthenticatingRef.current) return;
+    setIsLoadingConversations(true);
     try {
-      const conversationsWithNames = await fetchConversations()
-      setConversations(conversationsWithNames)
-    } catch (error) {
-      console.error("Error fetching conversations:", error)
-      toast.error("Failed to load conversations")
+      const convos = await fetchConversations();
+      setConversations(convos);
+    } catch {
+      toast.error("Failed to load conversations");
     } finally {
-      setIsLoadingConversations(false)
+      setIsLoadingConversations(false);
     }
-  }
+  };
 
   const fetchConversationMessages = async (otherPartyAddress: string) => {
-    if (!address || !fetchP2PMessages || isReAuthenticating) return
-
-    setIsLoadingMessages(true)
+    if (!address || isReAuthenticatingRef.current) return;
+    setIsLoadingMessages(true);
     try {
-      const messages = await fetchP2PMessages(otherPartyAddress)
-      setConversationMessages(messages)
-    } catch (error) {
-      console.error("Error fetching conversation messages:", error)
-      toast.error("Failed to load messages")
+      const msgs = await fetchP2PMessages(otherPartyAddress);
+      setConversationMessages(msgs);
+    } catch {
+      toast.error("Failed to load messages");
     } finally {
-      setIsLoadingMessages(false)
+      setIsLoadingMessages(false);
     }
-  }
+  };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation || !address || !sendP2PMessage || isReAuthenticating) return
-
-    setIsSendingMessage(true)
+    if (
+      !newMessage.trim() ||
+      !selectedConversation ||
+      !address ||
+      isReAuthenticatingRef.current
+    )
+      return;
+    setIsSendingMessage(true);
     try {
-      await sendP2PMessage(selectedConversation.otherPartyAddress, newMessage.trim())
-
-      const optimisticMessage = {
+      await sendP2PMessage(selectedConversation.otherPartyAddress, newMessage.trim());
+      const optimistic = {
         sender: address,
         receiver: selectedConversation.otherPartyAddress,
         content: newMessage.trim(),
         createdAt: new Date().toISOString(),
-      }
-
-      setConversationMessages((prev) => [...prev, optimisticMessage])
-      setNewMessage("")
-      toast.success("Message sent successfully!")
-    } catch (error) {
-      console.error("Error sending message:", error)
-      toast.error("Failed to send message")
+      };
+      setConversationMessages((prev) => [...prev, optimistic]);
+      setNewMessage("");
+      toast.success("Message sent successfully!");
+    } catch {
+      toast.error("Failed to send message");
     } finally {
-      setIsSendingMessage(false)
+      setIsSendingMessage(false);
     }
-  }
+  };
 
   const ChatMessageComponent = ({
     messages,
@@ -333,29 +315,39 @@ export function ConnectWallet() {
     otherPartyAddress,
     isLoading,
   }: {
-    messages: any[]
-    currentUserAddress: string
-    otherPartyName: string
-    otherPartyAddress: string
-    isLoading: boolean
+    messages: any[];
+    currentUserAddress: string;
+    otherPartyName: string;
+    otherPartyAddress: string;
+    isLoading: boolean;
   }) => (
     <div className="space-y-4 max-h-[400px] overflow-y-auto p-2">
       {isLoading ? (
         <div className="flex justify-center items-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-accent" />
-          <span className="ml-2 text-sm text-muted-foreground font-varela">Loading messages...</span>
+          <span className="ml-2 text-sm text-muted-foreground font-varela">
+            Loading messages...
+          </span>
         </div>
       ) : messages.length > 0 ? (
-        messages.map((message: any, index: number) => {
-          const isFromMe = message.receiver?.toLowerCase() === otherPartyAddress?.toLowerCase()
-
+        messages.map((message, idx) => {
+          const isFromMe =
+            message.sender.toLowerCase() === currentUserAddress.toLowerCase();
           return (
-            <div key={index} className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}>
+            <div
+              key={idx}
+              className={`flex gap-3 ${
+                isFromMe ? "justify-end" : "justify-start"
+              }`}
+            >
               {!isFromMe && (
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} alt={message.sender} />
+                  <AvatarImage
+                    src={`https://effigy.im/a/${message.sender}.svg`}
+                    alt={message.sender}
+                  />
                   <AvatarFallback>
-                    <Briefcase className="h-4 w-4" />
+                    <User className="h-4 w-4" />
                   </AvatarFallback>
                 </Avatar>
               )}
@@ -368,7 +360,7 @@ export function ConnectWallet() {
               >
                 <div className="flex justify-between items-center mb-1">
                   <span className="font-medium text-sm font-varela">
-                    {isFromMe ? displayName || "You" : otherPartyName}{" "}
+                    {isFromMe ? "You" : otherPartyName}{" "}
                     <Badge
                       variant="outline"
                       className={`text-xs ml-1 font-varela ${
@@ -388,23 +380,28 @@ export function ConnectWallet() {
               </div>
               {isFromMe && (
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={`https://effigy.im/a/${currentUserAddress}.svg`} alt={currentUserAddress} />
+                  <AvatarImage
+                    src={`https://effigy.im/a/${currentUserAddress}.svg`}
+                    alt={currentUserAddress}
+                  />
                   <AvatarFallback>
                     <User className="h-4 w-4" />
                   </AvatarFallback>
                 </Avatar>
               )}
             </div>
-          )
+          );
         })
       ) : (
         <div className="text-center py-8">
           <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground font-varela">No messages yet. Start the conversation!</p>
+          <p className="text-sm text-muted-foreground font-varela">
+            No messages yet. Start the conversation!
+          </p>
         </div>
       )}
     </div>
-  )
+  );
 
   if (!isConnected || !address) {
     return (
@@ -418,7 +415,7 @@ export function ConnectWallet() {
           Connect Wallet
         </Button>
       </motion.div>
-    )
+    );
   }
 
   return (
@@ -454,9 +451,9 @@ export function ConnectWallet() {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => {
-              if (!isReAuthenticating) {
-                setShowMessagesPopup(true)
-                fetchConversationsFromContext()
+              if (!isReAuthenticatingRef.current) {
+                setShowMessagesPopup(true);
+                fetchConversationsFromContext();
               }
             }}
           >
@@ -475,7 +472,7 @@ export function ConnectWallet() {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onClick={handleDisconnect} // Disconnect wallet
+            onClick={handleDisconnect}
             className="text-red-500 hover:!text-red-500 focus:!text-red-500 hover:!bg-red-500/10"
           >
             <LogOut className="mr-2 h-4 w-4" />
@@ -507,7 +504,6 @@ export function ConnectWallet() {
             </div>
 
             <div className="space-y-6">
-              {/* Display Name Input */}
               <div className="space-y-2">
                 <label htmlFor="displayName" className="block text-sm font-medium text-foreground font-varien">
                   Display Name
@@ -522,7 +518,6 @@ export function ConnectWallet() {
                 />
               </div>
 
-              {/* Role Selection */}
               <div className="space-y-2">
                 <label htmlFor="role" className="block text-sm font-medium text-foreground font-varien">
                   Role
@@ -541,7 +536,6 @@ export function ConnectWallet() {
                 </select>
               </div>
 
-              {/* Submit Button */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -560,7 +554,6 @@ export function ConnectWallet() {
         </div>
       )}
 
-      {/* Messages Popup */}
       {showMessagesPopup && (
         <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50">
           <motion.div
@@ -571,7 +564,6 @@ export function ConnectWallet() {
             className="min-w-[400px] w-[90vw] h-[85vh] md:w-full md:max-w-4xl md:h-[80vh] bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-lg md:rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden md:mx-0 -ml-[150px]"
           >
             <div className="flex h-full">
-              {/* Conversations List */}
               <div className="w-3/5 md:w-1/3 border-r border-accent/20 flex flex-col">
                 <div className="p-4 md:p-6 border-b border-accent/20">
                   <div className="flex items-center justify-between">
@@ -582,9 +574,9 @@ export function ConnectWallet() {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        setShowMessagesPopup(false)
-                        setSelectedConversation(null)
-                        setConversationMessages([])
+                        setShowMessagesPopup(false);
+                        setSelectedConversation(null);
+                        setConversationMessages([]);
                       }}
                       className="text-muted-foreground hover:text-foreground"
                     >
@@ -597,7 +589,9 @@ export function ConnectWallet() {
                   {isLoadingConversations ? (
                     <div className="flex justify-center items-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-accent" />
-                      <span className="ml-2 text-sm text-muted-foreground font-varela">Loading conversations...</span>
+                      <span className="ml-2 text-sm text-muted-foreground font-varela">
+                        Loading conversations...
+                      </span>
                     </div>
                   ) : conversations.length > 0 ? (
                     <div className="space-y-1 p-2">
@@ -608,8 +602,8 @@ export function ConnectWallet() {
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.1 }}
                           onClick={() => {
-                            setSelectedConversation(conversation)
-                            fetchConversationMessages(conversation.otherPartyAddress)
+                            setSelectedConversation(conversation);
+                            fetchConversationMessages(conversation.otherPartyAddress);
                           }}
                           className={`p-3 md:p-4 rounded-xl cursor-pointer transition-all duration-200 ${
                             selectedConversation?.otherPartyAddress === conversation.otherPartyAddress
@@ -651,11 +645,9 @@ export function ConnectWallet() {
                 </div>
               </div>
 
-              {/* Chat Area */}
               <div className="w-2/5 md:flex-1 flex flex-col">
                 {selectedConversation ? (
                   <>
-                    {/* Chat Header */}
                     <div className="p-4 md:p-6 border-b border-accent/20">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8 md:h-10 md:w-10">
@@ -679,7 +671,6 @@ export function ConnectWallet() {
                       </div>
                     </div>
 
-                    {/* Messages */}
                     <div className="flex-1 overflow-y-auto p-3 md:p-4">
                       <ChatMessageComponent
                         messages={conversationMessages}
@@ -690,7 +681,6 @@ export function ConnectWallet() {
                       />
                     </div>
 
-                    {/* Message Input */}
                     <div className="p-3 md:p-4 border-t border-accent/20">
                       <div className="flex gap-2">
                         <input
@@ -700,8 +690,8 @@ export function ConnectWallet() {
                           onChange={(e) => setNewMessage(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault()
-                              handleSendMessage()
+                              e.preventDefault();
+                              handleSendMessage();
                             }
                           }}
                           className="flex-1 px-3 md:px-4 py-2 border border-accent/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela text-sm md:text-base"
@@ -741,5 +731,6 @@ export function ConnectWallet() {
         </div>
       )}
     </div>
-  )
+  );
 }
+
