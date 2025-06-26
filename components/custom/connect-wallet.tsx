@@ -532,7 +532,7 @@ export function ConnectWallet() {
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
             className="
-            w-[200vw] -ml-[60vw] h-[85vh]
+            w-[260vw] -ml-[90vw] h-[120vh]
             bg-gradient-to-br from-background via-background/95 to-accent/10
             border border-accent/30 rounded-lg
             md:min-w-[400px] md:w-full md:max-w-4xl md:h-[80vh] md:ml-0 md:rounded-2xl
