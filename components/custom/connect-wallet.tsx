@@ -77,6 +77,16 @@ export function ConnectWallet() {
     isReAuthenticatingRef.current = isReAuthenticating;
   }, [isSigningUp, isReAuthenticating]);
 
+  // call reauthentication on wallet connect
+  useEffect(() => {
+    if (isConnected && address) {
+      // only attempt if not already reauthenticating
+      if (!isReAuthenticatingRef.current) {
+        handleReAuthentication();
+      }
+    }
+  }, [isConnected, address]);
+
   const handleCopyAddress = () => {
     if (address) {
       navigator.clipboard.writeText(address);
@@ -87,10 +97,9 @@ export function ConnectWallet() {
   };
 
   const getBlockExplorerUrl = () => {
-    if (address) {
-      return `https://frontend.kasplextest.xyz/address/${address}`;
-    }
-    return "#";
+    return address
+      ? `https://frontend.kasplextest.xyz/address/${address}`
+      : "#";
   };
 
   const handleConnectWallet = async () => {
@@ -171,8 +180,8 @@ export function ConnectWallet() {
     const fetchUser = async () => {
       try {
         setIsAuthenticating(true);
-        const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${address}`);
-        if (response.status === 200) {
+        const head = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${address}`);
+        if (head.status === 200) {
           const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${address}`);
           setUserData({ wallet: data.wallet, displayName: data.displayName, role: data.role });
           toast.success("User exists!");
@@ -202,12 +211,12 @@ export function ConnectWallet() {
   }, [address, isConnected, provider]);
 
   axios.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-      if (error.response?.status === 401) {
+    (res) => res,
+    async (err) => {
+      if (err.response?.status === 401) {
         const refreshToken = localStorage.getItem("refreshToken");
         if (!isConnected || !address || isSigningUpRef.current) {
-          return Promise.reject(error);
+          return Promise.reject(err);
         }
         if (refreshToken && !isReAuthenticatingRef.current) {
           setIsReAuthenticating(true);
@@ -216,9 +225,9 @@ export function ConnectWallet() {
               data: { accessToken },
             } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken });
             localStorage.setItem("accessToken", accessToken);
-            error.config.headers["Authorization"] = `Bearer ${accessToken}`;
+            err.config.headers["Authorization"] = `Bearer ${accessToken}`;
             setIsReAuthenticating(false);
-            return axios(error.config);
+            return axios(err.config);
           } catch {
             setIsReAuthenticating(false);
             handleDisconnect();
@@ -227,10 +236,10 @@ export function ConnectWallet() {
         }
         if (!isReAuthenticatingRef.current) {
           await handleReAuthentication();
-          return axios(error.config);
+          return axios(err.config);
         }
       }
-      return Promise.reject(error);
+      return Promise.reject(err);
     }
   );
 
@@ -268,11 +277,11 @@ export function ConnectWallet() {
     }
   };
 
-  const fetchConversationMessages = async (otherPartyAddress: string) => {
+  const fetchConversationMessages = async (otherParty: string) => {
     if (!address || isReAuthenticatingRef.current) return;
     setIsLoadingMessages(true);
     try {
-      const msgs = await fetchP2PMessages(otherPartyAddress);
+      const msgs = await fetchP2PMessages(otherParty);
       setConversationMessages(msgs);
     } catch {
       toast.error("Failed to load messages");
@@ -330,21 +339,16 @@ export function ConnectWallet() {
           </span>
         </div>
       ) : messages.length > 0 ? (
-        messages.map((message, idx) => {
+        messages.map((m, i) => {
           const isFromMe =
-            message.sender.toLowerCase() === currentUserAddress.toLowerCase();
+            m.sender.toLowerCase() === currentUserAddress.toLowerCase();
           return (
-            <div
-              key={idx}
-              className={`flex gap-3 ${
-                isFromMe ? "justify-end" : "justify-start"
-              }`}
-            >
+            <div key={i} className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}>
               {!isFromMe && (
                 <Avatar className="h-8 w-8">
                   <AvatarImage
-                    src={`https://effigy.im/a/${message.sender}.svg`}
-                    alt={message.sender}
+                    src={`https://effigy.im/a/${m.sender}.svg`}
+                    alt={m.sender}
                   />
                   <AvatarFallback>
                     <User className="h-4 w-4" />
@@ -354,8 +358,8 @@ export function ConnectWallet() {
               <div
                 className={`max-w-[80%] rounded-lg p-3 ${
                   isFromMe
-                    ? "bg-green-100 dark:bg-green-900/30 text-foreground border border-green-200 dark:border-green-700"
-                    : "bg-red-100 dark:bg-red-900/30 text-foreground border border-red-200 dark:border-red-700"
+                    ? "bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-700"
+                    : "bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-700"
                 }`}
               >
                 <div className="flex justify-between items-center mb-1">
@@ -373,10 +377,10 @@ export function ConnectWallet() {
                     </Badge>
                   </span>
                   <span className="text-xs text-muted-foreground font-varela">
-                    {new Date(message.createdAt).toLocaleString()}
+                    {new Date(m.createdAt).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-sm font-varela">{message.content}</p>
+                <p className="text-sm font-varela">{m.content}</p>
               </div>
               {isFromMe && (
                 <Avatar className="h-8 w-8">
