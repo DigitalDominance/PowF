@@ -1,19 +1,11 @@
 "use client"
 
+import { useWeb3Modal, useWeb3ModalState } from "@web3modal/wagmi/react"
+import { useAccount, useEnsName, useBalance } from "wagmi"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  LogOut,
-  Copy,
-  Check,
-  ExternalLink,
-  Briefcase,
-  User,
-  MessageSquare,
-  Send,
-  Loader2,
-  Wallet,
-} from "lucide-react"
+import { LogOut, Wallet, Copy, Check, ExternalLink, Briefcase, User } from "lucide-react"
+// import { chains, kaspaEVMTestnet } from "@/lib/web3modal-config" // Import chains
 import { useState, useEffect, useRef } from "react"
 import {
   DropdownMenu,
@@ -25,49 +17,39 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
-import { useAppKit, useDisconnect } from "@reown/appkit/react"
-import axios from "axios"
+import { useAppKit, useAppKitAccount, useAppKitProvider, useDisconnect } from "@reown/appkit/react"
+import axios from 'axios'
 import { useUserContext } from "@/context/UserContext"
-import { Badge } from "@/components/ui/badge"
+// import { useContracts } from "@/hooks/useContract"
 
-function truncateAddress(address: string | undefined) {
+function truncateAddress(address: string) {
   if (!address) return "No Address"
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
 export function ConnectWallet() {
-  const { open } = useAppKit()
-  const { disconnect } = useDisconnect()
-  const { provider, address, isConnected, displayName, role } = useUserContext()
-
-  const [isSigned, setIsSigned] = useState(false)
-  const [displayName_, setDisplayName_] = useState("")
-  const [challenge, setChallenge] = useState("")
+  const { open, close } = useAppKit()
+  const { disconnect } = useDisconnect();
+  const { provider, address, isConnected, displayName, role } = useUserContext();
+  const [isSigned, setIsSigned] = useState(false); // Track signing completion
+  const [displayName_, setDisplayName_] = useState(""); // State for displayName
+  const [challenge, setChallenge] = useState(""); // State for storing the challenge
 
   const [copied, setCopied] = useState(false)
-  const [role_, setRole_] = useState("")
-  const [isAuthenticating, setIsAuthenticating] = useState(false)
-  const [isReAuthenticating, setIsReAuthenticating] = useState(false)
-  const [isSigningUp, setIsSigningUp] = useState(false)
-  const isSigningUpRef = useRef(false)
-  const isReAuthenticatingRef = useRef(false)
-  const [isDisconnected, setIsDisconnected] = useState(false)
-
-  const [showMessagesPopup, setShowMessagesPopup] = useState(false)
-  const [conversations, setConversations] = useState<any[]>([])
-  const [selectedConversation, setSelectedConversation] = useState<any | null>(null)
-  const [conversationMessages, setConversationMessages] = useState<any[]>([])
-  const [newMessage, setNewMessage] = useState("")
-  const [isLoadingConversations, setIsLoadingConversations] = useState(false)
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
-  const [isSendingMessage, setIsSendingMessage] = useState(false)
+  const [role_, setRole_] = useState(""); // State for role 
+  const [isAuthenticating, setIsAuthenticating] = useState(false); // Prevent continuous authentication 
+  const [isReAuthenticating, setIsReAuthenticating] = useState(false); // Prevent multiple re-authentication calls
+  const [isSigningUp, setIsSigningUp] = useState(false); // Track signup state
+  const isSigningUpRef = useRef(false); // Persistent reference for isSigningUp
+  const isReAuthenticatingRef = useRef(false); // Persistent reference for re-authentication
+  const [isDisconnected, setIsDisconnected] = useState(false); // Track disconnect state
 
   useEffect(() => {
-    isSigningUpRef.current = isSigningUp
-    isReAuthenticatingRef.current = isReAuthenticating
-  }, [isSigningUp, isReAuthenticating])
+    isSigningUpRef.current = isSigningUp; // Sync the ref with the state
+    isReAuthenticatingRef.current = isReAuthenticating; // Sync the ref with the state
+  }, [isSigningUp, isReAuthenticating]);  
 
-  const { setUserData, sendP2PMessage, fetchP2PMessages, fetchConversations } = useUserContext()
+  const { setUserData } = useUserContext();  
 
   const handleCopyAddress = () => {
     if (address) {
@@ -80,276 +62,96 @@ export function ConnectWallet() {
 
   const getBlockExplorerUrl = () => {
     if (address) {
-      return `https://frontend.kasplextest.xyz/address/${address}`
-    }
+      return `https://frontend.kasplextest.xyz/address/${address}`; // Example block explorer URL
+    }    
     return "#"
   }
 
   const handleConnectWallet = async () => {
-    await open()
+      console.log('connect')
+      await open(); // Open WalletConnect modal
   }
 
   const renderRoleIcon = () => {
     if (role === "employer") {
       return (
         <span className="flex items-center gap-1 text-green-500">
-          <Briefcase className="h-4 w-4" /> Employer
+          <Briefcase className="h-4 w-4"/> Employer
         </span>
-      )
+      );
     } else if (role === "worker") {
       return (
         <span className="flex items-center gap-1 text-blue-500">
-          <User className="h-4 w-4" /> Worker
+          <User className="h-4 w-4"/> Worker
         </span>
-      )
+      );
     }
-    return null
-  }
-
-  const handleDisconnect = () => {
-    localStorage.removeItem("accessToken")
-    localStorage.removeItem("refreshToken")
-    setUserData({ wallet: "", displayName: "", role: "" })
-    disconnect()
-    setIsAuthenticating(false)
-    setIsReAuthenticating(false)
-    isReAuthenticatingRef.current = false
-    setIsDisconnected(true)
-    toast.success("Disconnected successfully!")
-  }
-
-  const handleReAuthentication = async () => {
-    setIsReAuthenticating(true)
-    isReAuthenticatingRef.current = true
-    toast.info("Re-authenticating...")
-    try {
-      const {
-        data: { challenge },
-      } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
-      const signer = await provider?.getSigner()
-      const {
-        data: { accessToken, refreshToken },
-      } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
-        wallet: address,
-        signature: await signer?.signMessage(challenge),
-        displayName: displayName_,
-        role: role_,
-      })
-      localStorage.setItem("accessToken", accessToken)
-      localStorage.setItem("refreshToken", refreshToken)
-      toast.success("Re-authentication successful!")
-    } catch (error) {
-      console.error("Re-authentication failed:", error)
-      toast.error("Re-authentication failed. Please reconnect your wallet.")
-      handleDisconnect()
-    } finally {
-      setIsReAuthenticating(false)
-      isReAuthenticatingRef.current = false
-    }
-  }
+    return null; // No role assigned
+  };  
 
   useEffect(() => {
     const fetchUser = async () => {
-      setIsAuthenticating(true)
       try {
-        const headRes = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
-        if (headRes.status === 200) {
-          const getRes = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
-          const data = getRes.data
-          setUserData({ wallet: data.wallet, displayName: data.displayName, role: data.role })
-          toast.success("User exists!")
+        setIsAuthenticating(true); // Prevent redundant calls
+        const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${address}`);
+        if (response.status === 200) {
+          const response_ = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
+          const data = response_.data;
+          console.log('User data:', data);
+          setUserData({ wallet: data.wallet, displayName: data.displayName, role: data.role });
+          toast.success("User exists!");
         } else {
-          toast.error("User not found!")
+          toast.error("User not found!");
         }
-      } catch {
-        toast.info("Authenticating user...")
+      } catch (error) {
         try {
-          const {
-            data: { challenge },
-          } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
-          setChallenge(challenge)
-          setIsSigningUp(true)
-          setIsSigned(true)
-        } catch {
-          toast.error("Authentication failed!")
-        }
+          toast.info("Authenticating user...");
+          const { data: { challenge } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address });
+          setChallenge(challenge); // Store the challenge
+          setIsSigningUp(true); // Mark as signing up
+          setIsSigned(true);
+        } catch (authError) {
+          toast.error("Authentication failed!");
+        }        
       } finally {
-        setIsAuthenticating(false)
+        setIsAuthenticating(false);
       }
     }
 
-    if (isConnected && address && provider && !isAuthenticating) {
-      fetchUser()
+    if(isConnected && address && provider && !isAuthenticating) {
+      console.log('address', address, provider)
+      fetchUser();
     }
   }, [address, isConnected, provider])
 
-  axios.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-      if (error.response?.status === 401) {
-        try {
-          await handleReAuthentication()
-          return axios(error.config)
-        } catch {
-          return Promise.reject(error)
-        }
-      }
-      return Promise.reject(error)
-    }
-  )
-
   const handleSubmitDisplayName = async () => {
+    console.log('Handle Submit Display Name')
     try {
-      const signer = await provider?.getSigner()
-      const {
-        data: { accessToken, refreshToken },
-      } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
+      const signer = await provider?.getSigner();
+      const { data: { accessToken, refreshToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
         wallet: address,
-        signature: await signer?.signMessage(challenge),
-        displayName: displayName_,
-        role: role_,
-      })
-      localStorage.setItem("accessToken", accessToken)
-      localStorage.setItem("refreshToken", refreshToken)
-      setUserData({ wallet: address || "", displayName: displayName_, role: role_ })
-      toast.success("Authentication successful!")
-      setIsSigned(false)
-    } catch {
-      toast.error("Failed to submit display name!")
-    }
-  }
+        signature: await signer?.signMessage(challenge), // Use the signed challenge
+        displayName: displayName_, // Pass the custom displayName
+        role: role_
+      });
+  
+      localStorage.setItem("accessToken", accessToken); // Save access token
+      localStorage.setItem("refreshToken", refreshToken); // Save refresh token
+      setUserData({ wallet: address || '', displayName: displayName_, role: role_ });
 
-  const fetchConversationsFromContext = async () => {
-    if (!address) return
-    setIsLoadingConversations(true)
-    try {
-      const convs = await fetchConversations()
-      setConversations(convs)
-    } catch {
-      toast.error("Failed to load conversations")
-    } finally {
-      setIsLoadingConversations(false)
+      toast.success("Authentication successful!");
+      setIsSigned(false); // Reset signing state after submission
+      // setIsSigningUp(false); // Mark as signing up
+    } catch (error) {
+      toast.error("Failed to submit display name!");
     }
-  }
-
-  const fetchConversationMessages = async (otherPartyAddress: string) => {
-    if (!address) return
-    setIsLoadingMessages(true)
-    try {
-      const msgs = await fetchP2PMessages(otherPartyAddress)
-      setConversationMessages(msgs)
-    } catch {
-      toast.error("Failed to load messages")
-    } finally {
-      setIsLoadingMessages(false)
-    }
-  }
-
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) return
-    setIsSendingMessage(true)
-    try {
-      await sendP2PMessage(selectedConversation.otherPartyAddress, newMessage.trim())
-      const optimisticMessage = {
-        sender: address,
-        receiver: selectedConversation.otherPartyAddress,
-        content: newMessage.trim(),
-        createdAt: new Date().toISOString(),
-      }
-      setConversationMessages((prev) => [...prev, optimisticMessage])
-      setNewMessage("")
-      toast.success("Message sent successfully!")
-    } catch {
-      toast.error("Failed to send message")
-    } finally {
-      setIsSendingMessage(false)
-    }
-  }
-
-  const ChatMessageComponent = ({
-    messages,
-    currentUserAddress,
-    otherPartyName,
-    otherPartyAddress,
-    isLoading,
-  }: {
-    messages: any[]
-    currentUserAddress: string
-    otherPartyName: string
-    otherPartyAddress: string
-    isLoading: boolean
-  }) => (
-    <div className="space-y-4 max-h-[400px] overflow-y-auto p-2">
-      {isLoading ? (
-        <div className="flex justify-center items-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-accent" />
-          <span className="ml-2 text-sm text-muted-foreground font-varela">Loading messages...</span>
-        </div>
-      ) : messages.length > 0 ? (
-        messages.map((message, index) => {
-          const isFromMe = message.receiver?.toLowerCase() === otherPartyAddress.toLowerCase()
-          return (
-            <div key={index} className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}>
-              {!isFromMe && (
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} alt={message.sender} />
-                  <AvatarFallback>
-                    <Briefcase className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-              )}
-              <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  isFromMe
-                    ? "bg-green-100 dark:bg-green-900/30 text-foreground border border-green-200 dark:border-green-700"
-                    : "bg-red-100 dark:bg-red-900/30 text-foreground border border-red-200 dark:border-red-700"
-                }`}
-              >
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-medium text-sm font-varela">
-                    {isFromMe ? displayName || "You" : otherPartyName}{" "}
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ml-1 font-varela ${
-                        isFromMe
-                          ? "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
-                          : "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30"
-                      }`}
-                    >
-                      {isFromMe ? "You" : "Contact"}
-                    </Badge>
-                  </span>
-                  <span className="text-xs text-muted-foreground font-varela">
-                    {new Date(message.createdAt).toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-sm font-varela">{message.content}</p>
-              </div>
-              {isFromMe && (
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={`https://effigy.im/a/${currentUserAddress}.svg`} alt={currentUserAddress} />
-                  <AvatarFallback>
-                    <User className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-              )}
-            </div>
-          )
-        })
-      ) : (
-        <div className="text-center py-8">
-          <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground font-varela">No messages yet. Start the conversation!</p>
-        </div>
-      )}
-    </div>
-  )
+  };  
 
   if (!isConnected || !address) {
     return (
       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
         <Button
-          onClick={handleConnectWallet}
+          onClick={handleConnectWallet} // Open WalletConnect modal
           variant="outline"
           className="font-varien border-accent text-accent hover:bg-accent/10 hover:text-accent group tracking-wider"
         >
@@ -357,18 +159,115 @@ export function ConnectWallet() {
           Connect Wallet
         </Button>
       </motion.div>
-    )
+    );
   }
+
+  const handleDisconnect = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    setUserData({ wallet: '', displayName: '', role: '' });
+    disconnect();
+    setIsAuthenticating(false); // Reset authentication state
+    setIsReAuthenticating(false); // Reset re-authentication state
+    isReAuthenticatingRef.current = false; // Reset ref state
+    setIsDisconnected(true);
+    toast.success("Disconnected successfully!");
+  };  
+
+  const handleReAuthentication = async () => {
+    if (!isConnected || !address || isSigningUpRef.current || isReAuthenticatingRef.current || isDisconnected) {
+      console.log("Skipping re-authentication: Wallet not connected or user is signing up.");
+      return;
+    }
+
+    try {
+      setIsReAuthenticating(true); // Prevent multiple calls
+      isReAuthenticatingRef.current = true;
+      console.log('Re-authenticating user', isConnected, address, isSigningUp, isSigned, isAuthenticating, isReAuthenticating);
+      toast.info("Re-authenticating...");
+      const { data: { challenge } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address });
+      const signer = await provider?.getSigner();
+      const { data: { accessToken, refreshToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
+        wallet: address,
+        signature: await signer?.signMessage(challenge),
+        displayName: displayName_, // Use the existing displayName
+        role: role_,        // Use the existing role
+      });
+  
+      // Store the new tokens
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+  
+      toast.success("Re-authentication successful!");
+    } catch (error) {
+      console.error("Re-authentication failed:", error);
+      toast.error("Re-authentication failed. Please reconnect your wallet.");
+      handleDisconnect(); // Disconnect the wallet if re-authentication fails
+    } finally {
+      setIsReAuthenticating(false); // Reset re-authentication state
+      isReAuthenticatingRef.current = false;
+    }
+  };  
+  
+  // let isReAuthenticating = false; // Track re-authentication state
+
+  axios.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      if (error.response?.status === 401) {
+        const refreshToken = localStorage.getItem("refreshToken");
+
+        // Skip re-authentication if the user is signing up
+        if (!isConnected || !address || isSigningUp) {
+          console.log("Skipping re-authentication during signup.");
+          return Promise.reject(error);
+        } 
+  
+        if (refreshToken && !isReAuthenticating) {
+          // isReAuthenticating = true; // Prevent multiple re-authentication calls
+          setIsReAuthenticating(true); // Prevent multiple re-authentication calls
+  
+          try {
+            const { data: { accessToken } } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken });
+            if (!accessToken) {
+              throw new Error("Failed to refresh token");
+            }
+
+            localStorage.setItem("accessToken", accessToken);
+            error.config.headers["Authorization"] = `Bearer ${accessToken}`;
+            // isReAuthenticating = false; // Reset state after successful re-authentication
+            setIsReAuthenticating(false); // Reset state after successful re-authentication
+            return axios(error.config); // Retry the original request
+          } catch (refreshError) {
+            console.error("Token refresh failed:", refreshError);
+            // isReAuthenticating = false; // Reset state even if refresh fails
+            setIsReAuthenticating(false); // Reset state even if refresh fails
+            handleDisconnect(); // Disconnect the wallet if refresh fails
+            toast.error("Session expired. Please reconnect your wallet.");
+          }
+        }
+  
+        if (!isReAuthenticating) {
+          try {
+            await handleReAuthentication(); // Call re-authentication logic
+            return axios(error.config); // Retry the original request
+          } catch (authError) {
+            console.error("Re-authentication failed:", authError);
+            handleDisconnect(); // Disconnect if re-authentication fails
+          }
+        }
+      }
+  
+      return Promise.reject(error);
+    }
+  );
 
   return (
     <div className="flex flex-col items-center gap-4">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              variant="outline"
-              className="font-varien flex items-center gap-2 border-accent/70 hover:border-accent"
-            >
+            <Button variant="outline" className="font-varien flex items-center gap-2 border-accent/70 hover:border-accent">
               <Avatar className="h-6 w-6">
                 <AvatarImage src={`https://effigy.im/a/${address}.svg`} alt={address} />
                 <AvatarFallback>{address.charAt(2)}</AvatarFallback>
@@ -391,15 +290,6 @@ export function ConnectWallet() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => {
-              setShowMessagesPopup(true)
-              fetchConversationsFromContext()
-            }}
-          >
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Messages
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleCopyAddress}>
             {copied ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Copy className="mr-2 h-4 w-4" />}
             Copy Address
@@ -411,256 +301,64 @@ export function ConnectWallet() {
             </a>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleDisconnect} className="text-red-500 hover:!text-red-500">
+          <DropdownMenuItem
+            onClick={handleDisconnect} // Disconnect wallet
+            className="text-red-500 hover:!text-red-500 focus:!text-red-500 hover:!bg-red-500/10"
+          >
             <LogOut className="mr-2 h-4 w-4" />
             Disconnect
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Display Name Input */}
       {isSigned && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-screen z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="w-full max-w-md p-8 bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-2xl shadow-2xl backdrop-blur-sm"
+      <div className="fixed inset-0 flex justify-center items-center bg-black/50 h-[100vh]">
+        <div className="w-full max-w-md p-6 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg shadow-lg">
+          <h2 className="text-lg font-semibold mb-4">Set Your Display Name and Role</h2>
+          
+          {/* Display Name Input */}
+          <label htmlFor="displayName" className="block text-sm font-medium text-gray-300">
+            Display Name
+          </label>
+          <input
+            id="displayName"
+            type="text"
+            value={displayName_}
+            onChange={(e) => setDisplayName_(e.target.value)}
+            placeholder="Enter your display name"
+            className="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent bg-gray-700 text-white sm:text-sm"
+          />
+
+          {/* Role Selection */}
+          <label htmlFor="role" className="block text-sm font-medium text-gray-300 mt-4">
+            Role
+          </label>
+          <select
+            id="role"
+            value={role_}
+            onChange={(e) => setRole_(e.target.value)}
+            className="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent bg-gray-700 text-white sm:text-sm"
           >
-            <div className="text-center mb-6">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                className="w-16 h-16 bg-gradient-to-br from-accent/20 to-accent/40 rounded-full flex items-center justify-center mx-auto mb-4"
-              >
-                <User className="h-8 w-8 text-accent" />
-              </motion.div>
-              <h2 className="font-varien text-2xl font-bold mb-2 text-foreground tracking-wider">Welcome!</h2>
-              <p className="font-varela text-muted-foreground">Set up your profile to get started</p>
-            </div>
+            <option value="" disabled>Select your role</option>
+            <option value="employer">Employer</option>
+            <option value="worker">Employee</option>
+          </select>
 
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="displayName" className="block text-sm font-medium text-foreground font-varien">
-                  Display Name
-                </label>
-                <input
-                  id="displayName"
-                  type="text"
-                  value={displayName_}
-                  onChange={(e) => setDisplayName_(e.target.value)}
-                  placeholder="Enter your display name"
-                  className="w-full px-4 py-3 border border-accent/30 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela transition-all duration-200"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="role" className="block text-sm font-medium text-foreground font-varien">
-                  Role
-                </label>
-                <select
-                  id="role"
-                  value={role_}
-                  onChange={(e) => setRole_(e.target.value)}
-                  className="w-full px-4 py-3 border border-accent/30 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela transition-all duration-200"
-                >
-                  <option value="" disabled>
-                    Select your role
-                  </option>
-                  <option value="employer">Employer</option>
-                  <option value="worker">Employee</option>
-                </select>
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleSubmitDisplayName}
-                disabled={!displayName_ || !role_}
-                className={`w-full py-3 px-6 rounded-xl font-varien font-medium transition-all duration-200 ${
-                  displayName_ && role_
-                    ? "bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 text-accent-foreground shadow-lg hover:shadow-xl"
-                    : "bg-muted text-muted-foreground cursor-not-allowed"
-                }`}
-              >
-                Get Started
-              </motion.button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {showMessagesPopup && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-screen z-50 p-2 md:p-0">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="w-[95vw] h-[90vh] md:w-full md:max-w-4xl md:h-[80vh] bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-lg md:rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden"
+          {/* Submit Button */}
+          <button
+            onClick={handleSubmitDisplayName}
+            className={`mt-4 px-4 py-2 rounded-md w-full ${
+              displayName_ && role_
+                ? "bg-accent text-white hover:bg-accent-dark"
+                : "bg-gray-600 text-gray-400 cursor-not-allowed"
+            }`}
           >
-            <div className="flex h-full">
-              <div className="w-3/5 md:w-1/3 border-r border-accent/20 flex flex-col">
-                <div className="p-4 md:p-6 border-b border-accent/20">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-varien text-lg md:text-xl font-bold text-foreground tracking-wider">
-                      Messages
-                    </h2>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setShowMessagesPopup(false)
-                        setSelectedConversation(null)
-                        setConversationMessages([])
-                      }}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      ✕
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto">
-                  {isLoadingConversations ? (
-                    <div className="flex justify-center items-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-accent" />
-                      <span className="ml-2 text-sm text-muted-foreground font-varela">Loading conversations...</span>
-                    </div>
-                  ) : conversations.length > 0 ? (
-                    <div className="space-y-1 p-2">
-                      {conversations.map((conversation, idx) => (
-                        <motion.div
-                          key={conversation.otherPartyAddress}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: idx * 0.1 }}
-                          onClick={() => {
-                            setSelectedConversation(conversation)
-                            fetchConversationMessages(conversation.otherPartyAddress)
-                          }}
-                          className={`p-3 md:p-4 rounded-xl cursor-pointer transition-all duration-200 ${
-                            selectedConversation?.otherPartyAddress === conversation.otherPartyAddress
-                              ? "bg-accent/20 border border-accent/30"
-                              : "hover:bg-accent/10 border border-transparent"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                              <AvatarImage
-                                src={`https://effigy.im/a/${conversation.otherPartyAddress}.svg`}
-                                alt={conversation.otherPartyAddress}
-                              />
-                              <AvatarFallback>
-                                <User className="h-4 w-4 md:h-5 md:w-5" />
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground font-varela truncate text-sm md:text-base">
-                                {conversation.otherPartyName}
-                              </p>
-                              <p className="text-xs md:text-sm text-muted-foreground font-varela truncate">
-                                {conversation.lastMessage.content}
-                              </p>
-                              <p className="text-xs text-muted-foreground font-varela">
-                                {new Date(conversation.lastMessage.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-sm text-muted-foreground font-varela">No conversations yet</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="w-2/5 md:flex-1 flex flex-col">
-                {selectedConversation ? (
-                  <>
-                    <div className="p-4 md:p-6 border-b border-accent/20">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                          <AvatarImage
-                            src={`https://effigy.im/a/${selectedConversation.otherPartyAddress}.svg`}
-                            alt={selectedConversation.otherPartyAddress}
-                          />
-                          <AvatarFallback>
-                            <User className="h-4 w-4 md:h-5 md:w-5" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-varien text-base md:text-lg font-medium text-foreground">
-                            {selectedConversation.otherPartyName}
-                          </h3>
-                          <p className="text-xs md:text-sm text-muted-foreground font-varela">
-                            {selectedConversation.otherPartyAddress.slice(0, 6)}...
-                            {selectedConversation.otherPartyAddress.slice(-4)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-3 md:p-4">
-                      <ChatMessageComponent
-                        messages={conversationMessages}
-                        currentUserAddress={address}
-                        otherPartyName={selectedConversation.otherPartyName}
-                        otherPartyAddress={selectedConversation.otherPartyAddress}
-                        isLoading={isLoadingMessages}
-                      />
-                    </div>
-
-                    <div className="p-3 md:p-4 border-t border-accent/20">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Type your message..."
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault()
-                              handleSendMessage()
-                            }
-                          }}
-                          className="flex-1 px-3 md:px-4 py-2 border border-accent/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela text-sm md:text-base"
-                          disabled={isSendingMessage}
-                        />
-                        <Button
-                          onClick={handleSendMessage}
-                          disabled={!newMessage.trim() || isSendingMessage}
-                          className="bg-accent hover:bg-accent/80 text-accent-foreground font-varien"
-                          size="sm"
-                        >
-                          {isSendingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center p-4">
-                    <div className="text-center">
-                      <MessageSquare className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-varien text-base md:text-lg font-medium text-foreground mb-2">
-                        Select a conversation
-                      </h3>
-                      <p className="text-muted-foreground font-varela text-sm md:text-base">
-                        Choose a conversation from the left to start messaging
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
+            Submit
+          </button>
         </div>
-      )}
+      </div>
+    )}
     </div>
-  )
+  );  
 }
