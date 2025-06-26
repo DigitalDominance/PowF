@@ -729,82 +729,64 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const fetchConversations = async (): Promise<any[]> => {
-    if (!address) throw new Error("Wallet address not ready");
-  
     try {
-      const userAddr = address.toLowerCase();
-  
-      // grab up to 1000 messages (sent OR received)
-      const { data: msgs } = await axios.get(
-        `${process.env.NEXT_PUBLIC_API}/chat/conversations?page=1&limit=1000`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        }
-      );
-  
-      const conversationMap = new Map<
-        string,
-        { otherPartyAddress: string; lastMessage: any; messages: any[] }
-      >();
-  
-      for (const message of msgs) {
-        const sender   = message.sender.toLowerCase();
-        const receiver = message.receiver.toLowerCase();
-        // figure out who the “other” party is
-        const other = sender === userAddr ? receiver : sender;
-  
-        if (!conversationMap.has(other)) {
-          conversationMap.set(other, {
-            otherPartyAddress: other,
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API}/chat/conversations`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      })
+
+      // Group messages by conversation partner
+      const conversationMap = new Map()
+
+      for (const message of response.data) {
+        const otherParty = message.sender === address ? message.receiver : message.sender
+
+        if (!conversationMap.has(otherParty)) {
+          conversationMap.set(otherParty, {
+            otherPartyAddress: otherParty,
             lastMessage: message,
             messages: [],
-          });
+          })
         }
-  
-        const conv = conversationMap.get(other)!;
-        // record every message
-        conv.messages.push(message);
-        // bump lastMessage if this one is newer
-        if (new Date(message.createdAt) > new Date(conv.lastMessage.createdAt)) {
-          conv.lastMessage = message;
+
+        const conversation = conversationMap.get(otherParty)
+        if (new Date(message.createdAt) > new Date(conversation.lastMessage.createdAt)) {
+          conversation.lastMessage = message
         }
       }
-  
-      // now lookup display names
+
+      // Fetch display names for all conversation partners using fetchEmployerDisplayName
       const conversationsWithNames = await Promise.all(
         Array.from(conversationMap.values()).map(async (conv) => {
           try {
-            const displayName = await fetchEmployerDisplayName(conv.otherPartyAddress);
+            const displayName = await fetchEmployerDisplayName(conv.otherPartyAddress)
             return {
               ...conv,
               otherPartyName:
-                displayName ||
-                `${conv.otherPartyAddress.slice(0, 6)}…${conv.otherPartyAddress.slice(-4)}`,
-            };
-          } catch {
+                displayName || `${conv.otherPartyAddress.slice(0, 6)}...${conv.otherPartyAddress.slice(-4)}`,
+            }
+          } catch (error) {
+            console.error("Error fetching display name for:", conv.otherPartyAddress, error)
             return {
               ...conv,
-              otherPartyName: `${conv.otherPartyAddress.slice(0, 6)}…${conv.otherPartyAddress.slice(-4)}`,
-            };
+              otherPartyName: `${conv.otherPartyAddress.slice(0, 6)}...${conv.otherPartyAddress.slice(-4)}`,
+            }
           }
-        })
-      );
-  
-      // sort by newest conversation
+        }),
+      )
+
+      // Sort by last message date
       conversationsWithNames.sort(
-        (a, b) =>
-          new Date(b.lastMessage.createdAt).getTime() -
-          new Date(a.lastMessage.createdAt).getTime()
-      );
-  
-      return conversationsWithNames;
-    } catch (err) {
-      console.error("Error fetching conversations:", err);
-      throw err;
+        (a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime(),
+      )
+
+      return conversationsWithNames
+    } catch (error) {
+      console.error("Error fetching conversations:", error)
+      throw error // Re-throw to let the calling component handle the error
     }
-  };
+  }
 
   const sendMessage = async (disputeId: string, content: string) => {
     try {
