@@ -102,8 +102,8 @@ export const fetchEmployerDisplayName = async (employerAddress: string) => {
 export const getAverageRating = async (reputationContract: ethers.Contract, userAddress: string) => {
   try {
     const [average, totalRatings] = await reputationContract.getAverageRating(userAddress)
-    console.log("Average Rating:", Number(average) / 100) // Divide by 100 for precision
-    console.log("Total Ratings:", totalRatings)
+    // console.log("Average Rating:", Number(average) / 100) // Divide by 100 for precision
+    // console.log("Total Ratings:", totalRatings)
     return { averageRating: Number(average) / 100, totalRatings }
   } catch (error) {
     // console.error("Error fetching average rating:", error);
@@ -114,7 +114,7 @@ export const getAverageRating = async (reputationContract: ethers.Contract, user
 const fetchAssignedWorkersLength = async (jobContract: ethers.Contract) => {
   try {
     const assignedWorkers = await jobContract.getAssignedWorkers() // Fetch the entire array
-    console.log("Assigned Workers:", assignedWorkers)
+    // console.log("Assigned Workers:", assignedWorkers)
     return assignedWorkers.length // Return the length of the array
   } catch (error) {
     // console.error("Error fetching assigned workers:", error);
@@ -125,7 +125,7 @@ const fetchAssignedWorkersLength = async (jobContract: ethers.Contract) => {
 const fetchAllJobAddresses = async (jobFactoryContract: ethers.Contract) => {
   try {
     const jobAddresses = await jobFactoryContract.getAllJobs()
-    console.log("Fetched job addresses:", jobAddresses)
+    // console.log("Fetched job addresses:", jobAddresses)
     return jobAddresses
   } catch (error) {
     // console.error("Error fetching job addresses:", error);
@@ -136,7 +136,7 @@ const fetchAllJobAddresses = async (jobFactoryContract: ethers.Contract) => {
 const fetchDisputeDAOAddress = async (jobFactoryContract: ethers.Contract) => {
   try {
     const disputeDAOAddress = await jobFactoryContract.disputeDAOAddress()
-    console.log("Fetched DisputeDAO Address:", disputeDAOAddress)
+    // console.log("Fetched DisputeDAO Address:", disputeDAOAddress)
     return disputeDAOAddress
   } catch (error) {
     // console.error("Error fetching DisputeDAO address:", error);
@@ -299,7 +299,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      console.log("Fetched tags:", tags)
+      // console.log("Fetched tags:", tags)
       return tags
     } catch (error) {
       console.error("Error fetching tags:", error)
@@ -347,6 +347,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // Fetch all job addresses
           const addresses = await fetchAllJobAddresses(jobFactory)
+
           setJobAddresses(addresses) // Store job addresses in state
 
           // Fetch job details
@@ -468,7 +469,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       // Fetch the total number of disputes
       const disputeCount = Number(await disputeDAOContract.getDisputeCount())
-      console.log("Total Disputes:", disputeCount)
 
       // Fetch details for each dispute
       const disputes = await Promise.all(
@@ -476,8 +476,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Destructure the tuple returned by getDisputeSummary
           const [job, initiator, resolved, votesFor, votesAgainst, reason] =
             await disputeDAOContract.getDisputeSummary(id)
-
-          console.log("Dispute:", { job, initiator, resolved, votesFor, votesAgainst, reason })
 
           // Fetch the DisputeCreated event for this dispute
           const filter = disputeDAOContract.filters.DisputeCreated(id)
@@ -499,8 +497,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }),
       )
 
-      console.log("disputes", disputes)
-
       // Fetch job details for each dispute
       const formattedDisputes = await Promise.all(
         disputes.map(async (dispute, id) => {
@@ -520,8 +516,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Fetch worker details (assuming the first worker is the one involved in the dispute)
           const workerAddress = assignedWorkers.length > 0 ? assignedWorkers[0] : null
           const workerName = workerAddress ? await fetchEmployerDisplayName(workerAddress) : "Unknown Worker"
-
-          console.log("Assigned Workers", assignedWorkers)
 
           // Fetch messages for the dispute
           const messages = await axios
@@ -550,8 +544,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
               return []
             })
 
-          console.log("messages", messages)
-
           // Add additional fields
           return {
             id,
@@ -566,6 +558,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
               address: workerAddress,
               name: workerName,
             },
+            assignedWorkers: assignedWorkers,
             initiator: dispute.initiator,
             resolved: dispute.resolved,
             status: dispute.resolved ? "resolved" : "pending",
@@ -586,7 +579,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }),
       )
 
-      console.log("Fetched Disputes:", formattedDisputes)
       setDisputes(formattedDisputes) // Store disputes in state
 
       // Filter disputes for the current user
@@ -672,7 +664,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      console.log("Fetched my jobs:", jobs)
+      // console.log("Fetched my jobs:", jobs)
       return jobs
     } catch (error) {
       console.error("Error fetching my jobs:", error)
@@ -717,7 +709,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         { to, content },
         { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` } },
       )
-      console.log(`P2P message sent to ${to}:`, response.data)
+      // console.log(`P2P message sent to ${to}:`, response.data)
     } catch (error) {
       console.error(`Error sending P2P message to ${to}:`, error)
     }
@@ -796,17 +788,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  const fetchMessagesWithEmployer = async (employerWallet: string, page = 1, limit = 50) => {
-    try {
-      const messages = await fetchP2PMessages(employerWallet, page, limit)
-      console.log(`Fetched messages with employer (${employerWallet}):`, messages)
-      return messages
-    } catch (error) {
-      console.error(`Error fetching messages with employer (${employerWallet}):`, error)
-      return []
-    }
-  }
-
   const sendMessage = async (disputeId: string, content: string) => {
     try {
       // Send the message to the backend
@@ -820,13 +801,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const newMessage = response.data // The saved message object returned by the backend
 
-      console.log("My Disputes", myDisputes)
-
       // Transform the newMessage structure
       const employer = myDisputes.find((dispute) => dispute.id === Number(disputeId))?.employer.address || ""
       const assignedWorker = myDisputes.find((dispute) => dispute.id === Number(disputeId))?.worker.address || ""
-
-      console.log("Employer and Assigned Workers", employer, assignedWorker)
 
       const transformedMessage = {
         sender: newMessage.sender,
@@ -840,8 +817,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         content: newMessage.content,
         timestamp: new Date(newMessage.createdAt).toLocaleString(),
       }
-
-      console.log("New Messsage", transformedMessage)
 
       // Update the messages in myDisputes
       setMyDisputes((prev) =>
@@ -866,50 +841,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ),
       )
 
-      console.log(`Message sent for dispute ${disputeId}:`, newMessage)
+      // console.log(`Message sent for dispute ${disputeId}:`, newMessage)
     } catch (error) {
       console.error(`Error sending message for dispute ${disputeId}:`, error)
     }
   }
-
-  // // Function to authenticate the wallet and get a new access token
-  // const authenticateWallet = async (wallet: string) => {
-  //   try {
-  //     // Request a challenge from the server
-  //     const { data: challengeResponse } = await axios.post(
-  //       `${process.env.NEXT_PUBLIC_API}/auth/challenge`,
-  //       { wallet }
-  //     );
-
-  //     const challenge = challengeResponse.challenge;
-
-  //     // Sign the challenge with the wallet
-  //     const signer = await provider?.getSigner();
-  //     const signature = await signer?.signMessage(challenge);
-
-  //     // Verify the signature and get the access token
-  //     const { data: authResponse } = await axios.post(
-  //       `${process.env.NEXT_PUBLIC_API}/auth/verify`,
-  //       { wallet, signature }
-  //     );
-
-  //     const newAccessToken = authResponse.accessToken;
-
-  //     // Store the new access token in localStorage and state
-  //     localStorage.setItem("accessToken", newAccessToken);
-
-  //     console.log("Authenticated wallet:", wallet);
-  //   } catch (error) {
-  //     console.error("Error authenticating wallet:", error);
-  //   }
-  // };
-
-  // Detect wallet changes and reauthenticate
-  // useEffect(() => {
-  //   if (address) {
-  //     authenticateWallet(address);
-  //   }
-  // }, [address]);
 
   return (
     <UserContext.Provider

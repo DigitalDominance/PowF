@@ -45,9 +45,10 @@ import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
-import { useUserContext } from "@/context/UserContext"
+import { fetchEmployerDisplayName, useUserContext } from "@/context/UserContext"
 import { useDisputeControl } from "@/hooks/useDisputeControl"
 import { io, Socket } from "socket.io-client";
+import { disputeProcessSteps } from "@/constants/constants"
 
 // Animation variants
 const fadeIn = (delay = 0, duration = 0.5) => ({
@@ -83,32 +84,7 @@ const SectionWrapper = ({
   </section>
 )
 
-const disputeProcessSteps = [
-  {
-    icon: <AlertTriangle className="h-8 w-8 text-accent" />,
-    title: "Open a Dispute",
-    description:
-      "Either the employer or worker can open a dispute when there's a disagreement. Opening a dispute freezes remaining funds in the contract.",
-  },
-  {
-    icon: <MessageSquare className="h-8 w-8 text-accent" />,
-    title: "Submit Evidence & Messages",
-    description:
-      "Both parties and jurors can post messages to the dispute thread. This creates a transparent record of all communications and evidence.",
-  },
-  {
-    icon: <Vote className="h-8 w-8 text-accent" />,
-    title: "Juror Voting",
-    description:
-      "Our pre-selected jurors review the evidence and vote on the outcome. Each juror casts a vote either supporting or opposing the dispute initiator.",
-  },
-  {
-    icon: <Gavel className="h-8 w-8 text-accent" />,
-    title: "Finalization & Resolution",
-    description:
-      "Once voting concludes, the dispute is finalized. If more votes support the initiator, they win. Otherwise, the other party prevails.",
-  },
-]
+
 
 export default function DisputesPage() {
   const { wallet, displayName, contracts, myDisputes, myJobs, disputes, setDisputes, sendMessage, provider, setMyDisputes/*, refreshDisputes*/ } = useUserContext()
@@ -145,27 +121,6 @@ export default function DisputesPage() {
     checkJurorStatus();
   }, [contracts?.disputeDAO, wallet, provider]);  
 
-  // Auto-refresh disputes every 10 seconds and log it
-  // useEffect(() => {
-  //   console.log("Setting up auto-refresh interval")
-  //   const interval = setInterval(async () => {
-  //     console.log("Auto-refreshing disputes...")
-  //     if (refreshDisputes) {
-  //       try {
-  //         await refreshDisputes()
-  //         console.log("Auto-refresh completed")
-  //       } catch (error) {
-  //         console.error("Auto-refresh failed:", error)
-  //       }
-  //     }
-  //   }, 10000)
-
-  //   return () => {
-  //     console.log("Clearing auto-refresh interval")
-  //     clearInterval(interval)
-  //   }
-  // }, [refreshDisputes])
-
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     const messageContainer = document.querySelector(".messages-container")
@@ -197,7 +152,7 @@ export default function DisputesPage() {
       })
       return
     }
-    console.log("Dispute submitted for job:", selectedJob, "with reason:", disputeReason)
+    // console.log("Dispute submitted for job:", selectedJob, "with reason:", disputeReason)
     try {
       await createDispute(selectedJob, disputeReason)
     } catch (error) {
@@ -268,36 +223,6 @@ export default function DisputesPage() {
     if (!newMessage.trim()) return
 
     const disputeId = selectedDispute?.id.toString() || selectedJuryDispute?.id.toString() || ""
-    const tempMessage = { 
-      sender: wallet,
-      senderName: displayName, // We'll use "You" for the current user
-      role: selectedDispute ? "worker" : "juror", // Determine role based on which tab we're on
-      content: newMessage.trim(),
-      timestamp: new Date().toLocaleString(),
-    }
-
-    console.log('DisputeId', disputeId)
-
-    // Optimistically add the message to the current dispute
-    // if (selectedDispute) {
-    //   setSelectedDispute((prev) =>
-    //     prev
-    //       ? {
-    //           ...prev,
-    //           messages: [...(prev.messages || []), tempMessage],
-    //         }
-    //       : null,
-    //   )
-    // } else if (selectedJuryDispute) {
-    //   setSelectedJuryDispute((prev) =>
-    //     prev
-    //       ? {
-    //           ...prev,
-    //           messages: [...(prev.messages || []), tempMessage],
-    //         }
-    //       : null,
-    //   )
-    // }
 
     // Clear the input immediately
     const messageToSend = newMessage
@@ -308,37 +233,11 @@ export default function DisputesPage() {
       // Send the message
       sendMessage(disputeId, messageToSend)
 
-      // Force refresh disputes to get the real message data
-      // if (refreshDisputes) {
-      //   await refreshDisputes()
-      // }
-
       toast.success("Message sent successfully!", {
         duration: 2000,
       })
     } catch (error) {
       console.error("Error sending message:", error)
-
-      // Remove the optimistic message on error
-      // if (selectedDispute) {
-      //   setSelectedDispute((prev) =>
-      //     prev
-      //       ? {
-      //           ...prev,
-      //           messages: prev.messages.slice(0, -1), // Remove the last message (our optimistic one)
-      //         }
-      //       : null,
-      //   )
-      // } else if (selectedJuryDispute) {
-      //   setSelectedJuryDispute((prev) =>
-      //     prev
-      //       ? {
-      //           ...prev,
-      //           messages: prev.messages.slice(0, -1),
-      //         }
-      //       : null,
-      //   )
-      // }
 
       // Restore the message in the input
       setNewMessage(messageToSend)
@@ -357,33 +256,46 @@ export default function DisputesPage() {
 
     // Join the dispute room when a dispute is selected
     const disputeId = selectedDispute?.id || selectedJuryDispute?.id;
-
-    console.log('Socket DisputeId', disputeId, selectedDispute, selectedJuryDispute)
     if (disputeId) {
       socket.current.emit("joinRoom", disputeId);
     }
 
-    socket.current.on("newMessage", (msg) => {
+    socket.current.on("newMessage", async (msg) => {
       const { disputeId, ...message } = msg;
 
       console.log('Socket New Message', msg)
 
-      // Update messages in myDisputes
-      setMyDisputes((prev) =>
-        prev.map((dispute) =>
-          dispute.id === disputeId
-            ? { ...dispute, messages: [...(dispute.messages || []), message] }
-            : dispute
-        )
-      );
+      if(msg.sender !== wallet.toLowerCase()) {
+        const { employer, assignedWorkers } = myDisputes.find((d) => d.id === disputeId) || {};
+        const resolvedMessage = {
+          sender: message.sender,
+          senderName: await fetchEmployerDisplayName(message.sender),
+          role:
+            msg.sender === employer.address.toLowerCase()
+              ? "employer"
+              : assignedWorkers.find((assigend: any) => message.sender === assigend.toLowerCase())
+                ? "worker"
+                : "juror",
+          content: message.content,
+          timestamp: new Date(message.createdAt).toLocaleString(),
+        }
+        // Update messages in myDisputes
+        setMyDisputes((prev) =>
+          prev.map((dispute) =>
+            dispute.id === disputeId
+              ? { ...dispute, messages: [...(dispute.messages || []), resolvedMessage] }
+              : dispute
+          )
+        );
 
-      setDisputes((prev) =>
-        prev.map((dispute) =>
-          dispute.id === disputeId
-            ? { ...dispute, messages: [...(dispute.messages || []), message] }
-            : dispute
-        )
-      );
+        setDisputes((prev) =>
+          prev.map((dispute) =>
+            dispute.id === disputeId
+              ? { ...dispute, messages: [...(dispute.messages || []), resolvedMessage] }
+              : dispute
+          )
+        );
+      }
     });
 
     return () => {
@@ -427,7 +339,6 @@ export default function DisputesPage() {
   const currentMessages = getCurrentMessages()
 
   const handleTabChange = (tab: string) => {
-    console.log('Jury', tab, isJuror, toastDisplayed)
     if (tab === "jury-duty" && !isJuror) {
       if (!toastDisplayed) {
         setToastDisplayed(true); // Mark the toast as displayed

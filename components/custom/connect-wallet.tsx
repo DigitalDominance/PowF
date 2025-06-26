@@ -84,7 +84,6 @@ export function ConnectWallet() {
   }
 
   const handleConnectWallet = async () => {
-    console.log("connect")
     await open() // Open WalletConnect modal
   }
 
@@ -113,7 +112,6 @@ export function ConnectWallet() {
         if (response.status === 200) {
           const response_ = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
           const data = response_.data
-          console.log("User data:", data)
           setUserData({ wallet: data.wallet, displayName: data.displayName, role: data.role })
           toast.success("User exists!")
         } else {
@@ -137,13 +135,11 @@ export function ConnectWallet() {
     }
 
     if (isConnected && address && provider && !isAuthenticating) {
-      console.log("address", address, provider)
       fetchUser()
     }
   }, [address, isConnected, provider])
 
   const handleSubmitDisplayName = async () => {
-    console.log("Handle Submit Display Name")
     try {
       const signer = await provider?.getSigner()
       const {

@@ -285,7 +285,6 @@ export default function JobsPage() {
         content: newChatMessage.trim(),
         createdAt: new Date().toISOString(),
       }
-      console.log('optimisticMessage', optimisticMessage)
 
       setChatMessages((prev) => [...prev, optimisticMessage])
       setNewChatMessage("")
@@ -363,7 +362,6 @@ export default function JobsPage() {
       setApplyState("success")
 
       toast.success("Application submitted successfully!")
-      console.log("Application submitted:", tx)
 
       setApplicationText("")
       setSelectedJob(null)
@@ -416,8 +414,6 @@ export default function JobsPage() {
       return
     }
 
-    console.log("Applied to job:", selectedJob?.address, "with text:", applicationText)
-
     if (!selectedJob) {
       toast.error("Please select a job to apply for.")
       return
@@ -437,8 +433,6 @@ export default function JobsPage() {
         toast.info("You have already applied for this job.")
         return
       }
-
-      console.log("Applying to job:", selectedJob.address, "with text:", applicationText)
 
       // Submit the application
       handleSubmitApplication(selectedJob.address, applicationText)
@@ -480,7 +474,6 @@ export default function JobsPage() {
       setDisputeState("success")
 
       toast.success("Dispute created successfully!")
-      console.log("Dispute created:", tx)
 
       // Reset the dispute form
       setDisputeReason("")
@@ -539,7 +532,6 @@ export default function JobsPage() {
         }
       }
 
-      console.log("Fetched applications:", applications)
       return applications
     } catch (error) {
       console.error("Error fetching applications:", error)
@@ -585,7 +577,6 @@ export default function JobsPage() {
       setWithdrawState("success")
 
       toast.success("Application withdrawn successfully!")
-      console.log("Application withdrawn:", tx)
 
       // Remove the application from myApplications
       setMyApplications((prev) => prev.filter((application) => application.jobAddress !== jobAddress))
@@ -628,9 +619,6 @@ export default function JobsPage() {
           // Check if the message is from the current user by comparing wallet addresses
           const isFromMe = message.receiver?.toLowerCase() === otherPartyAddress?.toLowerCase()
           const isFromOtherParty = message.sender?.toLowerCase() === otherPartyAddress?.toLowerCase()
-
-          console.log("Message from:", message.sender, "to:", message.receiver)
-          console.log("Is from me:", isFromMe, "Is from other party:", isFromOtherParty, otherPartyAddress, otherPartyName)
 
           return (
             <div key={index} className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}>
