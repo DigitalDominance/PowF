@@ -16,7 +16,7 @@ import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { useAppKit, useDisconnect } from "@reown/appkit/react"
 import axios from "axios"
-import { fetchEmployerDisplayName, useUserContext } from "@/context/UserContext"
+import { useUserContext } from "@/context/UserContext"
 // import { useContracts } from "@/hooks/useContract"
 import { Badge } from "@/components/ui/badge"
 
@@ -56,7 +56,7 @@ export function ConnectWallet() {
     isReAuthenticatingRef.current = isReAuthenticating // Sync the ref with the state
   }, [isSigningUp, isReAuthenticating])
 
-  const { setUserData, sendP2PMessage, fetchP2PMessages } = useUserContext()
+  const { setUserData, sendP2PMessage, fetchP2PMessages, fetchConversations } = useUserContext()
 
   const handleCopyAddress = () => {
     if (address) {
@@ -96,6 +96,65 @@ export function ConnectWallet() {
     return null // No role assigned
   }
 
+  const handleDisconnect = () => {
+    localStorage.removeItem("accessToken")
+    localStorage.removeItem("refreshToken")
+    setUserData({ wallet: "", displayName: "", role: "" })
+    disconnect()
+    setIsAuthenticating(false) // Reset authentication state
+    setIsReAuthenticating(false) // Reset re-authentication state
+    isReAuthenticatingRef.current = false // Reset ref state
+    setIsDisconnected(true)
+    toast.success("Disconnected successfully!")
+  }
+
+  const handleReAuthentication = async () => {
+    if (!isConnected || !address || isSigningUpRef.current || isReAuthenticatingRef.current || isDisconnected) {
+      console.log("Skipping re-authentication: Wallet not connected or user is signing up.")
+      return
+    }
+
+    try {
+      setIsReAuthenticating(true) // Prevent multiple calls
+      isReAuthenticatingRef.current = true
+      console.log(
+        "Re-authenticating user",
+        isConnected,
+        address,
+        isSigningUp,
+        isSigned,
+        isAuthenticating,
+        isReAuthenticating,
+      )
+      toast.info("Re-authenticating...")
+      const {
+        data: { challenge },
+      } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
+      const signer = await provider?.getSigner()
+      const {
+        data: { accessToken, refreshToken },
+      } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
+        wallet: address,
+        signature: await signer?.signMessage(challenge),
+        displayName: displayName_, // Use the existing displayName
+        role: role_, // Use the existing role
+      })
+
+      // Store the new tokens
+      localStorage.setItem("accessToken", accessToken)
+      localStorage.setItem("refreshToken", refreshToken)
+
+      toast.success("Re-authentication successful!")
+    } catch (error) {
+      console.error("Re-authentication failed:", error)
+      toast.error("Re-authentication failed. Please reconnect your wallet.")
+      handleDisconnect() // Disconnect the wallet if re-authentication fails
+    } finally {
+      setIsReAuthenticating(false) // Reset re-authentication state
+      isReAuthenticatingRef.current = false
+    }
+  }
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -133,6 +192,56 @@ export function ConnectWallet() {
     }
   }, [address, isConnected, provider])
 
+  axios.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      if (error.response?.status === 401) {
+        const refreshToken = localStorage.getItem("refreshToken")
+
+        // Skip re-authentication if the user is signing up
+        if (!isConnected || !address || isSigningUp) {
+          console.log("Skipping re-authentication during signup.")
+          return Promise.reject(error)
+        }
+
+        if (refreshToken && !isReAuthenticating) {
+          setIsReAuthenticating(true) // Prevent multiple re-authentication calls
+
+          try {
+            const {
+              data: { accessToken },
+            } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken })
+            if (!accessToken) {
+              throw new Error("Failed to refresh token")
+            }
+
+            localStorage.setItem("accessToken", accessToken)
+            error.config.headers["Authorization"] = `Bearer ${accessToken}`
+            setIsReAuthenticating(false) // Reset state after successful re-authentication
+            return axios(error.config) // Retry the original request
+          } catch (refreshError) {
+            console.error("Token refresh failed:", refreshError)
+            setIsReAuthenticating(false) // Reset state even if refresh fails
+            handleDisconnect() // Disconnect the wallet if refresh fails
+            toast.error("Session expired. Please reconnect your wallet.")
+          }
+        }
+
+        if (!isReAuthenticating) {
+          try {
+            await handleReAuthentication() // Call re-authentication logic
+            return axios(error.config) // Retry the original request
+          } catch (authError) {
+            console.error("Re-authentication failed:", authError)
+            handleDisconnect() // Disconnect if re-authentication fails
+          }
+        }
+      }
+
+      return Promise.reject(error)
+    },
+  )
+
   const handleSubmitDisplayName = async () => {
     console.log("Handle Submit Display Name")
     try {
@@ -158,61 +267,12 @@ export function ConnectWallet() {
     }
   }
 
-  const fetchConversations = async () => {
+  const fetchConversationsFromContext = async () => {
     if (!address) return
 
     setIsLoadingConversations(true)
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API}/chat/conversations`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      })
-
-      // Group messages by conversation partner
-      const conversationMap = new Map()
-
-      for (const message of response.data) {
-        const otherParty = message.sender === address ? message.receiver : message.sender
-
-        if (!conversationMap.has(otherParty)) {
-          conversationMap.set(otherParty, {
-            otherPartyAddress: otherParty,
-            lastMessage: message,
-            messages: [],
-          })
-        }
-
-        const conversation = conversationMap.get(otherParty)
-        if (new Date(message.createdAt) > new Date(conversation.lastMessage.createdAt)) {
-          conversation.lastMessage = message
-        }
-      }
-
-      // Fetch display names for all conversation partners using fetchEmployerDisplayName
-      const conversationsWithNames = await Promise.all(
-        Array.from(conversationMap.values()).map(async (conv) => {
-          try {
-            const displayName = await fetchEmployerDisplayName(conv.otherPartyAddress)
-            return {
-              ...conv,
-              otherPartyName: displayName || truncateAddress(conv.otherPartyAddress),
-            }
-          } catch (error) {
-            console.error("Error fetching display name for:", conv.otherPartyAddress, error)
-            return {
-              ...conv,
-              otherPartyName: truncateAddress(conv.otherPartyAddress),
-            }
-          }
-        }),
-      )
-
-      // Sort by last message date
-      conversationsWithNames.sort(
-        (a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime(),
-      )
-
+      const conversationsWithNames = await fetchConversations()
       setConversations(conversationsWithNames)
     } catch (error) {
       console.error("Error fetching conversations:", error)
@@ -391,7 +451,7 @@ export function ConnectWallet() {
           <DropdownMenuItem
             onClick={() => {
               setShowMessagesPopup(true)
-              fetchConversations()
+              fetchConversationsFromContext()
             }}
           >
             <MessageSquare className="mr-2 h-4 w-4" />
@@ -409,7 +469,7 @@ export function ConnectWallet() {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onClick={disconnect} // Disconnect wallet
+            onClick={handleDisconnect} // Disconnect wallet
             className="text-red-500 hover:!text-red-500 focus:!text-red-500 hover:!bg-red-500/10"
           >
             <LogOut className="mr-2 h-4 w-4" />
@@ -496,20 +556,22 @@ export function ConnectWallet() {
 
       {/* Messages Popup */}
       {showMessagesPopup && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50">
+        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50 p-2 md:p-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="w-full max-w-4xl h-[80vh] bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden"
+            className="w-[95vw] h-[90vh] md:w-full md:max-w-4xl md:h-[80vh] bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-lg md:rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden"
           >
             <div className="flex h-full">
               {/* Conversations List */}
-              <div className="w-1/3 border-r border-accent/20 flex flex-col">
-                <div className="p-6 border-b border-accent/20">
+              <div className="w-3/5 md:w-1/3 border-r border-accent/20 flex flex-col">
+                <div className="p-4 md:p-6 border-b border-accent/20">
                   <div className="flex items-center justify-between">
-                    <h2 className="font-varien text-xl font-bold text-foreground tracking-wider">Messages</h2>
+                    <h2 className="font-varien text-lg md:text-xl font-bold text-foreground tracking-wider">
+                      Messages
+                    </h2>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -543,27 +605,27 @@ export function ConnectWallet() {
                             setSelectedConversation(conversation)
                             fetchConversationMessages(conversation.otherPartyAddress)
                           }}
-                          className={`p-4 rounded-xl cursor-pointer transition-all duration-200 ${
+                          className={`p-3 md:p-4 rounded-xl cursor-pointer transition-all duration-200 ${
                             selectedConversation?.otherPartyAddress === conversation.otherPartyAddress
                               ? "bg-accent/20 border border-accent/30"
                               : "hover:bg-accent/10 border border-transparent"
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
+                            <Avatar className="h-8 w-8 md:h-10 md:w-10">
                               <AvatarImage
                                 src={`https://effigy.im/a/${conversation.otherPartyAddress}.svg`}
                                 alt={conversation.otherPartyAddress}
                               />
                               <AvatarFallback>
-                                <User className="h-5 w-5" />
+                                <User className="h-4 w-4 md:h-5 md:w-5" />
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground font-varela truncate">
+                              <p className="font-medium text-foreground font-varela truncate text-sm md:text-base">
                                 {conversation.otherPartyName}
                               </p>
-                              <p className="text-sm text-muted-foreground font-varela truncate">
+                              <p className="text-xs md:text-sm text-muted-foreground font-varela truncate">
                                 {conversation.lastMessage.content}
                               </p>
                               <p className="text-xs text-muted-foreground font-varela">
@@ -584,26 +646,26 @@ export function ConnectWallet() {
               </div>
 
               {/* Chat Area */}
-              <div className="flex-1 flex flex-col">
+              <div className="w-2/5 md:flex-1 flex flex-col">
                 {selectedConversation ? (
                   <>
                     {/* Chat Header */}
-                    <div className="p-6 border-b border-accent/20">
+                    <div className="p-4 md:p-6 border-b border-accent/20">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
+                        <Avatar className="h-8 w-8 md:h-10 md:w-10">
                           <AvatarImage
                             src={`https://effigy.im/a/${selectedConversation.otherPartyAddress}.svg`}
                             alt={selectedConversation.otherPartyAddress}
                           />
                           <AvatarFallback>
-                            <User className="h-5 w-5" />
+                            <User className="h-4 w-4 md:h-5 md:w-5" />
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h3 className="font-varien text-lg font-medium text-foreground">
+                          <h3 className="font-varien text-base md:text-lg font-medium text-foreground">
                             {selectedConversation.otherPartyName}
                           </h3>
-                          <p className="text-sm text-muted-foreground font-varela">
+                          <p className="text-xs md:text-sm text-muted-foreground font-varela">
                             {selectedConversation.otherPartyAddress.slice(0, 6)}...
                             {selectedConversation.otherPartyAddress.slice(-4)}
                           </p>
@@ -612,7 +674,7 @@ export function ConnectWallet() {
                     </div>
 
                     {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-4">
+                    <div className="flex-1 overflow-y-auto p-3 md:p-4">
                       <ChatMessageComponent
                         messages={conversationMessages}
                         currentUserAddress={address || ""}
@@ -623,7 +685,7 @@ export function ConnectWallet() {
                     </div>
 
                     {/* Message Input */}
-                    <div className="p-4 border-t border-accent/20">
+                    <div className="p-3 md:p-4 border-t border-accent/20">
                       <div className="flex gap-2">
                         <input
                           type="text"
@@ -636,13 +698,14 @@ export function ConnectWallet() {
                               handleSendMessage()
                             }
                           }}
-                          className="flex-1 px-4 py-2 border border-accent/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela"
+                          className="flex-1 px-3 md:px-4 py-2 border border-accent/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela text-sm md:text-base"
                           disabled={isSendingMessage}
                         />
                         <Button
                           onClick={handleSendMessage}
                           disabled={!newMessage.trim() || isSendingMessage}
                           className="bg-accent hover:bg-accent/80 text-accent-foreground font-varien"
+                          size="sm"
                         >
                           {isSendingMessage ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -654,11 +717,13 @@ export function ConnectWallet() {
                     </div>
                   </>
                 ) : (
-                  <div className="flex-1 flex items-center justify-center">
+                  <div className="flex-1 flex items-center justify-center p-4">
                     <div className="text-center">
-                      <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-varien text-lg font-medium text-foreground mb-2">Select a conversation</h3>
-                      <p className="text-muted-foreground font-varela">
+                      <MessageSquare className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="font-varien text-base md:text-lg font-medium text-foreground mb-2">
+                        Select a conversation
+                      </h3>
+                      <p className="text-muted-foreground font-varela text-sm md:text-base">
                         Choose a conversation from the left to start messaging
                       </p>
                     </div>
