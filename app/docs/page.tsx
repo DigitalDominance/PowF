@@ -94,13 +94,13 @@ export default function DocumentationPage() {
   const smartContracts = [
     {
       name: "JobFactory",
-      address: "0x1234...5678",
+      address: "0x69B9d9972B31c126143A7785ca23Be09E7df582F",
       description: "Creates and manages job contracts",
       functions: ["createJob", "getJobsByEmployer", "getAllJobs"],
     },
     {
       name: "DisputeDAO",
-      address: "0x9876...5432",
+      address: "0x75f4C820A90eE9d87A2F3282d67d20CcE28876F8",
       description: "Handles dispute resolution and voting",
       functions: ["createDispute", "vote", "resolveDispute"],
     },
