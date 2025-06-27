@@ -65,9 +65,9 @@ const SectionWrapper = ({
   id?: string
   padding?: string
 }) => (
-  <section id={id} className={`w-full relative ${padding} ${className}`}>
+  <section id={id} className={`w-full relative ${padding} ${className} overflow-x-hidden`}>
     <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-background/3 dark:via-black/5 to-transparent opacity-20" />
-    <div className="container px-4 md:px-6 relative z-10">{children}</div>
+    <div className="container px-4 md:px-6 relative z-10 overflow-x-hidden min-w-0">{children}</div>
   </section>
 )
 
@@ -127,7 +127,7 @@ export default function AboutUsPage() {
   ]
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center overflow-x-hidden min-w-0 w-full">
       {/* Hero Section */}
       <motion.section
         className="w-full min-h-[80vh] flex flex-col justify-center items-center text-center relative overflow-hidden py-16"
@@ -445,7 +445,7 @@ export default function AboutUsPage() {
                 variant="outline"
                 className="font-varien shadow-lg hover:shadow-md transition-all duration-300 transform hover:scale-105 group border-accent/50 hover:bg-accent/10 hover:text-accent tracking-wider bg-transparent"
               >
-                <Link href="/docs">
+                <Link href="/documentation">
                   Learn More
                   <Eye className="ml-2 h-5 w-5 group-hover:text-accent transition-colors" />
                 </Link>
