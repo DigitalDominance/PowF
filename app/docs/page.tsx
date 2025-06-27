@@ -123,7 +123,7 @@ export default function DocumentationPage() {
             className="mt-12 max-w-3xl mx-auto text-muted-foreground md:text-lg lg:text-xl font-varela"
           >
             <Balancer>
-              Complete guides, API references, and smart contract documentation for building on the Proof Of Works
+              Complete guides, references, and smart contract documentation for building on the Proof Of Works
               platform.
             </Balancer>
           </motion.p>
