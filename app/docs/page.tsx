@@ -13,9 +13,6 @@ import {
   DollarSign,
   ExternalLink,
   Copy,
-  AlertTriangle,
-  FileText,
-  Settings,
   Globe,
   Wallet,
   MessageSquare,
@@ -24,7 +21,6 @@ import {
   Eye,
   ChevronRight,
   Play,
-  Download,
   Github,
 } from "lucide-react"
 import Link from "next/link"
@@ -463,7 +459,7 @@ const signer = new ethers.Wallet(PRIVATE_KEY, provider);
 
 // Initialize contract
 const jobFactory = new ethers.Contract(
-  '0x1234...5678', // JobFactory address
+  '0x69B9d9972B31c126143A7785ca23Be09E7df582F', // JobFactory address
   JobFactoryABI,
   signer
 );
@@ -504,7 +500,29 @@ console.log('Job created successfully!');`}
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <InteractiveCard>
+            <div className="p-6 text-center">
+              <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
+                <Globe className="h-6 w-6 text-accent" />
+              </div>
+              <h3 className="font-varien text-lg font-normal tracking-wider text-foreground mb-2">Kaspa Network</h3>
+              <p className="text-sm text-muted-foreground mb-4 font-varela">
+                Learn more about the Kaspa blockchain that powers our platform.
+              </p>
+              <Button
+                asChild
+                variant="outline"
+                className="border-accent/50 text-accent hover:bg-accent/10 font-varien bg-transparent"
+              >
+                <Link href="https://kaspa.org" target="_blank">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Visit Kaspa.org
+                </Link>
+              </Button>
+            </div>
+          </InteractiveCard>
+
           <InteractiveCard>
             <div className="p-6 text-center">
               <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
@@ -532,7 +550,9 @@ console.log('Job created successfully!');`}
               <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
                 <MessageSquare className="h-6 w-6 text-accent" />
               </div>
-              <h3 className="font-varien text-lg font-normal tracking-wider text-foreground mb-2">Discord Community</h3>
+              <h3 className="font-varien text-lg font-normal tracking-wider text-foreground mb-2">
+                Telegram Community
+              </h3>
               <p className="text-sm text-muted-foreground mb-4 font-varela">
                 Join our community for support, discussions, and development updates.
               </p>
@@ -541,97 +561,9 @@ console.log('Job created successfully!');`}
                 variant="outline"
                 className="border-accent/50 text-accent hover:bg-accent/10 font-varien bg-transparent"
               >
-                <Link href="https://discord.gg/proofofworks" target="_blank">
+                <Link href="https://t.me/+WxraM9RZITBlNDhh" target="_blank">
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  Join Discord
-                </Link>
-              </Button>
-            </div>
-          </InteractiveCard>
-
-          <InteractiveCard>
-            <div className="p-6 text-center">
-              <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
-                <FileText className="h-6 w-6 text-accent" />
-              </div>
-              <h3 className="font-varien text-lg font-normal tracking-wider text-foreground mb-2">Whitepaper</h3>
-              <p className="text-sm text-muted-foreground mb-4 font-varela">
-                Read our technical whitepaper for in-depth platform architecture details.
-              </p>
-              <Button
-                asChild
-                variant="outline"
-                className="border-accent/50 text-accent hover:bg-accent/10 font-varien bg-transparent"
-              >
-                <Link href="/whitepaper.pdf" target="_blank">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download PDF
-                </Link>
-              </Button>
-            </div>
-          </InteractiveCard>
-
-          <InteractiveCard>
-            <div className="p-6 text-center">
-              <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
-                <Globe className="h-6 w-6 text-accent" />
-              </div>
-              <h3 className="font-varien text-lg font-normal tracking-wider text-foreground mb-2">Kaspa Network</h3>
-              <p className="text-sm text-muted-foreground mb-4 font-varela">
-                Learn more about the Kaspa blockchain that powers our platform.
-              </p>
-              <Button
-                asChild
-                variant="outline"
-                className="border-accent/50 text-accent hover:bg-accent/10 font-varien bg-transparent"
-              >
-                <Link href="https://kaspa.org" target="_blank">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Visit Kaspa.org
-                </Link>
-              </Button>
-            </div>
-          </InteractiveCard>
-
-          <InteractiveCard>
-            <div className="p-6 text-center">
-              <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
-                <Settings className="h-6 w-6 text-accent" />
-              </div>
-              <h3 className="font-varien text-lg font-normal tracking-wider text-foreground mb-2">Developer Tools</h3>
-              <p className="text-sm text-muted-foreground mb-4 font-varela">
-                SDKs, testing tools, and development utilities for building on POW.
-              </p>
-              <Button
-                asChild
-                variant="outline"
-                className="border-accent/50 text-accent hover:bg-accent/10 font-varien bg-transparent"
-              >
-                <Link href="/tools">
-                  <Settings className="mr-2 h-4 w-4" />
-                  View Tools
-                </Link>
-              </Button>
-            </div>
-          </InteractiveCard>
-
-          <InteractiveCard>
-            <div className="p-6 text-center">
-              <div className="p-3 rounded-full bg-accent/10 mb-4 inline-block">
-                <AlertTriangle className="h-6 w-6 text-accent" />
-              </div>
-              <h3 className="font-varien text-lg font-normal tracking-wider text-foreground mb-2">Bug Bounty</h3>
-              <p className="text-sm text-muted-foreground mb-4 font-varela">
-                Help secure our platform and earn rewards for finding vulnerabilities.
-              </p>
-              <Button
-                asChild
-                variant="outline"
-                className="border-accent/50 text-accent hover:bg-accent/10 font-varien bg-transparent"
-              >
-                <Link href="/bug-bounty">
-                  <Shield className="mr-2 h-4 w-4" />
-                  Learn More
+                  Join Telegram
                 </Link>
               </Button>
             </div>
