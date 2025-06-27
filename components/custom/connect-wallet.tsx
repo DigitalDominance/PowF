@@ -45,12 +45,6 @@ export function ConnectWallet() {
 
   const [copied, setCopied] = useState(false)
   const [role_, setRole_] = useState("") // State for role
-  const [isAuthenticating, setIsAuthenticating] = useState(false) // Prevent continuous authentication
-  const [isReAuthenticating, setIsReAuthenticating] = useState(false) // Prevent multiple re-authentication calls
-  const [isSigningUp, setIsSigningUp] = useState(false) // Track signup state
-  const isSigningUpRef = useRef(false) // Persistent reference for isSigningUp
-  const isReAuthenticatingRef = useRef(false) // Persistent reference for re-authentication
-  const [isDisconnected, setIsDisconnected] = useState(false) // Track disconnect state
 
   // Messaging state
   const [showMessagesPopup, setShowMessagesPopup] = useState(false)
@@ -61,11 +55,6 @@ export function ConnectWallet() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [isSendingMessage, setIsSendingMessage] = useState(false)
-
-  useEffect(() => {
-    isSigningUpRef.current = isSigningUp
-    isReAuthenticatingRef.current = isReAuthenticating
-  }, [isSigningUp, isReAuthenticating])
 
   const handleCopyAddress = () => {
     if (address) {
@@ -84,7 +73,10 @@ export function ConnectWallet() {
   }
 
   const handleConnectWallet = async () => {
-    await open()
+    await open();
+    if (address) {
+      localStorage.setItem("wallet", address); // Store wallet address in localStorage
+    }
   }
 
   const renderRoleIcon = () => {
@@ -107,34 +99,99 @@ export function ConnectWallet() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        setIsAuthenticating(true)
         const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
         if (response.status === 200) {
           const response_ = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
           const data = response_.data
+
+          const storedToken = localStorage.getItem("accessToken");
+          const refreshToken = localStorage.getItem("refreshToken");
+          const storedWallet = localStorage.getItem("wallet");
+
+          // Check if tokens are for the current wallet address
+          if (storedWallet !== address) {
+            // Invalidate tokens if wallet address has changed
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            localStorage.setItem("wallet", address || ''); // Update wallet in localStorage
+            // toast.info("Wallet changed, tokens invalidated!");
+          }          
+  
+          // Validate token
+          if (!storedToken || data.token !== storedToken) {
+            if (refreshToken) {
+              try {
+                // Refresh token
+                const { data: refreshedTokens } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, {
+                  refreshToken,
+                });
+                localStorage.setItem("accessToken", refreshedTokens.accessToken);
+                // toast.info("Token refreshed!");
+              } catch (refreshError) {
+                console.error("Failed to refresh token:", refreshError);
+                toast.error("Failed to refresh token!");
+
+                // If refresh fails, generate a new token
+                try {
+                  const {
+                    data: { challenge },
+                  } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address });
+                  const signer = await provider?.getSigner();
+                  const {
+                    data: { accessToken, refreshToken: newRefreshToken },
+                  } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
+                    wallet: address,
+                    signature: await signer?.signMessage(challenge),
+                  });
+
+                  localStorage.setItem("accessToken", accessToken);
+                  localStorage.setItem("refreshToken", newRefreshToken);
+                  // toast.info("New token generated!");
+                } catch (authError) {
+                  console.error("Failed to generate new token:", authError);
+                  toast.error("Failed to generate new token!");
+                }                
+              }
+            } else {
+              const {
+                data: { challenge },
+              } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
+              // Generate new token
+              const signer = await provider?.getSigner();
+              const {
+                data: { accessToken, refreshToken: newRefreshToken },
+              } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
+                wallet: address,
+                signature: await signer?.signMessage(challenge),
+              });
+  
+              localStorage.setItem("accessToken", accessToken);
+              localStorage.setItem("refreshToken", newRefreshToken);
+              // toast.info("New token generated!");
+            }
+          }
+
           setUserData({ wallet: data.wallet, displayName: data.displayName, role: data.role })
-          toast.success("User exists!")
+          // toast.success("User exists!")
         } else {
           toast.error("User not found!")
         }
       } catch (error) {
+        console.log('Error Authenticating', error)
         try {
           toast.info("Authenticating user...")
           const {
             data: { challenge },
           } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
-          setChallenge(challenge)
-          setIsSigningUp(true)
+          setChallenge(challenge) // Store the challenge
           setIsSigned(true)
-        } catch {
+        } catch (authError) {
           toast.error("Authentication failed!")
         }
-      } finally {
-        setIsAuthenticating(false)
       }
     }
 
-    if (isConnected && address && provider && !isAuthenticating) {
+    if (isConnected && address && provider) {
       fetchUser()
     }
   }, [address, isConnected, provider])
@@ -164,7 +221,7 @@ export function ConnectWallet() {
 
   // Messaging functions
   const fetchConversationsFromContext = async () => {
-    if (!address || isReAuthenticating) return
+    if (!address) return
 
     setIsLoadingConversations(true)
     try {
@@ -179,7 +236,7 @@ export function ConnectWallet() {
   }
 
   const fetchConversationMessages = async (otherPartyAddress: string) => {
-    if (!address || isReAuthenticating) return
+    if (!address) return
 
     setIsLoadingMessages(true)
     try {
@@ -205,7 +262,7 @@ export function ConnectWallet() {
   }
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation || !address || !sendP2PMessage || isReAuthenticating) return
+    if (!newMessage.trim() || !selectedConversation || !address || !sendP2PMessage) return
 
     setIsSendingMessage(true)
     try {
@@ -326,91 +383,11 @@ export function ConnectWallet() {
   }
 
   const handleDisconnect = () => {
-    localStorage.removeItem("accessToken")
-    localStorage.removeItem("refreshToken")
     setUserData({ wallet: "", displayName: "", role: "" })
     disconnect()
-    setIsAuthenticating(false)
-    setIsReAuthenticating(false)
-    isReAuthenticatingRef.current = false
-    setIsDisconnected(true)
+    localStorage.removeItem("wallet"); // Remove wallet address from localStorage
     toast.success("Disconnected successfully!")
   }
-
-  const handleReAuthentication = async () => {
-    if (!isConnected || !address || isSigningUpRef.current || isReAuthenticatingRef.current || isDisconnected) {
-      console.log("Skipping re-authentication: Wallet not connected or user is signing up.")
-      return
-    }
-
-    try {
-      setIsReAuthenticating(true)
-      isReAuthenticatingRef.current = true
-      toast.info("Re-authenticating...")
-      const {
-        data: { challenge },
-      } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
-      const signer = await provider?.getSigner()
-      const {
-        data: { accessToken, refreshToken },
-      } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
-        wallet: address,
-        signature: await signer?.signMessage(challenge),
-        displayName: displayName_,
-        role: role_,
-      })
-
-      localStorage.setItem("accessToken", accessToken)
-      localStorage.setItem("refreshToken", refreshToken)
-      toast.success("Re-authentication successful!")
-    } catch (error) {
-      console.error("Re-authentication failed:", error)
-      toast.error("Re-authentication failed. Please reconnect your wallet.")
-      handleDisconnect()
-    } finally {
-      setIsReAuthenticating(false)
-      isReAuthenticatingRef.current = false
-    }
-  }
-
-  axios.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-      if (error.response?.status === 401) {
-        const refreshToken = localStorage.getItem("refreshToken")
-        if (!isConnected || !address || isSigningUp) {
-          console.log("Skipping re-authentication during signup.")
-          return Promise.reject(error)
-        }
-        if (refreshToken && !isReAuthenticating) {
-          setIsReAuthenticating(true)
-          try {
-            const {
-              data: { accessToken },
-            } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken })
-            localStorage.setItem("accessToken", accessToken)
-            error.config.headers["Authorization"] = `Bearer ${accessToken}`
-            setIsReAuthenticating(false)
-            return axios(error.config)
-          } catch (refreshError) {
-            console.error("Token refresh failed:", refreshError)
-            setIsReAuthenticating(false)
-            handleDisconnect()
-            toast.error("Session expired. Please reconnect your wallet.")
-          }
-        }
-        if (!isReAuthenticating) {
-          try {
-            await handleReAuthentication()
-            return axios(error.config)
-          } catch {
-            handleDisconnect()
-          }
-        }
-      }
-      return Promise.reject(error)
-    }
-  )
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -445,10 +422,8 @@ export function ConnectWallet() {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => {
-              if (!isReAuthenticating) {
-                setShowMessagesPopup(true)
-                fetchConversationsFromContext()
-              }
+              setShowMessagesPopup(true)
+              fetchConversationsFromContext()
             }}
           >
             <MessageSquare className="mr-2 h-4 w-4" />
