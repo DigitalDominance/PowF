@@ -45,6 +45,12 @@ export function ConnectWallet() {
 
   const [copied, setCopied] = useState(false)
   const [role_, setRole_] = useState("") // State for role
+  const [isAuthenticating, setIsAuthenticating] = useState(false) // Prevent continuous authentication
+  const [isReAuthenticating, setIsReAuthenticating] = useState(false) // Prevent multiple re-authentication calls
+  const [isSigningUp, setIsSigningUp] = useState(false) // Track signup state
+  const isSigningUpRef = useRef(false) // Persistent reference for isSigningUp
+  const isReAuthenticatingRef = useRef(false) // Persistent reference for re-authentication
+  const [isDisconnected, setIsDisconnected] = useState(false) // Track disconnect state
 
   // Messaging state
   const [showMessagesPopup, setShowMessagesPopup] = useState(false)
@@ -55,6 +61,11 @@ export function ConnectWallet() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [isSendingMessage, setIsSendingMessage] = useState(false)
+
+  useEffect(() => {
+    isSigningUpRef.current = isSigningUp
+    isReAuthenticatingRef.current = isReAuthenticating
+  }, [isSigningUp, isReAuthenticating])
 
   const handleCopyAddress = () => {
     if (address) {
@@ -67,16 +78,13 @@ export function ConnectWallet() {
 
   const getBlockExplorerUrl = () => {
     if (address) {
-      return `https://frontend.kasplextest.xyz/address/${address}` // Example block explorer URL
+      return `https://frontend.kasplextest.xyz/address/${address}`
     }
     return "#"
   }
 
   const handleConnectWallet = async () => {
-    await open() // Open WalletConnect modal
-    if (address) {
-      localStorage.setItem("wallet", address); // Store wallet address in localStorage
-    }
+    await open()
   }
 
   const renderRoleIcon = () => {
@@ -93,105 +101,40 @@ export function ConnectWallet() {
         </span>
       )
     }
-    return null // No role assigned
+    return null
   }
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        setIsAuthenticating(true)
         const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
         if (response.status === 200) {
           const response_ = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
           const data = response_.data
-
-          const storedToken = localStorage.getItem("accessToken");
-          const refreshToken = localStorage.getItem("refreshToken");
-          const storedWallet = localStorage.getItem("wallet");
-
-          // Check if tokens are for the current wallet address
-          if (storedWallet !== address) {
-            // Invalidate tokens if wallet address has changed
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
-            localStorage.setItem("wallet", address || ''); // Update wallet in localStorage
-            // toast.info("Wallet changed, tokens invalidated!");
-          }          
-  
-          // Validate token
-          if (!storedToken || data.token !== storedToken) {
-            if (refreshToken) {
-              try {
-                // Refresh token
-                const { data: refreshedTokens } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, {
-                  refreshToken,
-                });
-                localStorage.setItem("accessToken", refreshedTokens.accessToken);
-                // toast.info("Token refreshed!");
-              } catch (refreshError) {
-                console.error("Failed to refresh token:", refreshError);
-                toast.error("Failed to refresh token!");
-
-                // If refresh fails, generate a new token
-                try {
-                  const {
-                    data: { challenge },
-                  } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address });
-                  const signer = await provider?.getSigner();
-                  const {
-                    data: { accessToken, refreshToken: newRefreshToken },
-                  } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
-                    wallet: address,
-                    signature: await signer?.signMessage(challenge),
-                  });
-
-                  localStorage.setItem("accessToken", accessToken);
-                  localStorage.setItem("refreshToken", newRefreshToken);
-                  // toast.info("New token generated!");
-                } catch (authError) {
-                  console.error("Failed to generate new token:", authError);
-                  toast.error("Failed to generate new token!");
-                }                
-              }
-            } else {
-              const {
-                data: { challenge },
-              } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
-              // Generate new token
-              const signer = await provider?.getSigner();
-              const {
-                data: { accessToken, refreshToken: newRefreshToken },
-              } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
-                wallet: address,
-                signature: await signer?.signMessage(challenge),
-              });
-  
-              localStorage.setItem("accessToken", accessToken);
-              localStorage.setItem("refreshToken", newRefreshToken);
-              // toast.info("New token generated!");
-            }
-          }
-
           setUserData({ wallet: data.wallet, displayName: data.displayName, role: data.role })
           toast.success("User exists!")
         } else {
           toast.error("User not found!")
         }
       } catch (error) {
-        console.log('Error Authenticating', error)
         try {
           toast.info("Authenticating user...")
           const {
             data: { challenge },
           } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
-          setChallenge(challenge) // Store the challenge
+          setChallenge(challenge)
+          setIsSigningUp(true)
           setIsSigned(true)
-        } catch (authError) {
+        } catch {
           toast.error("Authentication failed!")
         }
+      } finally {
+        setIsAuthenticating(false)
       }
     }
 
-    if (isConnected && address && provider) {
+    if (isConnected && address && provider && !isAuthenticating) {
       fetchUser()
     }
   }, [address, isConnected, provider])
@@ -203,18 +146,18 @@ export function ConnectWallet() {
         data: { accessToken, refreshToken },
       } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
         wallet: address,
-        signature: await signer?.signMessage(challenge), // Use the signed challenge
-        displayName: displayName_, // Pass the custom displayName
+        signature: await signer?.signMessage(challenge),
+        displayName: displayName_,
         role: role_,
       })
 
-      localStorage.setItem("accessToken", accessToken) // Save access token
-      localStorage.setItem("refreshToken", refreshToken) // Save refresh token
+      localStorage.setItem("accessToken", accessToken)
+      localStorage.setItem("refreshToken", refreshToken)
       setUserData({ wallet: address || "", displayName: displayName_, role: role_ })
 
       toast.success("Authentication successful!")
-      setIsSigned(false) // Reset signing state after submission
-    } catch (error) {
+      setIsSigned(false)
+    } catch {
       toast.error("Failed to submit display name!")
     }
   }
@@ -383,11 +326,91 @@ export function ConnectWallet() {
   }
 
   const handleDisconnect = () => {
+    localStorage.removeItem("accessToken")
+    localStorage.removeItem("refreshToken")
     setUserData({ wallet: "", displayName: "", role: "" })
     disconnect()
-    localStorage.removeItem("wallet"); // Remove wallet address from localStorage
+    setIsAuthenticating(false)
+    setIsReAuthenticating(false)
+    isReAuthenticatingRef.current = false
+    setIsDisconnected(true)
     toast.success("Disconnected successfully!")
   }
+
+  const handleReAuthentication = async () => {
+    if (!isConnected || !address || isSigningUpRef.current || isReAuthenticatingRef.current || isDisconnected) {
+      console.log("Skipping re-authentication: Wallet not connected or user is signing up.")
+      return
+    }
+
+    try {
+      setIsReAuthenticating(true)
+      isReAuthenticatingRef.current = true
+      toast.info("Re-authenticating...")
+      const {
+        data: { challenge },
+      } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
+      const signer = await provider?.getSigner()
+      const {
+        data: { accessToken, refreshToken },
+      } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
+        wallet: address,
+        signature: await signer?.signMessage(challenge),
+        displayName: displayName_,
+        role: role_,
+      })
+
+      localStorage.setItem("accessToken", accessToken)
+      localStorage.setItem("refreshToken", refreshToken)
+      toast.success("Re-authentication successful!")
+    } catch (error) {
+      console.error("Re-authentication failed:", error)
+      toast.error("Re-authentication failed. Please reconnect your wallet.")
+      handleDisconnect()
+    } finally {
+      setIsReAuthenticating(false)
+      isReAuthenticatingRef.current = false
+    }
+  }
+
+  axios.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      if (error.response?.status === 401) {
+        const refreshToken = localStorage.getItem("refreshToken")
+        if (!isConnected || !address || isSigningUp) {
+          console.log("Skipping re-authentication during signup.")
+          return Promise.reject(error)
+        }
+        if (refreshToken && !isReAuthenticating) {
+          setIsReAuthenticating(true)
+          try {
+            const {
+              data: { accessToken },
+            } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, { refreshToken })
+            localStorage.setItem("accessToken", accessToken)
+            error.config.headers["Authorization"] = `Bearer ${accessToken}`
+            setIsReAuthenticating(false)
+            return axios(error.config)
+          } catch (refreshError) {
+            console.error("Token refresh failed:", refreshError)
+            setIsReAuthenticating(false)
+            handleDisconnect()
+            toast.error("Session expired. Please reconnect your wallet.")
+          }
+        }
+        if (!isReAuthenticating) {
+          try {
+            await handleReAuthentication()
+            return axios(error.config)
+          } catch {
+            handleDisconnect()
+          }
+        }
+      }
+      return Promise.reject(error)
+    }
+  )
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -415,15 +438,17 @@ export function ConnectWallet() {
               <AvatarImage src={`https://effigy.im/a/${address}.svg`} alt={address} />
               <AvatarFallback>{address.charAt(2)}</AvatarFallback>
             </Avatar>
-            <div>
+            <div>  
               <p className="font-medium">{truncateAddress(address)}</p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => {
-              setShowMessagesPopup(true)
-              fetchConversationsFromContext()
+              if (!isReAuthenticating) {
+                setShowMessagesPopup(true)
+                fetchConversationsFromContext()
+              }
             }}
           >
             <MessageSquare className="mr-2 h-4 w-4" />
@@ -441,7 +466,7 @@ export function ConnectWallet() {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onClick={handleDisconnect} // Disconnect wallet
+            onClick={handleDisconnect}
             className="text-red-500 hover:!text-red-500 focus:!text-red-500 hover:!bg-red-500/10"
           >
             <LogOut className="mr-2 h-4 w-4" />
@@ -456,7 +481,6 @@ export function ConnectWallet() {
           <div className="w-full max-w-md p-6 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg shadow-lg">
             <h2 className="text-lg font-semibold mb-4">Set Your Display Name and Role</h2>
 
-            {/* Display Name Input */}
             <label htmlFor="displayName" className="block text-sm font-medium text-gray-300">
               Display Name
             </label>
@@ -469,7 +493,6 @@ export function ConnectWallet() {
               className="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent bg-gray-700 text-white sm:text-sm"
             />
 
-            {/* Role Selection */}
             <label htmlFor="role" className="block text-sm font-medium text-gray-300 mt-4">
               Role
             </label>
@@ -486,7 +509,6 @@ export function ConnectWallet() {
               <option value="worker">Employee</option>
             </select>
 
-            {/* Submit Button */}
             <button
               onClick={handleSubmitDisplayName}
               className={`mt-4 px-4 py-2 rounded-md w-full ${
