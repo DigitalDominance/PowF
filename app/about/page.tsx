@@ -3,7 +3,25 @@ import { Button } from "@/components/ui/button"
 import type React from "react"
 import Image from "next/image"
 
-import { ArrowRight, Shield, Zap, Globe, Heart, TrendingUp, Award, Target, Sparkles, CheckCircle, Rocket, Building, UserCheck, FileText, Lock, Eye, Scale } from 'lucide-react'
+import {
+  ArrowRight,
+  Shield,
+  Zap,
+  Globe,
+  Heart,
+  TrendingUp,
+  Award,
+  Target,
+  Sparkles,
+  CheckCircle,
+  Rocket,
+  Building,
+  UserCheck,
+  FileText,
+  Lock,
+  Eye,
+  Scale,
+} from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
@@ -205,7 +223,13 @@ export default function AboutUsPage() {
       {/* Our Vision */}
       <SectionWrapper id="vision" padding="py-12 md:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={slideInLeft(0.1)}>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={slideInLeft(0.1)}
+            className="text-center lg:text-left"
+          >
             <h2 className="font-varien text-3xl font-normal tracking-wider-xl sm:text-4xl text-foreground mb-6">
               The Future of <span className="text-accent">Work</span>
             </h2>
@@ -223,7 +247,7 @@ export default function AboutUsPage() {
                 provable work and verifiable reputation.
               </Balancer>
             </p>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 justify-center lg:justify-start">
               <CheckCircle className="h-6 w-6 text-accent shrink-0" />
               <span className="text-foreground font-varela">
                 <strong>On-chain hiring is the future</strong> - and POW is ready for it all.
