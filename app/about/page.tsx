@@ -421,7 +421,7 @@ export default function AboutUsPage() {
                 variant="outline"
                 className="font-varien shadow-lg hover:shadow-md transition-all duration-300 transform hover:scale-105 group border-accent/50 hover:bg-accent/10 hover:text-accent tracking-wider bg-transparent"
               >
-                <Link href="/documentation">
+                <Link href="/docs">
                   Learn More
                   <Eye className="ml-2 h-5 w-5 group-hover:text-accent transition-colors" />
                 </Link>
