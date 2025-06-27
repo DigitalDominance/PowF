@@ -120,7 +120,7 @@ export default function AboutUsPage() {
   ]
 
   const stats = [
-    { number: "100%", label: "Decentralized Jobs", icon: <Globe className="h-8 w-8 text-accent" /> },
+    { number: "100%", label: "Decentralized", icon: <Globe className="h-8 w-8 text-accent" /> },
     { number: "0.75%", label: "Platform Fee", icon: <TrendingUp className="h-8 w-8 text-accent" /> },
     { number: "24/7", label: "Automated Payments", icon: <Zap className="h-8 w-8 text-accent" /> },
     { number: "∞", label: "Reputation Permanence", icon: <Award className="h-8 w-8 text-accent" /> },
@@ -136,7 +136,7 @@ export default function AboutUsPage() {
         variants={staggerContainer(0.1, 0.1)}
       >
         <div className="container px-4 md:px-6 relative z-10">
-          <motion.div variants={fadeIn(0.1)} className="mb-8">
+          <motion.div variants={fadeIn(0.1)} className="mb-12">
             <div className="relative w-32 h-32 mx-auto mb-8">
               <Image
                 src="/kasperlogo.webp"
@@ -150,14 +150,14 @@ export default function AboutUsPage() {
 
           <motion.h1
             variants={fadeIn(0.2)}
-            className="font-varien text-4xl font-normal tracking-wider-xl sm:text-5xl md:text-6xl lg:text-7xl text-foreground mb-6"
+            className="font-varien text-4xl font-normal tracking-wider-xl sm:text-5xl md:text-6xl lg:text-7xl text-foreground mb-8"
           >
             About <span className="text-accent">POW</span>
           </motion.h1>
 
           <motion.p
             variants={fadeIn(0.3)}
-            className="mt-6 max-w-4xl mx-auto text-muted-foreground md:text-lg lg:text-xl font-varela leading-relaxed"
+            className="mt-8 max-w-4xl mx-auto text-muted-foreground md:text-lg lg:text-xl font-varela leading-relaxed"
           >
             <Balancer>
               Inspired by KASPER community members, created by the KASPER team, for the KAS community. We're building
@@ -166,7 +166,7 @@ export default function AboutUsPage() {
             </Balancer>
           </motion.p>
 
-          <motion.div variants={fadeIn(0.4)} className="mt-12 flex flex-col sm:flex-row gap-6 justify-center">
+          <motion.div variants={fadeIn(0.4)} className="mt-16 flex flex-col sm:flex-row gap-6 justify-center">
             <Button
               asChild
               size="lg"
