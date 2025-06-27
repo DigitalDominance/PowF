@@ -3,7 +3,20 @@ import { Button } from "@/components/ui/button"
 import type React from "react"
 import { useState } from "react"
 
-import { ArrowRight, Shield, Eye, Lock, Database, Users, Globe, AlertTriangle, CheckCircle, Settings, Mail, ChevronDown, ChevronUp } from 'lucide-react'
+import {
+  ArrowRight,
+  Shield,
+  Eye,
+  Lock,
+  Database,
+  Users,
+  Globe,
+  AlertTriangle,
+  Settings,
+  Mail,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
@@ -43,11 +56,11 @@ const SectionWrapper = ({
   </section>
 )
 
-const CollapsibleSection = ({ 
-  title, 
-  children, 
-  icon 
-}: { 
+const CollapsibleSection = ({
+  title,
+  children,
+  icon,
+}: {
   title: string
   children: React.ReactNode
   icon: React.ReactNode
@@ -61,20 +74,12 @@ const CollapsibleSection = ({
         className="w-full flex items-center justify-between p-6 text-left hover:bg-accent/5 transition-colors rounded-lg"
       >
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-full bg-accent/10">
-            {icon}
-          </div>
-          <h3 className="font-varien text-lg font-normal tracking-wider text-foreground">
-            {title}
-          </h3>
+          <div className="p-2 rounded-full bg-accent/10">{icon}</div>
+          <h3 className="font-varien text-lg font-normal tracking-wider text-foreground">{title}</h3>
         </div>
-        {isOpen ? (
-          <ChevronUp className="h-5 w-5 text-accent" />
-        ) : (
-          <ChevronDown className="h-5 w-5 text-accent" />
-        )}
+        {isOpen ? <ChevronUp className="h-5 w-5 text-accent" /> : <ChevronDown className="h-5 w-5 text-accent" />}
       </button>
-      
+
       {isOpen && (
         <motion.div
           initial={{ height: 0, opacity: 0 }}
@@ -83,9 +88,7 @@ const CollapsibleSection = ({
           transition={{ duration: 0.3 }}
           className="px-6 pb-6"
         >
-          <div className="prose prose-sm max-w-none text-muted-foreground font-varela">
-            {children}
-          </div>
+          <div className="prose prose-sm max-w-none text-muted-foreground font-varela">{children}</div>
         </motion.div>
       )}
     </InteractiveCard>
@@ -97,23 +100,23 @@ export default function PrivacyPolicyPage() {
     {
       icon: <Lock className="h-6 w-6 text-accent" />,
       title: "Data Minimization",
-      description: "We collect only the essential information needed for platform functionality."
+      description: "We collect only the essential information needed for platform functionality.",
     },
     {
       icon: <Shield className="h-6 w-6 text-accent" />,
       title: "Blockchain Transparency",
-      description: "On-chain data is public by design, ensuring complete transparency of transactions."
+      description: "On-chain data is public by design, ensuring complete transparency of transactions.",
     },
     {
       icon: <Eye className="h-6 w-6 text-accent" />,
       title: "User Control",
-      description: "You maintain control over your wallet, private keys, and personal information."
+      description: "You maintain control over your wallet, private keys, and personal information.",
     },
     {
       icon: <Database className="h-6 w-6 text-accent" />,
       title: "Secure Storage",
-      description: "All off-chain data is encrypted and stored using industry-standard security practices."
-    }
+      description: "All off-chain data is encrypted and stored using industry-standard security practices.",
+    },
   ]
 
   return (
@@ -128,26 +131,19 @@ export default function PrivacyPolicyPage() {
         <div className="container px-4 md:px-6 relative z-10">
           <motion.h1
             variants={fadeIn(0.1)}
-            className="font-varien text-4xl font-normal tracking-wider-xl sm:text-5xl md:text-6xl lg:text-7xl text-foreground mb-6"
+            className="font-varien text-4xl font-normal tracking-wider-xl sm:text-5xl md:text-6xl lg:text-7xl text-foreground mb-12"
           >
             Privacy <span className="text-accent">Policy</span>
           </motion.h1>
           <motion.p
             variants={fadeIn(0.2)}
-            className="mt-6 max-w-3xl mx-auto text-muted-foreground md:text-lg lg:text-xl font-varela"
+            className="mt-12 max-w-3xl mx-auto text-muted-foreground md:text-lg lg:text-xl font-varela"
           >
             <Balancer>
-              Your privacy matters to us. Learn how we collect, use, and protect your information 
-              while maintaining the transparency benefits of blockchain technology.
+              Your privacy matters to us. Learn how we collect, use, and protect your information while maintaining the
+              transparency benefits of blockchain technology.
             </Balancer>
           </motion.p>
-          <motion.div
-            variants={fadeIn(0.3)}
-            className="mt-8 text-sm text-muted-foreground font-varela"
-          >
-            <p>Last Updated: {new Date().toLocaleDateString()}</p>
-            <p>Effective Date: {new Date().toLocaleDateString()}</p>
-          </motion.div>
         </div>
       </motion.section>
 
@@ -169,9 +165,7 @@ export default function PrivacyPolicyPage() {
             <motion.div variants={fadeIn(index * 0.1)} key={principle.title}>
               <InteractiveCard className="h-full">
                 <div className="flex items-start gap-4 p-6">
-                  <div className="p-3 rounded-full bg-accent/10 shrink-0">
-                    {principle.icon}
-                  </div>
+                  <div className="p-3 rounded-full bg-accent/10 shrink-0">{principle.icon}</div>
                   <div>
                     <h3 className="font-varien text-lg font-normal tracking-wider text-foreground mb-2">
                       {principle.title}
@@ -190,14 +184,12 @@ export default function PrivacyPolicyPage() {
       {/* Privacy Policy Content */}
       <SectionWrapper id="policy-content" padding="py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
-          
-          <CollapsibleSection 
-            title="1. Information We Collect" 
-            icon={<Database className="h-5 w-5 text-accent" />}
-          >
+          <CollapsibleSection title="1. Information We Collect" icon={<Database className="h-5 w-5 text-accent" />}>
             <div className="space-y-6">
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-3">On-Chain Information (Public)</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-3">
+                  On-Chain Information (Public)
+                </h4>
                 <p className="mb-3">
                   The following information is stored on the Kaspa blockchain and is publicly accessible:
                 </p>
@@ -210,12 +202,12 @@ export default function PrivacyPolicyPage() {
                   <li>Smart contract interactions and timestamps</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-3">Off-Chain Information (Private)</h4>
-                <p className="mb-3">
-                  We collect minimal off-chain information for platform functionality:
-                </p>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-3">
+                  Off-Chain Information (Private)
+                </h4>
+                <p className="mb-3">We collect minimal off-chain information for platform functionality:</p>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Display names and profile information (optional)</li>
                   <li>Email addresses for notifications (optional)</li>
@@ -224,9 +216,11 @@ export default function PrivacyPolicyPage() {
                   <li>Technical logs for debugging and security</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-3">Automatically Collected Information</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-3">
+                  Automatically Collected Information
+                </h4>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>IP addresses and browser information</li>
                   <li>Device identifiers and operating system</li>
@@ -237,16 +231,16 @@ export default function PrivacyPolicyPage() {
             </div>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            title="2. How We Use Your Information" 
+          <CollapsibleSection
+            title="2. How We Use Your Information"
             icon={<Settings className="h-5 w-5 text-accent" />}
           >
-            <p className="mb-4">
-              We use collected information for the following purposes:
-            </p>
+            <p className="mb-4">We use collected information for the following purposes:</p>
             <div className="space-y-4">
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Platform Operation</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Platform Operation
+                </h4>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Facilitating job postings and applications</li>
                   <li>Processing smart contract transactions</li>
@@ -254,9 +248,11 @@ export default function PrivacyPolicyPage() {
                   <li>Maintaining reputation systems</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Security and Fraud Prevention</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Security and Fraud Prevention
+                </h4>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Detecting and preventing fraudulent activities</li>
                   <li>Monitoring for platform abuse</li>
@@ -264,9 +260,11 @@ export default function PrivacyPolicyPage() {
                   <li>Investigating disputes and violations</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Platform Improvement</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Platform Improvement
+                </h4>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Analyzing usage patterns to improve features</li>
                   <li>Optimizing platform performance</li>
@@ -277,16 +275,16 @@ export default function PrivacyPolicyPage() {
             </div>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            title="3. Information Sharing and Disclosure" 
+          <CollapsibleSection
+            title="3. Information Sharing and Disclosure"
             icon={<Globe className="h-5 w-5 text-accent" />}
           >
-            <p className="mb-4">
-              We share information in the following limited circumstances:
-            </p>
+            <p className="mb-4">We share information in the following limited circumstances:</p>
             <div className="space-y-4">
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Public Blockchain Data</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Public Blockchain Data
+                </h4>
                 <p className="mb-2">
                   All on-chain information is publicly accessible by design of blockchain technology. This includes:
                 </p>
@@ -297,9 +295,11 @@ export default function PrivacyPolicyPage() {
                   <li>Dispute records and resolutions</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Service Providers</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Service Providers
+                </h4>
                 <p className="mb-2">
                   We may share limited information with trusted service providers who assist in platform operation:
                 </p>
@@ -310,12 +310,12 @@ export default function PrivacyPolicyPage() {
                   <li>Security and fraud prevention tools</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Legal Requirements</h4>
-                <p className="mb-2">
-                  We may disclose information when required by law or to:
-                </p>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Legal Requirements
+                </h4>
+                <p className="mb-2">We may disclose information when required by law or to:</p>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Comply with legal processes and government requests</li>
                   <li>Enforce our Terms of Service</li>
@@ -326,16 +326,13 @@ export default function PrivacyPolicyPage() {
             </div>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            title="4. Data Security" 
-            icon={<Shield className="h-5 w-5 text-accent" />}
-          >
-            <p className="mb-4">
-              We implement comprehensive security measures to protect your information:
-            </p>
+          <CollapsibleSection title="4. Data Security" icon={<Shield className="h-5 w-5 text-accent" />}>
+            <p className="mb-4">We implement comprehensive security measures to protect your information:</p>
             <div className="space-y-4">
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Technical Safeguards</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Technical Safeguards
+                </h4>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>End-to-end encryption for private communications</li>
                   <li>Secure HTTPS connections for all platform interactions</li>
@@ -344,9 +341,11 @@ export default function PrivacyPolicyPage() {
                   <li>Automated threat detection and response</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Operational Security</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Operational Security
+                </h4>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Limited access to personal data on need-to-know basis</li>
                   <li>Regular employee security training</li>
@@ -354,9 +353,11 @@ export default function PrivacyPolicyPage() {
                   <li>Data backup and recovery systems</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Blockchain Security</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Blockchain Security
+                </h4>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Smart contracts audited by security professionals</li>
                   <li>Immutable transaction records</li>
@@ -367,49 +368,51 @@ export default function PrivacyPolicyPage() {
             </div>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            title="5. Your Privacy Rights" 
-            icon={<Users className="h-5 w-5 text-accent" />}
-          >
-            <p className="mb-4">
-              You have the following rights regarding your personal information:
-            </p>
+          <CollapsibleSection title="5. Your Privacy Rights" icon={<Users className="h-5 w-5 text-accent" />}>
+            <p className="mb-4">You have the following rights regarding your personal information:</p>
             <div className="space-y-4">
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Access and Portability</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Access and Portability
+                </h4>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Request copies of your personal data</li>
                   <li>Export your data in machine-readable formats</li>
                   <li>View all on-chain data through blockchain explorers</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Correction and Updates</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Correction and Updates
+                </h4>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Update your profile information and preferences</li>
                   <li>Correct inaccurate personal data</li>
                   <li>Modify communication preferences</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Deletion and Restriction</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Deletion and Restriction
+                </h4>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Request deletion of off-chain personal data</li>
                   <li>Restrict processing of your information</li>
                   <li>Opt out of non-essential communications</li>
                 </ul>
                 <p className="mt-2 text-sm bg-accent/10 p-3 rounded border border-accent/20">
-                  <strong>Note:</strong> On-chain data cannot be deleted due to the immutable nature of blockchain technology.
+                  <strong>Note:</strong> On-chain data cannot be deleted due to the immutable nature of blockchain
+                  technology.
                 </p>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Exercising Your Rights</h4>
-                <p className="mb-2">
-                  To exercise these rights, contact us at privacy@proofofworks.io with:
-                </p>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Exercising Your Rights
+                </h4>
+                <p className="mb-2">To exercise these rights, contact us at privacy@proofofworks.io with:</p>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Your wallet address for verification</li>
                   <li>Specific request details</li>
@@ -419,16 +422,13 @@ export default function PrivacyPolicyPage() {
             </div>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            title="6. Cookies and Tracking" 
-            icon={<Eye className="h-5 w-5 text-accent" />}
-          >
-            <p className="mb-4">
-              We use cookies and similar technologies to enhance your platform experience:
-            </p>
+          <CollapsibleSection title="6. Cookies and Tracking" icon={<Eye className="h-5 w-5 text-accent" />}>
+            <p className="mb-4">We use cookies and similar technologies to enhance your platform experience:</p>
             <div className="space-y-4">
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Essential Cookies</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Essential Cookies
+                </h4>
                 <p className="mb-2">Required for basic platform functionality:</p>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Authentication and session management</li>
@@ -436,9 +436,11 @@ export default function PrivacyPolicyPage() {
                   <li>Platform preferences and settings</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Analytics Cookies</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Analytics Cookies
+                </h4>
                 <p className="mb-2">Help us understand platform usage (can be disabled):</p>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Page views and user interactions</li>
@@ -446,9 +448,11 @@ export default function PrivacyPolicyPage() {
                   <li>Feature usage and adoption rates</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Managing Cookies</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Managing Cookies
+                </h4>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Configure preferences in your browser settings</li>
                   <li>Use our cookie preference center</li>
@@ -458,13 +462,8 @@ export default function PrivacyPolicyPage() {
             </div>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            title="7. International Data Transfers" 
-            icon={<Globe className="h-5 w-5 text-accent" />}
-          >
-            <p className="mb-4">
-              POW operates globally, and your information may be transferred internationally:
-            </p>
+          <CollapsibleSection title="7. International Data Transfers" icon={<Globe className="h-5 w-5 text-accent" />}>
+            <p className="mb-4">POW operates globally, and your information may be transferred internationally:</p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>Blockchain data is distributed across global nodes</li>
               <li>Off-chain data may be stored in secure data centers worldwide</li>
@@ -472,15 +471,12 @@ export default function PrivacyPolicyPage() {
               <li>Transfers comply with applicable data protection laws</li>
             </ul>
             <p className="bg-accent/10 p-4 rounded border border-accent/20">
-              <strong>EU Users:</strong> We provide appropriate safeguards for data transfers outside the EU, 
-              including Standard Contractual Clauses and adequacy decisions where applicable.
+              <strong>EU Users:</strong> We provide appropriate safeguards for data transfers outside the EU, including
+              Standard Contractual Clauses and adequacy decisions where applicable.
             </p>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            title="8. Data Retention" 
-            icon={<Database className="h-5 w-5 text-accent" />}
-          >
+          <CollapsibleSection title="8. Data Retention" icon={<Database className="h-5 w-5 text-accent" />}>
             <p className="mb-4">
               We retain information for different periods based on data type and legal requirements:
             </p>
@@ -493,9 +489,11 @@ export default function PrivacyPolicyPage() {
                   <li>Publicly accessible indefinitely</li>
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Off-Chain Data</h4>
+                <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">
+                  Off-Chain Data
+                </h4>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Profile information: Until account deletion</li>
                   <li>Private messages: 2 years after last activity</li>
@@ -503,24 +501,19 @@ export default function PrivacyPolicyPage() {
                   <li>Security logs: 1 year</li>
                 </ul>
               </div>
-              
+
               <div>
                 <h4 className="font-varien text-base font-normal tracking-wider text-foreground mb-2">Legal Hold</h4>
                 <p>
-                  We may retain data longer when required for legal proceedings, 
-                  regulatory compliance, or legitimate business purposes.
+                  We may retain data longer when required for legal proceedings, regulatory compliance, or legitimate
+                  business purposes.
                 </p>
               </div>
             </div>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            title="9. Children's Privacy" 
-            icon={<AlertTriangle className="h-5 w-5 text-accent" />}
-          >
-            <p className="mb-4">
-              POW is not intended for use by individuals under 18 years of age:
-            </p>
+          <CollapsibleSection title="9. Children's Privacy" icon={<AlertTriangle className="h-5 w-5 text-accent" />}>
+            <p className="mb-4">POW is not intended for use by individuals under 18 years of age:</p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>We do not knowingly collect information from minors</li>
               <li>Users must be 18+ to create accounts or use platform services</li>
@@ -528,18 +521,13 @@ export default function PrivacyPolicyPage() {
               <li>We will delete any information from minors upon discovery</li>
             </ul>
             <p className="bg-accent/10 p-4 rounded border border-accent/20">
-              If you believe a minor has provided information to us, please contact us immediately 
-              at privacy@proofofworks.io so we can take appropriate action.
+              If you believe a minor has provided information to us, please contact us immediately at
+              privacy@proofofworks.io so we can take appropriate action.
             </p>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            title="10. Privacy Policy Updates" 
-            icon={<Settings className="h-5 w-5 text-accent" />}
-          >
-            <p className="mb-4">
-              We may update this Privacy Policy periodically to reflect:
-            </p>
+          <CollapsibleSection title="10. Privacy Policy Updates" icon={<Settings className="h-5 w-5 text-accent" />}>
+            <p className="mb-4">We may update this Privacy Policy periodically to reflect:</p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>Changes in our data practices</li>
               <li>New platform features or services</li>
@@ -557,18 +545,21 @@ export default function PrivacyPolicyPage() {
             </ul>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            title="11. Contact Information" 
-            icon={<Mail className="h-5 w-5 text-accent" />}
-          >
-            <p className="mb-4">
-              For privacy-related questions, concerns, or requests, please contact us:
-            </p>
+          <CollapsibleSection title="11. Contact Information" icon={<Mail className="h-5 w-5 text-accent" />}>
+            <p className="mb-4">For privacy-related questions, concerns, or requests, please contact us:</p>
             <div className="bg-accent/5 p-4 rounded-lg border border-accent/20 mb-4">
-              <p className="mb-2"><strong>Privacy Officer:</strong> privacy@proofofworks.io</p>
-              <p className="mb-2"><strong>General Support:</strong> support@proofofworks.io</p>
-              <p className="mb-2"><strong>Data Protection Officer:</strong> dpo@proofofworks.io</p>
-              <p><strong>Mailing Address:</strong> [Company Address]</p>
+              <p className="mb-2">
+                <strong>Privacy Officer:</strong> privacy@proofofworks.io
+              </p>
+              <p className="mb-2">
+                <strong>General Support:</strong> support@proofofworks.io
+              </p>
+              <p className="mb-2">
+                <strong>Data Protection Officer:</strong> dpo@proofofworks.io
+              </p>
+              <p>
+                <strong>Mailing Address:</strong> [Company Address]
+              </p>
             </div>
             <p className="mb-4">
               <strong>Response Times:</strong>
@@ -580,7 +571,6 @@ export default function PrivacyPolicyPage() {
               <li>Legal requests: As required by law</li>
             </ul>
           </CollapsibleSection>
-
         </div>
       </SectionWrapper>
 
@@ -611,13 +601,29 @@ export default function PrivacyPolicyPage() {
                 asChild
                 size="lg"
                 variant="outline"
-                className="font-varien shadow-lg hover:shadow-md transition-all duration-300 transform hover:scale-105 group border-accent/50 hover:bg-accent/10 hover:text-accent tracking-wider"
+                className="font-varien shadow-lg hover:shadow-md transition-all duration-300 transform hover:scale-105 group border-accent/50 hover:bg-accent/10 hover:text-accent tracking-wider bg-transparent"
               >
                 <Link href="/terms">
                   View Terms of Service
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
+            </div>
+          </InteractiveCard>
+        </motion.div>
+      </SectionWrapper>
+
+      {/* Document Information */}
+      <SectionWrapper id="document-info" padding="py-8">
+        <motion.div variants={fadeIn()} className="text-center">
+          <InteractiveCard className="max-w-md mx-auto p-6">
+            <div className="text-sm text-muted-foreground font-varela space-y-2">
+              <p>
+                <strong>Last Updated:</strong> 6/26/2025
+              </p>
+              <p>
+                <strong>Effective Date:</strong> 6/26/2025
+              </p>
             </div>
           </InteractiveCard>
         </motion.div>
