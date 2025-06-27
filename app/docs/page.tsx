@@ -1,10 +1,8 @@
 "use client"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type React from "react"
-import { useState } from "react"
 
 import {
   BookOpen,
@@ -13,12 +11,9 @@ import {
   Users,
   Shield,
   DollarSign,
-  Search,
   ExternalLink,
   Copy,
-  CheckCircle,
   AlertTriangle,
-  Lightbulb,
   FileText,
   Settings,
   Globe,
@@ -72,42 +67,7 @@ const SectionWrapper = ({
   </section>
 )
 
-const CodeBlock = ({
-  title,
-  code,
-  language = "javascript",
-}: {
-  title: string
-  code: string
-  language?: string
-}) => {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code)
-    setCopied(true)
-    toast.success("Code copied to clipboard!")
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <div className="bg-muted/50 rounded-lg border border-border overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 bg-muted border-b border-border">
-        <span className="text-sm font-medium text-foreground font-varien">{title}</span>
-        <Button variant="ghost" size="sm" onClick={handleCopy} className="h-8 w-8 p-0">
-          {copied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-        </Button>
-      </div>
-      <pre className="p-4 overflow-x-auto">
-        <code className="text-sm font-mono text-foreground font-varela">{code}</code>
-      </pre>
-    </div>
-  )
-}
-
 export default function DocumentationPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-
   const quickStartSteps = [
     {
       icon: <Wallet className="h-6 w-6 text-accent" />,
@@ -131,45 +91,12 @@ export default function DocumentationPage() {
     },
   ]
 
-  const apiEndpoints = [
-    {
-      method: "GET",
-      endpoint: "/api/jobs",
-      description: "Retrieve all active job listings",
-      params: "?page=1&limit=10&category=development",
-    },
-    {
-      method: "POST",
-      endpoint: "/api/jobs",
-      description: "Create a new job listing",
-      params: "{ title, description, payAmount, payType }",
-    },
-    {
-      method: "GET",
-      endpoint: "/api/jobs/:id/applicants",
-      description: "Get applicants for a specific job",
-      params: "Authorization: Bearer <token>",
-    },
-    {
-      method: "POST",
-      endpoint: "/api/disputes",
-      description: "Create a new dispute",
-      params: "{ jobId, reason, evidence }",
-    },
-  ]
-
   const smartContracts = [
     {
       name: "JobFactory",
       address: "0x1234...5678",
       description: "Creates and manages job contracts",
       functions: ["createJob", "getJobsByEmployer", "getAllJobs"],
-    },
-    {
-      name: "ProofOfWorkJob",
-      address: "0xabcd...efgh",
-      description: "Individual job contract with payment logic",
-      functions: ["submitApplication", "acceptApplication", "makePayment"],
     },
     {
       name: "DisputeDAO",
@@ -204,19 +131,6 @@ export default function DocumentationPage() {
               platform.
             </Balancer>
           </motion.p>
-
-          {/* Search Bar */}
-          <motion.div variants={fadeIn(0.3)} className="mt-8 max-w-md mx-auto">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search documentation..."
-                className="pl-10 border-accent/30 focus:border-accent font-varela"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </motion.div>
         </div>
       </motion.section>
 
@@ -264,22 +178,14 @@ export default function DocumentationPage() {
       {/* Documentation Tabs */}
       <SectionWrapper id="docs-content" padding="py-8 md:py-12">
         <Tabs defaultValue="user-guide" className="w-full">
-          <TabsList className="grid grid-cols-2 lg:grid-cols-4 mb-8 font-varien">
+          <TabsList className="grid grid-cols-2 mb-8 font-varien">
             <TabsTrigger value="user-guide" className="text-sm">
               <BookOpen className="mr-2 h-4 w-4" />
               User Guide
             </TabsTrigger>
-            <TabsTrigger value="api" className="text-sm">
-              <Code className="mr-2 h-4 w-4" />
-              API Reference
-            </TabsTrigger>
             <TabsTrigger value="smart-contracts" className="text-sm">
               <Shield className="mr-2 h-4 w-4" />
               Smart Contracts
-            </TabsTrigger>
-            <TabsTrigger value="examples" className="text-sm">
-              <Lightbulb className="mr-2 h-4 w-4" />
-              Examples
             </TabsTrigger>
           </TabsList>
 
@@ -461,90 +367,6 @@ export default function DocumentationPage() {
             </div>
           </TabsContent>
 
-          {/* API Reference Tab */}
-          <TabsContent value="api" className="space-y-8">
-            <div className="text-center mb-8">
-              <h3 className="font-varien text-2xl font-normal tracking-wider text-foreground mb-4">
-                API <span className="text-accent">Reference</span>
-              </h3>
-              <p className="text-muted-foreground font-varela max-w-2xl mx-auto">
-                <Balancer>
-                  RESTful API endpoints for integrating with the POW platform. All endpoints require authentication.
-                </Balancer>
-              </p>
-            </div>
-
-            {/* Base URL */}
-            <InteractiveCard>
-              <div className="p-6">
-                <h4 className="font-varien text-lg font-normal tracking-wider text-foreground mb-4">Base URL</h4>
-                <CodeBlock title="Production Endpoint" code="https://api.proofofworks.io/v1" />
-                <div className="mt-4 p-4 bg-accent/10 rounded border border-accent/20">
-                  <p className="text-sm text-muted-foreground font-varela">
-                    <strong>Authentication:</strong> Include your API key in the Authorization header:
-                    <code className="ml-2 px-2 py-1 bg-muted rounded text-xs">Bearer YOUR_API_KEY</code>
-                  </p>
-                </div>
-              </div>
-            </InteractiveCard>
-
-            {/* API Endpoints */}
-            <div className="space-y-6">
-              {apiEndpoints.map((endpoint, index) => (
-                <InteractiveCard key={index}>
-                  <div className="p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Badge
-                        variant={endpoint.method === "GET" ? "secondary" : "default"}
-                        className={`font-mono ${
-                          endpoint.method === "GET"
-                            ? "bg-green-500/20 text-green-600 border-green-500/30"
-                            : "bg-blue-500/20 text-blue-600 border-blue-500/30"
-                        }`}
-                      >
-                        {endpoint.method}
-                      </Badge>
-                      <code className="font-mono text-sm text-foreground font-varela">{endpoint.endpoint}</code>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-4 font-varela">{endpoint.description}</p>
-                    <CodeBlock
-                      title="Example Request"
-                      code={`curl -X ${endpoint.method} "https://api.proofofworks.io/v1${endpoint.endpoint}${endpoint.params.startsWith("{") ? "" : endpoint.params}" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json"${
-    endpoint.params.startsWith("{")
-      ? ` \\
-  -d '${endpoint.params}'`
-      : ""
-  }`}
-                    />
-                  </div>
-                </InteractiveCard>
-              ))}
-            </div>
-
-            {/* Rate Limits */}
-            <InteractiveCard>
-              <div className="p-6">
-                <h4 className="font-varien text-lg font-normal tracking-wider text-foreground mb-4">Rate Limits</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                  <div className="p-4 bg-muted/50 rounded">
-                    <div className="text-2xl font-bold text-accent font-varien">1000</div>
-                    <div className="text-sm text-muted-foreground font-varela">Requests per hour</div>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded">
-                    <div className="text-2xl font-bold text-accent font-varien">100</div>
-                    <div className="text-sm text-muted-foreground font-varela">Requests per minute</div>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded">
-                    <div className="text-2xl font-bold text-accent font-varien">10</div>
-                    <div className="text-sm text-muted-foreground font-varela">Concurrent requests</div>
-                  </div>
-                </div>
-              </div>
-            </InteractiveCard>
-          </TabsContent>
-
           {/* Smart Contracts Tab */}
           <TabsContent value="smart-contracts" className="space-y-8">
             <div className="text-center mb-8">
@@ -552,7 +374,7 @@ export default function DocumentationPage() {
                 Smart <span className="text-accent">Contracts</span>
               </h3>
               <p className="text-muted-foreground font-varela max-w-2xl mx-auto">
-                <Balancer>Deployed smart contracts on Kaspa EVM. All contracts are verified and open source.</Balancer>
+                <Balancer>Deployed smart contracts on Kasplex L2. All contracts are verified and open source.</Balancer>
               </p>
             </div>
 
@@ -566,9 +388,11 @@ export default function DocumentationPage() {
                         {contract.name}
                       </h4>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="font-varien bg-transparent">
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          View on Explorer
+                        <Button asChild variant="outline" size="sm" className="font-varien bg-transparent">
+                          <Link href={`https://frontend.kasplextest.xyz/address/${contract.address}`} target="_blank">
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            View on Explorer
+                          </Link>
                         </Button>
                         <Button variant="outline" size="sm" className="font-varien bg-transparent">
                           <Github className="mr-2 h-4 w-4" />
@@ -619,9 +443,18 @@ export default function DocumentationPage() {
                 <h4 className="font-varien text-lg font-normal tracking-wider text-foreground mb-4">
                   Integration Example
                 </h4>
-                <CodeBlock
-                  title="Connecting to JobFactory Contract"
-                  code={`import { ethers } from 'ethers';
+                <div className="bg-muted/50 rounded-lg border border-border overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2 bg-muted border-b border-border">
+                    <span className="text-sm font-medium text-foreground font-varien">
+                      Connecting to JobFactory Contract
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <pre className="p-4 overflow-x-auto">
+                    <code className="text-sm font-mono text-foreground font-varela">
+                      {`import { ethers } from 'ethers';
 import JobFactoryABI from './JobFactory.json';
 
 // Connect to Kaspa EVM
@@ -651,415 +484,9 @@ const tx = await jobFactory.createJob(
 
 await tx.wait();
 console.log('Job created successfully!');`}
-                />
-              </div>
-            </InteractiveCard>
-
-            {/* ABI Downloads */}
-            <InteractiveCard>
-              <div className="p-6">
-                <h4 className="font-varien text-lg font-normal tracking-wider text-foreground mb-4">Contract ABIs</h4>
-                <p className="text-sm text-muted-foreground mb-4 font-varela">
-                  Download the Application Binary Interface (ABI) files for contract integration:
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {smartContracts.map((contract) => (
-                    <Button
-                      key={contract.name}
-                      variant="outline"
-                      className="font-varien border-accent/50 hover:bg-accent/10 bg-transparent"
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      {contract.name}.json
-                    </Button>
-                  ))}
+                    </code>
+                  </pre>
                 </div>
-              </div>
-            </InteractiveCard>
-          </TabsContent>
-
-          {/* Examples Tab */}
-          <TabsContent value="examples" className="space-y-8">
-            <div className="text-center mb-8">
-              <h3 className="font-varien text-2xl font-normal tracking-wider text-foreground mb-4">
-                Code <span className="text-accent">Examples</span>
-              </h3>
-              <p className="text-muted-foreground font-varela max-w-2xl mx-auto">
-                <Balancer>Practical examples and code snippets to help you integrate with POW.</Balancer>
-              </p>
-            </div>
-
-            {/* Frontend Integration */}
-            <InteractiveCard>
-              <div className="p-6">
-                <h4 className="font-varien text-lg font-normal tracking-wider text-foreground mb-4">
-                  Frontend Integration
-                </h4>
-                <CodeBlock
-                  title="React Component for Job Listing"
-                  code={`import React, { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
-
-const JobListing = () => {
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchJobs();
-  }, []);
-
-  const fetchJobs = async () => {
-    try {
-      const response = await fetch('https://api.proofofworks.io/v1/jobs', {
-        headers: {
-          'Authorization': 'Bearer YOUR_API_KEY'
-        }
-      });
-      const data = await response.json();
-      setJobs(data.jobs);
-    } catch (error) {
-      console.error('Error fetching jobs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const applyToJob = async (jobId) => {
-    if (!window.ethereum) {
-      alert('Please install MetaMask');
-      return;
-    }
-
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      
-      // Submit application logic here
-      console.log('Applying to job:', jobId);
-    } catch (error) {
-      console.error('Error applying to job:', error);
-    }
-  };
-
-  if (loading) return <div>Loading jobs...</div>;
-
-  return (
-    <div className="job-listings">
-      {jobs.map(job => (
-        <div key={job.id} className="job-card">
-          <h3>{job.title}</h3>
-          <p>{job.description}</p>
-          <p>Pay: {job.payAmount} KAS</p>
-          <button onClick={() => applyToJob(job.id)}>
-            Apply Now
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-export default JobListing;`}
-                />
-              </div>
-            </InteractiveCard>
-
-            {/* Backend Integration */}
-            <InteractiveCard>
-              <div className="p-6">
-                <h4 className="font-varien text-lg font-normal tracking-wider text-foreground mb-4">
-                  Backend Integration
-                </h4>
-                <CodeBlock
-                  title="Node.js API Integration"
-                  code={`const express = require('express');
-const { ethers } = require('ethers');
-const JobFactoryABI = require('./contracts/JobFactory.json');
-
-const app = express();
-app.use(express.json());
-
-// Initialize blockchain connection
-const provider = new ethers.JsonRpcProvider('https://rpc.kaspa-evm.io');
-const jobFactory = new ethers.Contract(
-  process.env.JOB_FACTORY_ADDRESS,
-  JobFactoryABI,
-  provider
-);
-
-// Create job endpoint
-app.post('/api/jobs', async (req, res) => {
-  try {
-    const { 
-      employerAddress, 
-      title, 
-      description, 
-      payAmount, 
-      payType 
-    } = req.body;
-
-    // Validate input
-    if (!employerAddress || !title || !payAmount) {
-      return res.status(400).json({ 
-        error: 'Missing required fields' 
-      });
-    }
-
-    // Create job on blockchain
-    const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-    const jobFactoryWithSigner = jobFactory.connect(signer);
-
-    const tx = await jobFactoryWithSigner.createJob(
-      employerAddress,
-      payType === 'weekly' ? 0 : 1,
-      ethers.parseEther(payAmount.toString()),
-      // ... other parameters
-    );
-
-    const receipt = await tx.wait();
-    
-    res.json({
-      success: true,
-      jobAddress: receipt.logs[0].address,
-      transactionHash: receipt.hash
-    });
-
-  } catch (error) {
-    console.error('Error creating job:', error);
-    res.status(500).json({ error: 'Failed to create job' });
-  }
-});
-
-// Get jobs endpoint
-app.get('/api/jobs', async (req, res) => {
-  try {
-    const { page = 1, limit = 10 } = req.query;
-    
-    // Fetch jobs from blockchain events
-    const filter = jobFactory.filters.JobCreated();
-    const events = await jobFactory.queryFilter(filter);
-    
-    const jobs = events.map(event => ({
-      id: event.args.jobAddress,
-      title: event.args.title,
-      employer: event.args.employer,
-      payAmount: ethers.formatEther(event.args.totalPay),
-      createdAt: new Date(event.args.timestamp * 1000)
-    }));
-
-    // Implement pagination
-    const startIndex = (page - 1) * limit;
-    const paginatedJobs = jobs.slice(startIndex, startIndex + limit);
-
-    res.json({
-      jobs: paginatedJobs,
-      total: jobs.length,
-      page: parseInt(page),
-      totalPages: Math.ceil(jobs.length / limit)
-    });
-
-  } catch (error) {
-    console.error('Error fetching jobs:', error);
-    res.status(500).json({ error: 'Failed to fetch jobs' });
-  }
-});
-
-app.listen(3000, () => {
-  console.log('POW API server running on port 3000');
-});`}
-                />
-              </div>
-            </InteractiveCard>
-
-            {/* Webhook Integration */}
-            <InteractiveCard>
-              <div className="p-6">
-                <h4 className="font-varien text-lg font-normal tracking-wider text-foreground mb-4">
-                  Webhook Integration
-                </h4>
-                <CodeBlock
-                  title="Handling POW Webhooks"
-                  code={`const express = require('express');
-const crypto = require('crypto');
-
-const app = express();
-app.use(express.raw({ type: 'application/json' }));
-
-// Webhook endpoint
-app.post('/webhooks/pow', (req, res) => {
-  const signature = req.headers['x-pow-signature'];
-  const payload = req.body;
-
-  // Verify webhook signature
-  const expectedSignature = crypto
-    .createHmac('sha256', process.env.WEBHOOK_SECRET)
-    .update(payload)
-    .digest('hex');
-
-  if (signature !== \`sha256=\${expectedSignature}\`) {
-    return res.status(401).send('Invalid signature');
-  }
-
-  const event = JSON.parse(payload);
-
-  // Handle different event types
-  switch (event.type) {
-    case 'job.created':
-      handleJobCreated(event.data);
-      break;
-    
-    case 'application.submitted':
-      handleApplicationSubmitted(event.data);
-      break;
-    
-    case 'payment.completed':
-      handlePaymentCompleted(event.data);
-      break;
-    
-    case 'dispute.opened':
-      handleDisputeOpened(event.data);
-      break;
-    
-    default:
-      console.log('Unknown event type:', event.type);
-  }
-
-  res.status(200).send('OK');
-});
-
-const handleJobCreated = (data) => {
-  console.log('New job created:', data.jobId);
-  // Send notification to relevant users
-  // Update your database
-  // Trigger other business logic
-};
-
-const handleApplicationSubmitted = (data) => {
-  console.log('New application:', data.applicationId);
-  // Notify employer
-  // Update application status
-};
-
-const handlePaymentCompleted = (data) => {
-  console.log('Payment completed:', data.paymentId);
-  // Update payment records
-  // Send confirmation to worker
-};
-
-const handleDisputeOpened = (data) => {
-  console.log('Dispute opened:', data.disputeId);
-  // Notify relevant parties
-  // Alert dispute resolution team
-};
-
-app.listen(3001, () => {
-  console.log('Webhook server running on port 3001');
-});`}
-                />
-              </div>
-            </InteractiveCard>
-
-            {/* Mobile SDK */}
-            <InteractiveCard>
-              <div className="p-6">
-                <h4 className="font-varien text-lg font-normal tracking-wider text-foreground mb-4">
-                  Mobile SDK (React Native)
-                </h4>
-                <CodeBlock
-                  title="React Native Integration"
-                  code={`import React, { useState } from 'react';
-import { View, Text, Button, Alert } from 'react-native';
-import { WalletConnect } from '@walletconnect/react-native';
-
-const POWMobileApp = () => {
-  const [connected, setConnected] = useState(false);
-  const [account, setAccount] = useState('');
-
-  const connectWallet = async () => {
-    try {
-      // Initialize WalletConnect
-      const connector = new WalletConnect({
-        bridge: 'https://bridge.walletconnect.org',
-        qrcodeModal: QRCodeModal,
-      });
-
-      if (!connector.connected) {
-        await connector.createSession();
-      }
-
-      connector.on('connect', (error, payload) => {
-        if (error) {
-          throw error;
-        }
-
-        const { accounts } = payload.params[0];
-        setAccount(accounts[0]);
-        setConnected(true);
-      });
-
-    } catch (error) {
-      Alert.alert('Error', 'Failed to connect wallet');
-    }
-  };
-
-  const fetchJobs = async () => {
-    try {
-      const response = await fetch('https://api.proofofworks.io/v1/jobs');
-      const data = await response.json();
-      return data.jobs;
-    } catch (error) {
-      Alert.alert('Error', 'Failed to fetch jobs');
-    }
-  };
-
-  const applyToJob = async (jobId) => {
-    if (!connected) {
-      Alert.alert('Error', 'Please connect your wallet first');
-      return;
-    }
-
-    try {
-      // Submit application via API
-      const response = await fetch(\`https://api.proofofworks.io/v1/jobs/\${jobId}/apply\`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': \`Bearer \${API_KEY}\`
-        },
-        body: JSON.stringify({
-          applicantAddress: account,
-          coverLetter: 'Your application text here'
-        })
-      });
-
-      if (response.ok) {
-        Alert.alert('Success', 'Application submitted successfully!');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to submit application');
-    }
-  };
-
-  return (
-    <View style={{ flex: 1, padding: 20 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20 }}>
-        POW Mobile
-      </Text>
-      
-      {!connected ? (
-        <Button title="Connect Wallet" onPress={connectWallet} />
-      ) : (
-        <View>
-          <Text>Connected: {account.substring(0, 6)}...{account.substring(38)}</Text>
-          <Button title="Browse Jobs" onPress={fetchJobs} />
-        </View>
-      )}
-    </View>
-  );
-};
-
-export default POWMobileApp;`}
-                />
               </div>
             </InteractiveCard>
           </TabsContent>
