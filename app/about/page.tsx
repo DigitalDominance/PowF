@@ -120,7 +120,7 @@ export default function AboutUsPage() {
   ]
 
   const stats = [
-    { number: "100%", label: "Decentralized", icon: <Globe className="h-8 w-8 text-accent" /> },
+    { number: "100%", label: "Decentralized Jobs", icon: <Globe className="h-8 w-8 text-accent" /> },
     { number: "0.75%", label: "Platform Fee", icon: <TrendingUp className="h-8 w-8 text-accent" /> },
     { number: "24/7", label: "Automated Payments", icon: <Zap className="h-8 w-8 text-accent" /> },
     { number: "∞", label: "Reputation Permanence", icon: <Award className="h-8 w-8 text-accent" /> },
