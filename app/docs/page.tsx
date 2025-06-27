@@ -4,25 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type React from "react"
 
-import {
-  BookOpen,
-  Code,
-  Zap,
-  Users,
-  Shield,
-  DollarSign,
-  ExternalLink,
-  Copy,
-  Globe,
-  Wallet,
-  MessageSquare,
-  Scale,
-  Lock,
-  Eye,
-  ChevronRight,
-  Play,
-  Github,
-} from "lucide-react"
+import { BookOpen, Code, Zap, Users, Shield, DollarSign, ExternalLink, Copy, Globe, Wallet, MessageSquare, Scale, Lock, Eye, ChevronRight, Play, Github } from 'lucide-react'
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
@@ -114,13 +96,13 @@ export default function DocumentationPage() {
         <div className="container px-4 md:px-6 relative z-10">
           <motion.h1
             variants={fadeIn(0.1)}
-            className="font-varien text-4xl font-normal tracking-wider-xl sm:text-5xl md:text-6xl lg:text-7xl text-foreground mb-6"
+            className="font-varien text-4xl font-normal tracking-wider-xl sm:text-5xl md:text-6xl lg:text-7xl text-foreground mb-12"
           >
             <span className="text-accent">Documentation</span>
           </motion.h1>
           <motion.p
             variants={fadeIn(0.2)}
-            className="mt-6 max-w-3xl mx-auto text-muted-foreground md:text-lg lg:text-xl font-varela"
+            className="mt-12 max-w-3xl mx-auto text-muted-foreground md:text-lg lg:text-xl font-varela"
           >
             <Balancer>
               Complete guides, API references, and smart contract documentation for building on the Proof Of Works
