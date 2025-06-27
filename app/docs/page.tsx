@@ -4,7 +4,25 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type React from "react"
 
-import { BookOpen, Code, Zap, Users, Shield, DollarSign, ExternalLink, Copy, Globe, Wallet, MessageSquare, Scale, Lock, Eye, ChevronRight, Play, Github } from 'lucide-react'
+import {
+  BookOpen,
+  Code,
+  Zap,
+  Users,
+  Shield,
+  DollarSign,
+  ExternalLink,
+  Copy,
+  Globe,
+  Wallet,
+  MessageSquare,
+  Scale,
+  Lock,
+  Eye,
+  ChevronRight,
+  Play,
+  Github,
+} from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
@@ -105,7 +123,7 @@ export default function DocumentationPage() {
             className="mt-12 max-w-3xl mx-auto text-muted-foreground md:text-lg lg:text-xl font-varela"
           >
             <Balancer>
-              Complete guides, references, and smart contract documentation for building on the Proof Of Works
+              Complete guides, API references, and smart contract documentation for building on the Proof Of Works
               platform.
             </Balancer>
           </motion.p>
@@ -361,20 +379,27 @@ export default function DocumentationPage() {
               {smartContracts.map((contract, index) => (
                 <InteractiveCard key={index}>
                   <div className="p-6">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
                       <h4 className="font-varien text-lg font-normal tracking-wider text-foreground">
                         {contract.name}
                       </h4>
-                      <div className="flex gap-2">
-                        <Button asChild variant="outline" size="sm" className="font-varien bg-transparent">
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="font-varien bg-transparent text-xs sm:text-sm"
+                        >
                           <Link href={`https://frontend.kasplextest.xyz/address/${contract.address}`} target="_blank">
                             <ExternalLink className="mr-2 h-4 w-4" />
-                            View on Explorer
+                            <span className="hidden sm:inline">View on Explorer</span>
+                            <span className="sm:hidden">Explorer</span>
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm" className="font-varien bg-transparent">
+                        <Button variant="outline" size="sm" className="font-varien bg-transparent text-xs sm:text-sm">
                           <Github className="mr-2 h-4 w-4" />
-                          Source Code
+                          <span className="hidden sm:inline">Source Code</span>
+                          <span className="sm:hidden">Code</span>
                         </Button>
                       </div>
                     </div>
@@ -384,12 +409,13 @@ export default function DocumentationPage() {
                     <div className="mb-4">
                       <label className="text-sm font-medium text-foreground font-varien">Contract Address:</label>
                       <div className="flex items-center gap-2 mt-1">
-                        <code className="flex-1 p-2 bg-muted rounded text-sm font-mono font-varela">
+                        <code className="flex-1 p-2 bg-muted rounded text-xs sm:text-sm font-mono font-varela break-all">
                           {contract.address}
                         </code>
                         <Button
                           variant="outline"
                           size="sm"
+                          className="shrink-0 bg-transparent"
                           onClick={() => {
                             navigator.clipboard.writeText(contract.address)
                             toast.success("Address copied!")
