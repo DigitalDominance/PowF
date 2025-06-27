@@ -3,25 +3,7 @@ import { Button } from "@/components/ui/button"
 import type React from "react"
 import Image from "next/image"
 
-import {
-  ArrowRight,
-  Shield,
-  Zap,
-  Globe,
-  Heart,
-  TrendingUp,
-  Award,
-  Target,
-  Sparkles,
-  CheckCircle,
-  Rocket,
-  Building,
-  UserCheck,
-  FileText,
-  Lock,
-  Eye,
-  Scale,
-} from "lucide-react"
+import { ArrowRight, Shield, Zap, Globe, Heart, TrendingUp, Award, Target, Sparkles, CheckCircle, Rocket, Building, UserCheck, FileText, Lock, Eye, Scale } from 'lucide-react'
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
@@ -136,8 +118,8 @@ export default function AboutUsPage() {
         variants={staggerContainer(0.1, 0.1)}
       >
         <div className="container px-4 md:px-6 relative z-10">
-          <motion.div variants={fadeIn(0.1)} className="mb-12">
-            <div className="relative w-32 h-32 mx-auto mb-8">
+          <motion.div variants={fadeIn(0.1)} className="mb-16">
+            <div className="relative w-32 h-32 mx-auto mb-12">
               <Image
                 src="/kasperlogo.webp"
                 alt="KASPER Logo"
@@ -150,14 +132,14 @@ export default function AboutUsPage() {
 
           <motion.h1
             variants={fadeIn(0.2)}
-            className="font-varien text-4xl font-normal tracking-wider-xl sm:text-5xl md:text-6xl lg:text-7xl text-foreground mb-8"
+            className="font-varien text-4xl font-normal tracking-wider-xl sm:text-5xl md:text-6xl lg:text-7xl text-foreground mb-12"
           >
             About <span className="text-accent">POW</span>
           </motion.h1>
 
           <motion.p
             variants={fadeIn(0.3)}
-            className="mt-8 max-w-4xl mx-auto text-muted-foreground md:text-lg lg:text-xl font-varela leading-relaxed"
+            className="mt-12 max-w-4xl mx-auto text-muted-foreground md:text-lg lg:text-xl font-varela leading-relaxed"
           >
             <Balancer>
               Inspired by KASPER community members, created by the KASPER team, for the KAS community. We're building
@@ -166,7 +148,7 @@ export default function AboutUsPage() {
             </Balancer>
           </motion.p>
 
-          <motion.div variants={fadeIn(0.4)} className="mt-16 flex flex-col sm:flex-row gap-6 justify-center">
+          <motion.div variants={fadeIn(0.4)} className="mt-20 flex flex-col sm:flex-row gap-6 justify-center">
             <Button
               asChild
               size="lg"
@@ -439,7 +421,7 @@ export default function AboutUsPage() {
                 variant="outline"
                 className="font-varien shadow-lg hover:shadow-md transition-all duration-300 transform hover:scale-105 group border-accent/50 hover:bg-accent/10 hover:text-accent tracking-wider bg-transparent"
               >
-                <Link href="/docs">
+                <Link href="/documentation">
                   Learn More
                   <Eye className="ml-2 h-5 w-5 group-hover:text-accent transition-colors" />
                 </Link>
