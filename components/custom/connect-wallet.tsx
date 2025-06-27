@@ -221,7 +221,7 @@ export function ConnectWallet() {
 
   // Messaging functions
   const fetchConversationsFromContext = async () => {
-    if (!address) return
+    if (!address || isReAuthenticating) return
 
     setIsLoadingConversations(true)
     try {
@@ -236,12 +236,23 @@ export function ConnectWallet() {
   }
 
   const fetchConversationMessages = async (otherPartyAddress: string) => {
-    if (!address || !fetchP2PMessages) return
+    if (!address || isReAuthenticating) return
 
     setIsLoadingMessages(true)
     try {
-      const messages = await fetchP2PMessages(otherPartyAddress)
-      setConversationMessages(messages)
+      // find the conversation we already fetched
+      const conv = conversations.find(
+        (c) => c.otherPartyAddress.toLowerCase() === otherPartyAddress.toLowerCase()
+      )
+      if (!conv) {
+        setConversationMessages([])
+      } else {
+        const sorted = [...conv.messages].sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        )
+        setConversationMessages(sorted)
+      }
     } catch (error) {
       console.error("Error fetching conversation messages:", error)
       toast.error("Failed to load messages")
@@ -251,7 +262,7 @@ export function ConnectWallet() {
   }
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation || !address || !sendP2PMessage) return
+    if (!newMessage.trim() || !selectedConversation || !address || !sendP2PMessage || isReAuthenticating) return
 
     setIsSendingMessage(true)
     try {
@@ -296,7 +307,8 @@ export function ConnectWallet() {
         </div>
       ) : messages.length > 0 ? (
         messages.map((message: any, index: number) => {
-          const isFromMe = message.receiver?.toLowerCase() === otherPartyAddress?.toLowerCase()
+          const isFromMe =
+            message.receiver?.toLowerCase() === otherPartyAddress?.toLowerCase()
 
           return (
             <div key={index} className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}>
@@ -347,7 +359,7 @@ export function ConnectWallet() {
           )
         })
       ) : (
-        <div className="text-center py-8">
+        <div className="text-center py-8">  
           <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-sm text-muted-foreground font-varela">No messages yet. Start the conversation!</p>
         </div>
@@ -359,7 +371,7 @@ export function ConnectWallet() {
     return (
       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
         <Button
-          onClick={handleConnectWallet} // Open WalletConnect modal
+          onClick={handleConnectWallet}
           variant="outline"
           className="font-varien border-accent text-accent hover:bg-accent/10 hover:text-accent group tracking-wider"
         >
@@ -491,17 +503,25 @@ export function ConnectWallet() {
 
       {/* Messages Popup */}
       {showMessagesPopup && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50">
+        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-0 md:backdrop-blur-sm h-[100vh] z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="min-w-[400px] w-[90vw] h-[85vh] md:w-full md:max-w-4xl md:h-[80vh] bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-lg md:rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden md:mx-0 -ml-[150px]"
+            className="
+              w-[260vw] -ml-[75vw] h-[85vh]
+              bg-gradient-to-br from-background via-background/95 to-accent/10
+              border border-accent/30 rounded-lg
+              shadow-none backdrop-blur-0
+              md:min-w-[400px] md:w-full md:max-w-4xl md:h-[80vh] md:ml-0 md:rounded-2xl
+              md:shadow-2xl md:backdrop-blur-sm
+              overflow-hidden
+              "
           >
             <div className="flex h-full">
               {/* Conversations List */}
-              <div className="w-3/5 md:w-1/3 border-r border-accent/20 flex flex-col">
+              <div className="w-1/3 md:w-1/3 border-r border-accent/20 flex flex-col">
                 <div className="p-4 md:p-6 border-b border-accent/20">
                   <div className="flex items-center justify-between">
                     <h2 className="font-varien text-lg md:text-xl font-bold text-foreground tracking-wider">
@@ -581,7 +601,7 @@ export function ConnectWallet() {
               </div>
 
               {/* Chat Area */}
-              <div className="w-2/5 md:flex-1 flex flex-col">
+              <div className="w-2/3 md:flex-1 flex flex-col">
                 {selectedConversation ? (
                   <>
                     {/* Chat Header */}
