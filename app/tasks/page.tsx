@@ -49,6 +49,7 @@ import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
 import { ethers } from "ethers"
 import { useUserContext } from "@/context/UserContext"
+import { fetchJobsByEmployerFromEvents, fetchJobDetails } from "@/lib/utils"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -114,7 +115,7 @@ interface Offer {
   task: {
     _id: string
     taskName: string
-    taskDescription: string
+    taskDescription: string[]
     taskTags: string[]
     workerAddress: string
   }
@@ -461,6 +462,24 @@ export default function TaskPage() {
         throw new Error("Failed to accept offer")
       }
 
+      // Refresh jobs data in context
+      if (role === "worker") {
+        // Fetch updated jobs for worker
+        try {
+          const jobs = await fetchJobsByEmployerFromEvents(provider, contracts?.jobFactory)
+          if (jobs && jobs.length > 0) {
+            // Find the newly created job and fetch its details
+            const latestJob = jobs[jobs.length - 1] // Assuming the latest job is the newly created one
+            const jobDetails = await fetchJobDetails(provider, latestJob.jobAddress)
+            if (jobDetails) {
+              setJobDetails((prev) => [...prev, jobDetails])
+            }
+          }
+        } catch (error) {
+          console.error("Error refreshing jobs data:", error)
+        }
+      }
+
       toast.success("Offer accepted! Job listing created and moved to jobs page.")
 
       // Refresh data
@@ -533,6 +552,22 @@ export default function TaskPage() {
 
       if (!response.ok) {
         throw new Error("Failed to convert offer to job")
+      }
+
+      // Refresh jobs data in context for employer
+      if (role === "employer") {
+        try {
+          const jobs = await fetchJobsByEmployerFromEvents(provider, contracts?.jobFactory)
+          setEmployerJobs(jobs)
+
+          // Fetch details for all jobs
+          const jobDetailsPromises = jobs.map((job) => fetchJobDetails(provider, job.jobAddress))
+          const allJobDetails = await Promise.all(jobDetailsPromises)
+          const validJobDetails = allJobDetails.filter((details) => details !== null)
+          setJobDetails(validJobDetails)
+        } catch (error) {
+          console.error("Error refreshing employer jobs:", error)
+        }
       }
 
       toast.success("Offer converted to general job listing! Others can now apply.")
