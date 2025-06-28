@@ -598,7 +598,7 @@ export default function TaskPage() {
       const jobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
       const latestJob = jobs[jobs.length - 1] // Get the latest job
 
-      // Step 3: Auto-apply worker to the job
+      // Step 3: Auto-apply worker to the job using smart contract
       const signer = await provider.getSigner()
       const jobContract = new ethers.Contract(latestJob, PROOF_OF_WORK_JOB_ABI, signer)
 
@@ -606,7 +606,7 @@ export default function TaskPage() {
       const applyTx = await jobContract.submitApplication(applicationText)
       await applyTx.wait()
 
-      // Update context with new jobs
+      // Update context with new jobs for worker
       if (role === "worker") {
         try {
           const updatedJobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
@@ -645,6 +645,7 @@ export default function TaskPage() {
         [offer._id]: { ...prev[offer._id], declining: true },
       }))
 
+      // Decline offer via API only (off-chain)
       const response = await fetch(`${API_BASE_URL}/offers/${offer._id}/decline`, {
         method: "POST",
         headers: {
