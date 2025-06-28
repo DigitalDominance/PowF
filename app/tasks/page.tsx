@@ -53,8 +53,8 @@ import {
   fetchJobsByEmployerFromEvents,
   useUserContext,
   fetchEmployerDisplayName,
+  submitApplication,
 } from "@/context/UserContext"
-import PROOF_OF_WORK_JOB_ABI from "@/lib/contracts/ProofOfWorkJob.json"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -594,17 +594,21 @@ export default function TaskPage() {
         throw new Error(errorData.error || "Failed to accept offer")
       }
 
-      // Step 2: Get the job address from the employer's latest job
+      const acceptData = await acceptResponse.json()
+      console.log("Offer accepted, job created:", acceptData)
+
+      // Step 2: Get the latest job address from employer's jobs
       const jobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
       const latestJob = jobs[jobs.length - 1] // Get the latest job
 
-      // Step 3: Auto-apply worker to the job using smart contract
-      const signer = await provider.getSigner()
-      const jobContract = new ethers.Contract(latestJob, PROOF_OF_WORK_JOB_ABI, signer)
+      if (!latestJob) {
+        throw new Error("Could not find the created job")
+      }
 
+      // Step 3: Auto-apply worker to the job using the submitApplication function
       const applicationText = `I'm the worker who created the original task "${offer.task.taskName}". I accept this offer and am ready to begin work.`
-      const applyTx = await jobContract.submitApplication(applicationText)
-      await applyTx.wait()
+
+      await submitApplication(latestJob, applicationText, provider, wallet)
 
       // Update context with new jobs for worker
       if (role === "worker") {
@@ -655,7 +659,8 @@ export default function TaskPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to decline offer")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to decline offer")
       }
 
       toast.success("Offer declined. Employer can now choose to convert to general job listing or cancel.")
