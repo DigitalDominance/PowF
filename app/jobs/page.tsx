@@ -1,4 +1,5 @@
 "use client"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -20,14 +21,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import type React from "react"
 import { useEffect, useState, useRef } from "react"
-
 import {
   ArrowRight,
   Search,
   Briefcase,
   Clock,
   Calendar,
-  DollarSign,
   Users,
   Star,
   Filter,
@@ -112,8 +111,9 @@ export default function JobsPage() {
   const [payTypeFilter, setPayTypeFilter] = useState<string>("all")
   const [minPayFilter, setMinPayFilter] = useState<number[]>([0])
   const [showFilters, setShowFilters] = useState(false)
-  const [openPositionsFilter, setOpenPositionsFilter] = useState(false); // State for "open positions" switch
-  const [highRatedFilter, setHighRatedFilter] = useState(false); // State for "high-rated employers" switch
+  const [openPositionsFilter, setOpenPositionsFilter] = useState(false) // State for "open positions" switch
+  const [highRatedFilter, setHighRatedFilter] = useState(false) // State for "high-rated employers" switch
+
   const [selectedJob, setSelectedJob] = useState<any | null>(null)
   const [applicationText, setApplicationText] = useState("")
   const [disputeReason, setDisputeReason] = useState("")
@@ -170,12 +170,12 @@ export default function JobsPage() {
         const matchesMinPay = payAmount >= minPayFilter[0]
 
         // Open positions filter
-        const matchesOpenPositions = !openPositionsFilter || job.positionsFilled < job.positions;
+        const matchesOpenPositions = !openPositionsFilter || job.positionsFilled < job.positions
 
         // High-rated employers filter
-        const matchesHighRated = !highRatedFilter || job.employerRating >= 4.5;        
+        const matchesHighRated = !highRatedFilter || job.employerRating >= 4.5
 
-        return matchesSearch && matchesPayType && matchesMinPay && matchesOpenPositions && matchesHighRated;
+        return matchesSearch && matchesPayType && matchesMinPay && matchesOpenPositions && matchesHighRated
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || []
 
@@ -183,7 +183,6 @@ export default function JobsPage() {
   useEffect(() => {
     if (selectedEmployer && address) {
       socket.current = io(process.env.NEXT_PUBLIC_API)
-
       const participants = [address, selectedEmployer.address].sort()
       const room = `chat_${participants.join("_")}`
       socket.current.emit("joinRoom", room)
@@ -204,7 +203,6 @@ export default function JobsPage() {
   useEffect(() => {
     if (selectedActiveJobEmployer && address) {
       activeJobSocket.current = io(process.env.NEXT_PUBLIC_API)
-
       const participants = [address, selectedActiveJobEmployer.address].sort()
       const room = `chat_${participants.join("_")}`
       activeJobSocket.current.emit("joinRoom", room)
@@ -277,7 +275,6 @@ export default function JobsPage() {
     setIsSendingMessage(true)
     try {
       await sendP2PMessage(selectedEmployer.address, newChatMessage.trim())
-
       // Optimistically add the message to the chat
       const optimisticMessage = {
         sender: address,
@@ -285,7 +282,6 @@ export default function JobsPage() {
         content: newChatMessage.trim(),
         createdAt: new Date().toISOString(),
       }
-
       setChatMessages((prev) => [...prev, optimisticMessage])
       setNewChatMessage("")
       toast.success("Message sent successfully!")
@@ -304,7 +300,6 @@ export default function JobsPage() {
     setIsSendingActiveJobMessage(true)
     try {
       await sendP2PMessage(selectedActiveJobEmployer.address, newActiveJobChatMessage.trim())
-
       // Optimistically add the message to the chat
       const optimisticMessage = {
         sender: address,
@@ -356,13 +351,11 @@ export default function JobsPage() {
 
       // Call the submitApplication function
       const tx = await jobContract.submitApplication(applicationText)
-
       setApplyState("confirming")
       await tx.wait()
+
       setApplyState("success")
-
       toast.success("Application submitted successfully!")
-
       setApplicationText("")
       setSelectedJob(null)
 
@@ -388,7 +381,6 @@ export default function JobsPage() {
 
       // Fetch job title and employer for display
       const [jobTitle, employer] = await Promise.all([jobContract.title(), jobContract.employer()])
-
       const employerName = await fetchEmployerDisplayName(employer)
 
       const newApplication = {
@@ -399,6 +391,7 @@ export default function JobsPage() {
         appliedAt: new Date(Number(appliedAt) * 1000).toLocaleDateString(),
         status: applicationStatus,
       }
+
       setMyApplications((prev) => [...prev, newApplication])
     } catch (error) {
       console.error("Error submitting application:", error)
@@ -471,8 +464,8 @@ export default function JobsPage() {
 
       setDisputeState("confirming")
       await tx.wait()
-      setDisputeState("success")
 
+      setDisputeState("success")
       toast.success("Dispute created successfully!")
 
       // Reset the dispute form
@@ -499,6 +492,7 @@ export default function JobsPage() {
 
         // Check if the user has applied to this job
         const hasApplied = await jobContract.hasApplied(userAddress)
+
         if (hasApplied) {
           // Fetch application details
           const [applicantAddress, application, appliedAt, isActive, status, reviewedAt, wasAccepted] =
@@ -518,7 +512,6 @@ export default function JobsPage() {
 
           // Fetch job title and employer for display
           const [jobTitle, employer] = await Promise.all([jobContract.title(), jobContract.employer()])
-
           const employerName = await fetchEmployerDisplayName(employer)
 
           applications.push({
@@ -545,7 +538,6 @@ export default function JobsPage() {
         try {
           // Fetch all job addresses
           // const jobAddresses = await fetchAllJobAddresses(contracts.jobFactory);
-
           // Fetch applications for the current user
           const applications = await fetchMyApplications(jobAddresses, address)
           setMyApplications(applications)
@@ -571,11 +563,10 @@ export default function JobsPage() {
 
       // Call the withdrawApplication function
       const tx = await jobContract.withdrawApplication()
-
       setWithdrawState("confirming")
       await tx.wait()
-      setWithdrawState("success")
 
+      setWithdrawState("success")
       toast.success("Application withdrawn successfully!")
 
       // Remove the application from myApplications
@@ -777,6 +768,7 @@ export default function JobsPage() {
                   </Button>,
                 )
               }
+
               return pages
             })()}
           </div>
@@ -1007,7 +999,7 @@ export default function JobsPage() {
                 </div>
                 <Button
                   variant="outline"
-                  className="border-accent/50 text-accent hover:bg-accent/10 font-varien"
+                  className="border-accent/50 text-accent hover:bg-accent/10 font-varien bg-transparent"
                   onClick={() => setShowFilters(!showFilters)}
                 >
                   <Filter className="mr-2 h-4 w-4" />
@@ -1064,19 +1056,15 @@ export default function JobsPage() {
                     <Label className="text-foreground font-varien">Other Filters</Label>
                     <div className="space-y-4 pt-2">
                       <div className="flex items-center space-x-2">
-                        <Switch 
-                        id="open-positions" 
-                        checked={openPositionsFilter}
-                        onCheckedChange={setOpenPositionsFilter}
+                        <Switch
+                          id="open-positions"
+                          checked={openPositionsFilter}
+                          onCheckedChange={setOpenPositionsFilter}
                         />
                         <Label htmlFor="open-positions">Only show jobs with open positions</Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Switch 
-                        id="high-rated" 
-                        checked={highRatedFilter}
-                        onCheckedChange={setHighRatedFilter}
-                        />
+                        <Switch id="high-rated" checked={highRatedFilter} onCheckedChange={setHighRatedFilter} />
                         <Label htmlFor="high-rated">Only high-rated employers (4.5+)</Label>
                       </div>
                     </div>
@@ -1143,7 +1131,12 @@ export default function JobsPage() {
 
                             <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                               <div className="flex items-center gap-2">
-                                <DollarSign className="h-4 w-4 text-accent" />
+                                <img
+                                  src="/kaslogo.webp"
+                                  alt="KAS"
+                                  className="h-4 w-4 filter-none"
+                                  style={{ filter: "none", imageRendering: "crisp-edges" }}
+                                />
                                 <div>
                                   <p className="font-medium text-foreground font-varela">
                                     {job.payType === "WEEKLY"
@@ -1214,6 +1207,7 @@ export default function JobsPage() {
                                       Submit your application for this position at {selectedJob?.employer}.
                                     </DialogDescription>
                                   </DialogHeader>
+
                                   <div className="grid gap-4 py-4">
                                     <div className="grid gap-2">
                                       <Label htmlFor="cover-letter" className="font-varien">
@@ -1229,6 +1223,7 @@ export default function JobsPage() {
                                       />
                                     </div>
                                   </div>
+
                                   <DialogFooter>
                                     <Button
                                       variant="outline"
@@ -1261,7 +1256,7 @@ export default function JobsPage() {
                                 <DialogTrigger asChild>
                                   <Button
                                     variant="outline"
-                                    className="border-accent/50 text-accent hover:bg-accent/10 font-varien"
+                                    className="border-accent/50 text-accent hover:bg-accent/10 font-varien bg-transparent"
                                     onClick={() => handleOpenChat(job)}
                                   >
                                     <MessageSquare className="h-4 w-4" />
@@ -1403,7 +1398,12 @@ export default function JobsPage() {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                                   <div className="flex items-center gap-2">
-                                    <DollarSign className="h-4 w-4 text-accent" />
+                                    <img
+                                      src="/kaslogo.webp"
+                                      alt="KAS"
+                                      className="h-4 w-4 filter-none"
+                                      style={{ filter: "none", imageRendering: "crisp-edges" }}
+                                    />
                                     <div>
                                       <p className="font-medium text-foreground font-varela">
                                         {job.payType === "WEEKLY"
@@ -1468,7 +1468,6 @@ export default function JobsPage() {
                                     </div>
                                   </div>
                                 )}
-
                                 <div className="flex gap-2">
                                   {job.payType === "ONE_OFF" && (
                                     <Button className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien">
@@ -1476,12 +1475,11 @@ export default function JobsPage() {
                                       Complete & Claim
                                     </Button>
                                   )}
-
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <Button
                                         variant="outline"
-                                        className="border-red-500/50 text-red-500 hover:bg-red-500/10 font-varien"
+                                        className="border-red-500/50 text-red-500 hover:bg-red-500/10 font-varien bg-transparent"
                                         onClick={() => setSelectedJobForDispute(job)}
                                       >
                                         <AlertTriangle className="mr-1 h-4 w-4" />
@@ -1553,7 +1551,7 @@ export default function JobsPage() {
                                     <DialogTrigger asChild>
                                       <Button
                                         variant="outline"
-                                        className="border-accent/50 text-accent hover:bg-accent/10 font-varien"
+                                        className="border-accent/50 text-accent hover:bg-accent/10 font-varien bg-transparent"
                                         onClick={() => handleOpenActiveJobChat(job)}
                                       >
                                         <MessageSquare className="h-4 w-4" />
@@ -1746,17 +1744,15 @@ export default function JobsPage() {
                                     {getWithdrawButtonContent()}
                                   </Button>
                                 )}
-
                                 {application.status === "hired" && (
                                   <Button className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien">
                                     <Briefcase className="mr-1 h-4 w-4" />
                                     View Job Details
                                   </Button>
                                 )}
-
                                 <Button
                                   variant="outline"
-                                  className="border-accent/50 text-accent hover:bg-accent/10 font-varien"
+                                  className="border-accent/50 text-accent hover:bg-accent/10 font-varien bg-transparent"
                                 >
                                   <MessageSquare className="mr-1 h-4 w-4" />
                                   Message Employer
