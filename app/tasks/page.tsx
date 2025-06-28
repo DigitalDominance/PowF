@@ -48,8 +48,7 @@ import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
 import { ethers } from "ethers"
-import { useUserContext } from "@/context/UserContext"
-import { fetchJobsByEmployerFromEvents, fetchJobDetails } from "@/lib/utils"
+import { fetchJobDetails, fetchJobsByEmployerFromEvents, useUserContext } from "@/context/UserContext"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -115,7 +114,7 @@ interface Offer {
   task: {
     _id: string
     taskName: string
-    taskDescription: string[]
+    taskDescription: string
     taskTags: string[]
     workerAddress: string
   }
@@ -462,21 +461,29 @@ export default function TaskPage() {
         throw new Error("Failed to accept offer")
       }
 
-      // Refresh jobs data in context
-      if (role === "worker") {
-        // Fetch updated jobs for worker
+      const result = await response.json()
+
+      // If the backend returns job details, we can use them to update the context
+      if (result.jobAddress && contracts?.jobFactory && provider) {
         try {
-          const jobs = await fetchJobsByEmployerFromEvents(provider, contracts?.jobFactory)
-          if (jobs && jobs.length > 0) {
-            // Find the newly created job and fetch its details
-            const latestJob = jobs[jobs.length - 1] // Assuming the latest job is the newly created one
-            const jobDetails = await fetchJobDetails(provider, latestJob.jobAddress)
-            if (jobDetails) {
-              setJobDetails((prev) => [...prev, jobDetails])
-            }
-          }
+          // Fetch updated employer jobs from the blockchain
+          const updatedEmployerJobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
+
+          // Update employer jobs in context
+          setEmployerJobs(updatedEmployerJobs)
+
+          // Fetch job details for all jobs
+          const jobDetailsPromises = updatedEmployerJobs.map((jobAddress) => fetchJobDetails(provider, jobAddress))
+          const allJobDetails = await Promise.all(jobDetailsPromises)
+          const validJobDetails = allJobDetails.filter((details) => details !== null)
+
+          // Update job details in context
+          setJobDetails(validJobDetails)
+
+          console.log("Successfully updated jobs context after accepting offer")
         } catch (error) {
-          console.error("Error refreshing jobs data:", error)
+          console.error("Error refreshing jobs data after accepting offer:", error)
+          // Don't fail the whole operation if context update fails
         }
       }
 
@@ -554,19 +561,29 @@ export default function TaskPage() {
         throw new Error("Failed to convert offer to job")
       }
 
-      // Refresh jobs data in context for employer
-      if (role === "employer") {
-        try {
-          const jobs = await fetchJobsByEmployerFromEvents(provider, contracts?.jobFactory)
-          setEmployerJobs(jobs)
+      const result = await response.json()
 
-          // Fetch details for all jobs
-          const jobDetailsPromises = jobs.map((job) => fetchJobDetails(provider, job.jobAddress))
+      // Refresh jobs data in context for employer
+      if (role === "employer" && contracts?.jobFactory && provider) {
+        try {
+          // Fetch updated employer jobs from the blockchain
+          const updatedEmployerJobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
+
+          // Update employer jobs in context
+          setEmployerJobs(updatedEmployerJobs)
+
+          // Fetch job details for all jobs
+          const jobDetailsPromises = updatedEmployerJobs.map((jobAddress) => fetchJobDetails(provider, jobAddress))
           const allJobDetails = await Promise.all(jobDetailsPromises)
           const validJobDetails = allJobDetails.filter((details) => details !== null)
+
+          // Update job details in context
           setJobDetails(validJobDetails)
+
+          console.log("Successfully updated jobs context after converting offer to job")
         } catch (error) {
-          console.error("Error refreshing employer jobs:", error)
+          console.error("Error refreshing employer jobs after converting offer:", error)
+          // Don't fail the whole operation if context update fails
         }
       }
 
