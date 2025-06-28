@@ -509,8 +509,8 @@ export default function DisputesPage() {
                           </h3>
                           <p className="text-sm text-muted-foreground">
                             <Balancer>
-                              Our DisputeDAO has two pre-selected jurors who review all disputes. These jurors have been
-                              chosen for their expertise and impartiality in resolving conflicts.
+                              Our DisputeDAO Beta V1 has two pre-selected jurors who review all disputes. This is purely
+                              for testing purposes and will be changed at mainnet launch.
                             </Balancer>
                           </p>
                         </div>
