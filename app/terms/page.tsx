@@ -9,7 +9,6 @@ import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
 
-
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { delay, duration, ease: "easeOut" } },
