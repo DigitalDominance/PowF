@@ -21,7 +21,6 @@ import { useState, useEffect } from "react"
 import {
   ArrowRight,
   FileText,
-  DollarSign,
   Eye,
   Calendar,
   Plus,
@@ -186,7 +185,7 @@ export default function TaskPage() {
   const [showTaskViewDialog, setShowTaskViewDialog] = useState(false)
   const [offerFormData, setOfferFormData] = useState({
     kasAmount: "",
-    paymentType: "weekly" as "weekly" | "oneoff",
+    paymentType: "oneoff" as "weekly" | "oneoff",
     duration: "",
   })
 
@@ -448,23 +447,16 @@ export default function TaskPage() {
     try {
       setOfferDialogState("processing")
 
-      // Create job on smart contract first
-      const weeklyPayWei =
-        offerFormData.paymentType === "weekly" ? ethers.parseEther(offerFormData.kasAmount) : BigInt(0)
-      const durationWeeks = BigInt(offerFormData.duration || "0")
-      const totalPayWei =
-        offerFormData.paymentType === "oneoff"
-          ? ethers.parseEther(offerFormData.kasAmount)
-          : ethers.parseEther(offerFormData.kasAmount) * durationWeeks
-
+      // Create job on smart contract (one-off payment only)
+      const totalPayWei = ethers.parseEther(offerFormData.kasAmount)
       const fee = (totalPayWei * BigInt(75)) / BigInt(10000)
-      const value = offerFormData.paymentType === "weekly" ? weeklyPayWei * durationWeeks + fee : totalPayWei + fee
+      const value = totalPayWei + fee
 
       const tx = await contracts.jobFactory.createJob(
         wallet,
-        offerFormData.paymentType === "weekly" ? 0 : 1,
-        weeklyPayWei,
-        durationWeeks,
+        1, // One-off payment type
+        BigInt(0), // No weekly pay for one-off
+        BigInt(0), // No duration for one-off
         totalPayWei,
         task.taskName,
         task.taskDescription,
@@ -485,8 +477,8 @@ export default function TaskPage() {
         },
         body: JSON.stringify({
           kasAmount: offerFormData.kasAmount,
-          paymentType: offerFormData.paymentType,
-          duration: offerFormData.duration,
+          paymentType: "oneoff",
+          duration: "", // No duration for one-off
         }),
       })
 
@@ -503,7 +495,7 @@ export default function TaskPage() {
 
       // Reset form and close dialog after delay
       setTimeout(() => {
-        setOfferFormData({ kasAmount: "", paymentType: "weekly", duration: "" })
+        setOfferFormData({ kasAmount: "", paymentType: "oneoff", duration: "" })
         setShowOfferDialog(false)
         setSelectedTask(null)
         setOfferDialogState("idle")
@@ -545,37 +537,9 @@ export default function TaskPage() {
         throw new Error("Failed to accept offer")
       }
 
-      // Step 2: Create job on smart contract
-      const weeklyPayWei = offer.paymentType === "weekly" ? ethers.parseEther(offer.kasAmount || "0") : BigInt(0)
-      const durationWeeks = BigInt(offer.duration || "0")
-      const totalPayWei =
-        offer.paymentType === "oneoff"
-          ? ethers.parseEther(offer.kasAmount || "0")
-          : ethers.parseEther(offer.kasAmount || "0") * durationWeeks
+      const acceptResult = await acceptResponse.json()
 
-      const fee = (totalPayWei * BigInt(75)) / BigInt(10000)
-      const value = offer.paymentType === "weekly" ? weeklyPayWei * durationWeeks + fee : totalPayWei + fee
-
-      const tx = await contracts.jobFactory.createJob(
-        offer.employerAddress, // employer address
-        offer.paymentType === "weekly" ? 0 : 1,
-        weeklyPayWei,
-        durationWeeks,
-        totalPayWei,
-        offer.task.taskName,
-        offer.task.taskDescription,
-        "1", // positions
-        offer.task.taskTags,
-        { value },
-      )
-
-      await tx.wait()
-
-      // Step 3: Get the newly created job address from events
-      const jobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
-      const latestJob = jobs[jobs.length - 1] // Get the latest job
-
-      // Step 4: Create job in backend
+      // Step 2: Create job in backend (the contract already exists from the offer)
       const jobResponse = await fetch(`${API_BASE_URL}/jobs`, {
         method: "POST",
         headers: {
@@ -583,7 +547,7 @@ export default function TaskPage() {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
         body: JSON.stringify({
-          paymentType: offer.paymentType?.toUpperCase() || "WEEKLY",
+          paymentType: "ONEOFF",
           jobName: offer.task.taskName,
           jobDescription: offer.task.taskDescription,
           jobTags: offer.task.taskTags,
@@ -594,7 +558,12 @@ export default function TaskPage() {
         throw new Error("Failed to create job in backend")
       }
 
-      // Step 5: Auto-apply worker to the job
+      // Step 3: Get the job address from the offer (we need this from backend)
+      // For now, we'll get the latest job from the employer
+      const jobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
+      const latestJob = jobs[jobs.length - 1] // Get the latest job
+
+      // Step 4: Auto-apply worker to the job
       const signer = await provider.getSigner()
       const jobContract = new ethers.Contract(latestJob, PROOF_OF_WORK_JOB_ABI, signer)
 
@@ -1538,7 +1507,11 @@ export default function TaskPage() {
                           Expected Amount (KAS)
                         </Label>
                         <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <img
+                            src="/kaslogo.webp"
+                            alt="KAS"
+                            className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-70"
+                          />
                           <Input
                             id="kas-amount"
                             type="number"
@@ -1955,30 +1928,15 @@ export default function TaskPage() {
 
             <motion.div variants={fadeIn(0.2)} className="space-y-6 py-4">
               <div className="space-y-2">
-                <Label htmlFor="offer-payment-type" className="font-varien text-foreground">
-                  Payment Type
-                </Label>
-                <Select
-                  value={offerFormData.paymentType}
-                  onValueChange={(v: "weekly" | "oneoff") => setOfferFormData((prev) => ({ ...prev, paymentType: v }))}
-                  disabled={isOfferProcessing}
-                >
-                  <SelectTrigger className="border-accent/30 focus:border-accent bg-background/50 backdrop-blur-sm">
-                    <SelectValue placeholder="Select payment type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="weekly">Weekly Payments</SelectItem>
-                    <SelectItem value="oneoff">One-off Payment</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="offer-amount" className="font-varien text-foreground">
-                  {offerFormData.paymentType === "weekly" ? "Weekly Amount (KAS)" : "Total Amount (KAS)"}
+                  Total Amount (KAS)
                 </Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <img
+                    src="/kaslogo.webp"
+                    alt="KAS"
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-70"
+                  />
                   <Input
                     id="offer-amount"
                     type="number"
@@ -1992,28 +1950,6 @@ export default function TaskPage() {
                   />
                 </div>
               </div>
-
-              {offerFormData.paymentType === "weekly" && (
-                <motion.div variants={fadeIn(0.3)} className="space-y-2">
-                  <Label htmlFor="offer-duration" className="font-varien text-foreground">
-                    Duration (Weeks)
-                  </Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="offer-duration"
-                      type="number"
-                      min="1"
-                      placeholder="8"
-                      value={offerFormData.duration}
-                      onChange={(e) => setOfferFormData((prev) => ({ ...prev, duration: e.target.value }))}
-                      className="pl-10 border-accent/30 focus:border-accent bg-background/50 backdrop-blur-sm"
-                      disabled={isOfferProcessing}
-                      required
-                    />
-                  </div>
-                </motion.div>
-              )}
 
               {/* Status Messages */}
               <AnimatePresence>
@@ -2074,7 +2010,7 @@ export default function TaskPage() {
                   onClick={() => {
                     setShowOfferDialog(false)
                     setSelectedTask(null)
-                    setOfferFormData({ kasAmount: "", paymentType: "weekly", duration: "" })
+                    setOfferFormData({ kasAmount: "", paymentType: "oneoff", duration: "" })
                     setOfferDialogState("idle")
                   }}
                   disabled={isOfferProcessing}
@@ -2084,11 +2020,7 @@ export default function TaskPage() {
                 </Button>
                 <Button
                   onClick={() => selectedTask && handleSendOffer(selectedTask)}
-                  disabled={
-                    isOfferProcessing ||
-                    !offerFormData.kasAmount ||
-                    (offerFormData.paymentType === "weekly" && !offerFormData.duration)
-                  }
+                  disabled={isOfferProcessing || !offerFormData.kasAmount}
                   className={`font-varien flex-1 transition-all duration-300 ${
                     offerDialogState === "success"
                       ? "bg-green-500 hover:bg-green-600 text-white"
