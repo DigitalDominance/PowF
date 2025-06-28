@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import type React from "react"
 import { useState, useEffect } from "react"
-import { ArrowRight, CheckCircle, Users, FileText, DollarSign, Eye, MessageSquare, Calendar, Star, Plus, Edit, Trash2, Loader2, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Filter, X, Clock, Send, AlertCircle, Briefcase, Target, TrendingUp, Zap, Heart, ThumbsUp, ThumbsDown, RefreshCw } from 'lucide-react'
+import { ArrowRight, CheckCircle, Users, FileText, DollarSign, Eye, MessageSquare, Calendar, Star, Plus, Edit, Trash2, Loader2, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Filter, X, Clock, Send, AlertCircle, Briefcase, Target, TrendingUp, Zap, Heart, ThumbsUp, ThumbsDown, RefreshCw, Mail, UserCheck } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
@@ -82,8 +82,15 @@ interface Task {
 
 interface Offer {
   _id: string
-  task: string
+  task: {
+    _id: string
+    taskName: string
+    taskDescription: string
+    taskTags: string[]
+    workerAddress: string
+  }
   employerAddress: string
+  workerAddress: string
   status: "PENDING" | "DECLINED" | "ACCEPTED"
   createdAt: string
   kasAmount?: string
@@ -108,12 +115,13 @@ export default function TaskPage() {
   // Tasks and offers state
   const [tasks, setTasks] = useState<Task[]>([])
   const [myTasks, setMyTasks] = useState<Task[]>([])
-  const [offers, setOffers] = useState<Offer[]>([])
-  const [myOffers, setMyOffers] = useState<Offer[]>([])
+  const [receivedOffers, setReceivedOffers] = useState<Offer[]>([])
+  const [sentOffers, setSentOffers] = useState<Offer[]>([])
   const [loading, setLoading] = useState(true)
 
   // UI state
   const [activeTab, setActiveTab] = useState("browse")
+  const [myTasksSubTab, setMyTasksSubTab] = useState("tasks")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [sortBy, setSortBy] = useState("newest")
@@ -134,6 +142,7 @@ export default function TaskPage() {
     declining?: boolean
     sendingOffer?: boolean
     canceling?: boolean
+    convertingToJob?: boolean
   }>>({})
 
   const tasksPerPage = 6
@@ -173,10 +182,25 @@ export default function TaskPage() {
 
   const fetchOffers = async () => {
     try {
-      // This would need to be implemented in your backend
-      // For now, we'll use mock data
-      setOffers([])
-      setMyOffers([])
+      if (role === "worker") {
+        // Fetch offers received by this worker
+        const response = await fetch(`${API_BASE_URL}/offers?workerAddress=${wallet}`, {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        })
+        const data = await response.json()
+        setReceivedOffers(data)
+      } else if (role === "employer") {
+        // Fetch offers sent by this employer
+        const response = await fetch(`${API_BASE_URL}/offers?employerAddress=${wallet}`, {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        })
+        const data = await response.json()
+        setSentOffers(data)
+      }
     } catch (error) {
       console.error("Error fetching offers:", error)
     }
@@ -351,15 +375,15 @@ export default function TaskPage() {
     }
   }
 
-  const handleAcceptOffer = async (offerId: string) => {
+  const handleAcceptOffer = async (offer: Offer) => {
     try {
       setProcessingStates(prev => ({
         ...prev,
-        [offerId]: { ...prev[offerId], accepting: true }
+        [offer._id]: { ...prev[offer._id], accepting: true }
       }))
 
-      // Accept offer and create job listing
-      const response = await fetch(`${API_BASE_URL}/offers/${offerId}/accept`, {
+      // Accept offer - this will create a job listing and remove the task
+      const response = await fetch(`${API_BASE_URL}/offers/${offer._id}/accept`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -371,7 +395,7 @@ export default function TaskPage() {
         throw new Error("Failed to accept offer")
       }
 
-      toast.success("Offer accepted! Job listing created.")
+      toast.success("Offer accepted! Job listing created and moved to jobs page.")
       
       // Refresh data
       await fetchTasks()
@@ -384,19 +408,19 @@ export default function TaskPage() {
     } finally {
       setProcessingStates(prev => ({
         ...prev,
-        [offerId]: { ...prev[offerId], accepting: false }
+        [offer._id]: { ...prev[offer._id], accepting: false }
       }))
     }
   }
 
-  const handleDeclineOffer = async (offerId: string) => {
+  const handleDeclineOffer = async (offer: Offer) => {
     try {
       setProcessingStates(prev => ({
         ...prev,
-        [offerId]: { ...prev[offerId], declining: true }
+        [offer._id]: { ...prev[offer._id], declining: true }
       }))
 
-      const response = await fetch(`${API_BASE_URL}/offers/${offerId}/decline`, {
+      const response = await fetch(`${API_BASE_URL}/offers/${offer._id}/decline`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -408,7 +432,7 @@ export default function TaskPage() {
         throw new Error("Failed to decline offer")
       }
 
-      toast.success("Offer declined.")
+      toast.success("Offer declined. Employer can now choose to convert to general job listing or cancel.")
       
       // Refresh data
       await fetchOffers()
@@ -419,7 +443,82 @@ export default function TaskPage() {
     } finally {
       setProcessingStates(prev => ({
         ...prev,
-        [offerId]: { ...prev[offerId], declining: false }
+        [offer._id]: { ...prev[offer._id], declining: false }
+      }))
+    }
+  }
+
+  const handleConvertToJob = async (offer: Offer) => {
+    try {
+      setProcessingStates(prev => ({
+        ...prev,
+        [offer._id]: { ...prev[offer._id], convertingToJob: true }
+      }))
+
+      // Convert declined offer to general job listing
+      const response = await fetch(`${API_BASE_URL}/offers/${offer._id}/job`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify({
+          paymentType: offer.paymentType?.toUpperCase() || "WEEKLY",
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to convert offer to job")
+      }
+
+      toast.success("Offer converted to general job listing! Others can now apply.")
+      
+      // Refresh data
+      await fetchOffers()
+
+    } catch (err: any) {
+      console.error("Error converting offer to job:", err)
+      toast.error(`Failed to convert offer to job: ${err.message}`, { duration: 5000 })
+    } finally {
+      setProcessingStates(prev => ({
+        ...prev,
+        [offer._id]: { ...prev[offer._id], convertingToJob: false }
+      }))
+    }
+  }
+
+  const handleCancelOffer = async (offer: Offer) => {
+    try {
+      setProcessingStates(prev => ({
+        ...prev,
+        [offer._id]: { ...prev[offer._id], canceling: true }
+      }))
+
+      // Cancel offer and get refund (this would need smart contract interaction)
+      // For now, we'll just delete the offer from backend
+      const response = await fetch(`${API_BASE_URL}/offers/${offer._id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to cancel offer")
+      }
+
+      toast.success("Offer cancelled and refund processed.")
+      
+      // Refresh data
+      await fetchOffers()
+
+    } catch (err: any) {
+      console.error("Error cancelling offer:", err)
+      toast.error(`Failed to cancel offer: ${err.message}`, { duration: 5000 })
+    } finally {
+      setProcessingStates(prev => ({
+        ...prev,
+        [offer._id]: { ...prev[offer._id], canceling: false }
       }))
     }
   }
@@ -548,7 +647,7 @@ export default function TaskPage() {
       <SectionWrapper id="main-content" padding="pt-0 md:pt-2 pb-12 md:pb-16">
         <motion.div variants={fadeIn()} className="w-full max-w-7xl mx-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-8">
+            <TabsList className="grid w-full grid-cols-3 mb-8">
               <TabsTrigger value="browse" className="flex items-center gap-2">
                 <Search className="h-4 w-4" />
                 Browse Tasks
@@ -556,10 +655,6 @@ export default function TaskPage() {
               <TabsTrigger value="my-tasks" className="flex items-center gap-2">
                 <Briefcase className="h-4 w-4" />
                 My Tasks
-              </TabsTrigger>
-              <TabsTrigger value="offers" className="flex items-center gap-2">
-                <Send className="h-4 w-4" />
-                Offers
               </TabsTrigger>
               <TabsTrigger value="create" className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
@@ -841,136 +936,187 @@ export default function TaskPage() {
 
             {/* My Tasks Tab */}
             <TabsContent value="my-tasks" className="space-y-6">
-              <motion.div variants={staggerContainer(0.1)} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {myTasks.map((task, i) => (
-                  <motion.div key={task._id} variants={fadeIn(i * 0.1)}>
-                    <InteractiveCard className="h-full">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-foreground mb-2">{task.taskName}</h3>
-                          <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
-                            {task.taskDescription}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-600"
-                            onClick={() => handleDeleteTask(task._id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
+              <Tabs value={myTasksSubTab} onValueChange={setMyTasksSubTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="tasks" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    My Tasks ({myTasks.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="offers" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    My Offers ({receivedOffers.length})
+                  </TabsTrigger>
+                </TabsList>
 
-                      <div className="space-y-3 text-sm mb-4">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Status:</span>
-                          <Badge
-                            variant={task.status === "OPEN" ? "default" : task.status === "OFFERED" ? "secondary" : "outline"}
-                            className={
-                              task.status === "OPEN"
-                                ? "bg-green-500/10 text-green-600 border-green-500/20"
-                                : task.status === "OFFERED"
-                                ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
-                                : "bg-gray-500/10 text-gray-600 border-gray-500/20"
-                            }
-                          >
-                            {task.status}
-                          </Badge>
-                        </div>
-
-                        {task.kasAmount && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Amount:</span>
-                            <span className="font-medium text-foreground">{task.kasAmount} KAS</span>
-                          </div>
-                        )}
-
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Created:</span>
-                          <span className="font-medium text-foreground">
-                            {new Date(task.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {task.taskTags.map((tag) => (
-                          <Badge key={tag} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        className="w-full border-accent/50 text-accent hover:bg-accent/10"
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Details
-                      </Button>
-                    </InteractiveCard>
-                  </motion.div>
-                ))}
-              </motion.div>
-
-              {myTasks.length === 0 && (
-                <motion.div variants={fadeIn()} className="flex justify-center">
-                  <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
-                    <Briefcase className="h-12 w-12 text-accent mb-4" />
-                    <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Tasks Created</h3>
-                    <p className="text-sm text-muted-foreground">Create your first task to get started!</p>
-                  </InteractiveCard>
-                </motion.div>
-              )}
-            </TabsContent>
-
-            {/* Offers Tab */}
-            <TabsContent value="offers" className="space-y-6">
-              <div className="grid grid-cols-1 gap-6">
-                {/* Received Offers (for workers) */}
-                {role === "worker" && (
-                  <motion.div variants={fadeIn()}>
-                    <h3 className="text-xl font-semibold mb-4">Received Offers</h3>
-                    <div className="space-y-4">
-                      {offers.filter(offer => offer.status === "PENDING").map((offer) => (
-                        <InteractiveCard key={offer._id}>
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* My Tasks Sub-tab */}
+                <TabsContent value="tasks" className="space-y-6">
+                  <motion.div variants={staggerContainer(0.1)} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {myTasks.map((task, i) => (
+                      <motion.div key={task._id} variants={fadeIn(i * 0.1)}>
+                        <InteractiveCard className="h-full">
+                          <div className="flex justify-between items-start mb-4">
                             <div className="flex-1">
-                              <h4 className="text-lg font-semibold text-foreground mb-2">
-                                Offer for Task #{offer.task}
-                              </h4>
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">From:</span>
+                              <h3 className="text-lg font-semibold text-foreground mb-2">{task.taskName}</h3>
+                              <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
+                                {task.taskDescription}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-500 hover:text-red-600"
+                                onClick={() => handleDeleteTask(task._id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3 text-sm mb-4">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Status:</span>
+                              <Badge
+                                variant={task.status === "OPEN" ? "default" : task.status === "OFFERED" ? "secondary" : "outline"}
+                                className={
+                                  task.status === "OPEN"
+                                    ? "bg-green-500/10 text-green-600 border-green-500/20"
+                                    : task.status === "OFFERED"
+                                    ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                                    : "bg-gray-500/10 text-gray-600 border-gray-500/20"
+                                }
+                              >
+                                {task.status}
+                              </Badge>
+                            </div>
+
+                            {task.kasAmount && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Amount:</span>
+                                <span className="font-medium text-foreground">{task.kasAmount} KAS</span>
+                              </div>
+                            )}
+
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Created:</span>
+                              <span className="font-medium text-foreground">
+                                {new Date(task.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-1 mb-4">
+                            {task.taskTags.map((tag) => (
+                              <Badge key={tag} variant="secondary" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            className="w-full border-accent/50 text-accent hover:bg-accent/10"
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </Button>
+                        </InteractiveCard>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+
+                  {myTasks.length === 0 && (
+                    <motion.div variants={fadeIn()} className="flex justify-center">
+                      <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
+                        <Briefcase className="h-12 w-12 text-accent mb-4" />
+                        <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Tasks Created</h3>
+                        <p className="text-sm text-muted-foreground">Create your first task to get started!</p>
+                      </InteractiveCard>
+                    </motion.div>
+                  )}
+                </TabsContent>
+
+                {/* My Offers Sub-tab */}
+                <TabsContent value="offers" className="space-y-6">
+                  <div className="space-y-4">
+                    {receivedOffers.map((offer) => (
+                      <InteractiveCard key={offer._id}>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <h4 className="text-lg font-semibold text-foreground mb-2">
+                              Offer for "{offer.task.taskName}"
+                            </h4>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">From:</span>
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="h-5 w-5">
+                                    <AvatarImage
+                                      src={`https://effigy.im/a/${offer.employerAddress}.svg`}
+                                      alt={offer.employerAddress}
+                                    />
+                                    <AvatarFallback className="bg-accent/10 text-accent text-xs">
+                                      {offer.employerAddress.charAt(2)}
+                                    </AvatarFallback>
+                                  </Avatar>
                                   <span className="font-medium">
                                     {offer.employerAddress.slice(0, 6)}...{offer.employerAddress.slice(-4)}
                                   </span>
                                 </div>
-                                {offer.kasAmount && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Amount:</span>
-                                    <span className="font-medium text-foreground">{offer.kasAmount} KAS</span>
-                                  </div>
-                                )}
+                              </div>
+                              {offer.kasAmount && (
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Received:</span>
-                                  <span className="font-medium">
-                                    {new Date(offer.createdAt).toLocaleDateString()}
-                                  </span>
+                                  <span className="text-muted-foreground">Amount:</span>
+                                  <span className="font-medium text-foreground">{offer.kasAmount} KAS</span>
                                 </div>
+                              )}
+                              {offer.paymentType && (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Type:</span>
+                                  <span className="font-medium text-foreground capitalize">{offer.paymentType}</span>
+                                </div>
+                              )}
+                              {offer.duration && offer.paymentType === "weekly" && (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Duration:</span>
+                                  <span className="font-medium text-foreground">{offer.duration} weeks</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Status:</span>
+                                <Badge
+                                  variant={
+                                    offer.status === "PENDING" ? "secondary" :
+                                    offer.status === "ACCEPTED" ? "default" : "outline"
+                                  }
+                                  className={
+                                    offer.status === "PENDING"
+                                      ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                                      : offer.status === "ACCEPTED"
+                                      ? "bg-green-500/10 text-green-600 border-green-500/20"
+                                      : "bg-red-500/10 text-red-600 border-red-500/20"
+                                  }
+                                >
+                                  {offer.status}
+                                </Badge>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Received:</span>
+                                <span className="font-medium">
+                                  {new Date(offer.createdAt).toLocaleDateString()}
+                                </span>
                               </div>
                             </div>
+                          </div>
+                          {offer.status === "PENDING" && (
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
                                 className="bg-green-500 hover:bg-green-600 text-white"
-                                onClick={() => handleAcceptOffer(offer._id)}
+                                onClick={() => handleAcceptOffer(offer)}
                                 disabled={processingStates[offer._id]?.accepting}
                               >
                                 {processingStates[offer._id]?.accepting ? (
@@ -984,7 +1130,7 @@ export default function TaskPage() {
                                 size="sm"
                                 variant="outline"
                                 className="border-red-500 text-red-500 hover:bg-red-50"
-                                onClick={() => handleDeclineOffer(offer._id)}
+                                onClick={() => handleDeclineOffer(offer)}
                                 disabled={processingStates[offer._id]?.declining}
                               >
                                 {processingStates[offer._id]?.declining ? (
@@ -995,93 +1141,25 @@ export default function TaskPage() {
                                 Decline
                               </Button>
                             </div>
-                          </div>
-                        </InteractiveCard>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
+                          )}
+                        </div>
+                      </InteractiveCard>
+                    ))}
 
-                {/* Sent Offers (for employers) */}
-                {role === "employer" && (
-                  <motion.div variants={fadeIn()}>
-                    <h3 className="text-xl font-semibold mb-4">Sent Offers</h3>
-                    <div className="space-y-4">
-                      {myOffers.map((offer) => (
-                        <InteractiveCard key={offer._id}>
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex-1">
-                              <h4 className="text-lg font-semibold text-foreground mb-2">
-                                Offer for Task #{offer.task}
-                              </h4>
-                              <div className="space-y-2 text-sm">
-                                {offer.kasAmount && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Amount:</span>
-                                    <span className="font-medium text-foreground">{offer.kasAmount} KAS</span>
-                                  </div>
-                                )}
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Status:</span>
-                                  <Badge
-                                    variant={
-                                      offer.status === "PENDING" ? "secondary" :
-                                      offer.status === "ACCEPTED" ? "default" : "outline"
-                                    }
-                                  >
-                                    {offer.status}
-                                  </Badge>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Sent:</span>
-                                  <span className="font-medium">
-                                    {new Date(offer.createdAt).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            {offer.status === "DECLINED" && (
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-accent/50 text-accent hover:bg-accent/10"
-                                >
-                                  <RefreshCw className="mr-1 h-4 w-4" />
-                                  Convert to Job
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-red-500 text-red-500 hover:bg-red-50"
-                                >
-                                  <X className="mr-1 h-4 w-4" />
-                                  Cancel
-                                </Button>
-                              </div>
-                            )}
-                          </div>
+                    {receivedOffers.length === 0 && (
+                      <motion.div variants={fadeIn()} className="flex justify-center">
+                        <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
+                          <Mail className="h-12 w-12 text-accent mb-4" />
+                          <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Offers Received</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Create tasks to attract employers and receive offers!
+                          </p>
                         </InteractiveCard>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Empty State */}
-                {offers.length === 0 && myOffers.length === 0 && (
-                  <motion.div variants={fadeIn()} className="flex justify-center">
-                    <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
-                      <Send className="h-12 w-12 text-accent mb-4" />
-                      <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Offers</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {role === "worker" 
-                          ? "No offers received yet. Create tasks to attract employers!"
-                          : "No offers sent yet. Browse tasks to send offers!"}
-                      </p>
-                    </InteractiveCard>
-                  </motion.div>
-                )}
-              </div>
+                      </motion.div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </TabsContent>
 
             {/* Create Task Tab */}
@@ -1265,6 +1343,127 @@ export default function TaskPage() {
           </Tabs>
         </motion.div>
       </SectionWrapper>
+
+      {/* Sent Offers Section for Employers */}
+      {role === "employer" && (
+        <SectionWrapper id="sent-offers" padding="py-12 md:py-16">
+          <motion.div variants={fadeIn()} className="text-center mb-12">
+            <h2 className="font-varien text-3xl font-bold tracking-wider sm:text-4xl text-foreground">
+              Sent <span className="text-accent">Offers</span>
+            </h2>
+            <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
+              <Balancer>Manage your sent offers and track their status.</Balancer>
+            </p>
+          </motion.div>
+
+          <div className="space-y-4">
+            {sentOffers.map((offer) => (
+              <InteractiveCard key={offer._id}>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <h4 className="text-lg font-semibold text-foreground mb-2">
+                      Offer for "{offer.task.taskName}"
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">To:</span>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage
+                              src={`https://effigy.im/a/${offer.workerAddress}.svg`}
+                              alt={offer.workerAddress}
+                            />
+                            <AvatarFallback className="bg-accent/10 text-accent text-xs">
+                              {offer.workerAddress.charAt(2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">
+                            {offer.workerAddress.slice(0, 6)}...{offer.workerAddress.slice(-4)}
+                          </span>
+                        </div>
+                      </div>
+                      {offer.kasAmount && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Amount:</span>
+                          <span className="font-medium text-foreground">{offer.kasAmount} KAS</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Status:</span>
+                        <Badge
+                          variant={
+                            offer.status === "PENDING" ? "secondary" :
+                            offer.status === "ACCEPTED" ? "default" : "outline"
+                          }
+                          className={
+                            offer.status === "PENDING"
+                              ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                              : offer.status === "ACCEPTED"
+                              ? "bg-green-500/10 text-green-600 border-green-500/20"
+                              : "bg-red-500/10 text-red-600 border-red-500/20"
+                          }
+                        >
+                          {offer.status}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Sent:</span>
+                        <span className="font-medium">
+                          {new Date(offer.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {offer.status === "DECLINED" && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-accent/50 text-accent hover:bg-accent/10"
+                        onClick={() => handleConvertToJob(offer)}
+                        disabled={processingStates[offer._id]?.convertingToJob}
+                      >
+                        {processingStates[offer._id]?.convertingToJob ? (
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="mr-1 h-4 w-4" />
+                        )}
+                        Convert to Job
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-red-500 text-red-500 hover:bg-red-50"
+                        onClick={() => handleCancelOffer(offer)}
+                        disabled={processingStates[offer._id]?.canceling}
+                      >
+                        {processingStates[offer._id]?.canceling ? (
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="mr-1 h-4 w-4" />
+                        )}
+                        Cancel & Refund
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </InteractiveCard>
+            ))}
+
+            {sentOffers.length === 0 && (
+              <motion.div variants={fadeIn()} className="flex justify-center">
+                <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
+                  <Send className="h-12 w-12 text-accent mb-4" />
+                  <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Offers Sent</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Browse tasks to send offers to talented workers!
+                  </p>
+                </InteractiveCard>
+              </motion.div>
+            )}
+          </div>
+        </SectionWrapper>
+      )}
 
       {/* Send Offer Dialog */}
       <Dialog open={showOfferDialog} onOpenChange={setShowOfferDialog}>
