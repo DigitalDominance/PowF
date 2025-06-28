@@ -150,7 +150,7 @@ interface Offer {
 }
 
 export default function TaskPage() {
-  const { wallet, role, contracts, provider, setEmployerJobs, setJobDetails, displayName } = useUserContext()
+  const { wallet, role, contracts, provider, setEmployerJobs, setJobDetails, displayName, allJobs } = useUserContext()
 
   // Task creation state
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "confirming" | "success">("idle")
@@ -158,7 +158,7 @@ export default function TaskPage() {
     taskName: "",
     taskDescription: "",
     kasAmount: "",
-    paymentType: "oneoff" as "weekly" | "oneoff", // Changed to oneoff default
+    paymentType: "oneoff" as "weekly" | "oneoff",
     duration: "",
     taskTags: [] as string[],
   })
@@ -233,20 +233,39 @@ export default function TaskPage() {
     }
   }
 
-  // Mock function to get user rating (replace with actual API call)
+  // Real function to get user rating from jobs data
   const getUserRating = async (address: string) => {
     if (userRatings[address]) {
       return userRatings[address]
     }
 
-    // Mock rating data - replace with actual API call
-    const mockRating = {
-      rating: Math.random() * 2 + 3, // Random rating between 3-5
-      count: Math.floor(Math.random() * 50) + 1, // Random count 1-50
-    }
+    try {
+      // Find jobs where this address is the employer to calculate their rating
+      const employerJobs = allJobs?.filter((job) => job.employerAddress?.toLowerCase() === address.toLowerCase()) || []
 
-    setUserRatings((prev) => ({ ...prev, [address]: mockRating }))
-    return mockRating
+      if (employerJobs.length === 0) {
+        // Default rating for new users
+        const defaultRating = { rating: 0, count: 0 }
+        setUserRatings((prev) => ({ ...prev, [address]: defaultRating }))
+        return defaultRating
+      }
+
+      // Calculate average rating from employer jobs
+      const totalRating = employerJobs.reduce((sum, job) => sum + (job.employerRating || 0), 0)
+      const averageRating = totalRating / employerJobs.length
+      const ratingData = {
+        rating: averageRating,
+        count: employerJobs.length,
+      }
+
+      setUserRatings((prev) => ({ ...prev, [address]: ratingData }))
+      return ratingData
+    } catch (error) {
+      console.error("Error fetching user rating:", error)
+      const defaultRating = { rating: 0, count: 0 }
+      setUserRatings((prev) => ({ ...prev, [address]: defaultRating }))
+      return defaultRating
+    }
   }
 
   // Fetch data
@@ -286,7 +305,7 @@ export default function TaskPage() {
     }
 
     fetchAllUserData()
-  }, [tasks, receivedOffers, sentOffers])
+  }, [tasks, receivedOffers, sentOffers, allJobs])
 
   const fetchTasks = async () => {
     try {
@@ -392,7 +411,7 @@ export default function TaskPage() {
       taskName: "",
       taskDescription: "",
       kasAmount: "",
-      paymentType: "oneoff", // Changed to oneoff default
+      paymentType: "oneoff",
       duration: "",
       taskTags: [],
     })
@@ -408,6 +427,13 @@ export default function TaskPage() {
 
     if (!wallet) {
       toast.error("Please connect your wallet first", { duration: 3000 })
+      return
+    }
+
+    // Validate minimum amount
+    const kasAmount = Number.parseFloat(taskFormData.kasAmount)
+    if (kasAmount < 5) {
+      toast.error("Minimum amount is 5 KAS", { duration: 3000 })
       return
     }
 
@@ -464,6 +490,13 @@ export default function TaskPage() {
 
     if (!contracts?.jobFactory) {
       toast.error("Please connect your wallet first", { duration: 3000 })
+      return
+    }
+
+    // Validate minimum amount
+    const kasAmount = Number.parseFloat(offerFormData.kasAmount)
+    if (kasAmount < 5) {
+      toast.error("Minimum offer amount is 5 KAS", { duration: 3000 })
       return
     }
 
@@ -1020,7 +1053,7 @@ export default function TaskPage() {
                                 {userDisplayNames[task.workerAddress] ||
                                   `${task.workerAddress?.slice(0, 6)}...${task.workerAddress?.slice(-4)}`}
                               </span>
-                              {userRatings[task.workerAddress] && (
+                              {userRatings[task.workerAddress] && userRatings[task.workerAddress].count > 0 && (
                                 <div className="flex items-center gap-1">
                                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                                   <span className="text-xs text-muted-foreground">
@@ -1034,7 +1067,7 @@ export default function TaskPage() {
 
                           {task.kasAmount && (
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Requested:</span>
+                              <span className="text-muted-foreground">Preferred KAS Amount:</span>
                               <div className="flex items-center gap-1">
                                 <img src="/kaslogo.webp" alt="KAS" className="h-3 w-3" />
                                 <span className="font-medium text-foreground">{task.kasAmount} KAS</span>
@@ -1257,7 +1290,7 @@ export default function TaskPage() {
 
                             {task.kasAmount && (
                               <div className="flex justify-between">
-                                <span className="text-muted-foreground">Requested:</span>
+                                <span className="text-muted-foreground">Preferred KAS Amount:</span>
                                 <div className="flex items-center gap-1">
                                   <img src="/kaslogo.webp" alt="KAS" className="h-3 w-3" />
                                   <span className="font-medium text-foreground">{task.kasAmount} KAS</span>
@@ -1478,7 +1511,7 @@ export default function TaskPage() {
                     {/* Expected Amount */}
                     <div className="space-y-2">
                       <Label htmlFor="kas-amount" className="text-foreground font-varien">
-                        Expected Amount (KAS)
+                        Expected Amount (KAS) - Minimum 5 KAS
                       </Label>
                       <div className="relative">
                         <img
@@ -1490,7 +1523,8 @@ export default function TaskPage() {
                           id="kas-amount"
                           type="number"
                           step="0.01"
-                          placeholder="0.00"
+                          min="5"
+                          placeholder="5.00"
                           value={taskFormData.kasAmount}
                           onChange={(e) => handleTaskInputChange("kasAmount", e.target.value)}
                           className="pl-10 border-border focus:border-accent"
@@ -1739,15 +1773,16 @@ export default function TaskPage() {
                           {userDisplayNames[selectedTaskForView.workerAddress] ||
                             `${selectedTaskForView.workerAddress.slice(0, 6)}...${selectedTaskForView.workerAddress.slice(-4)}`}
                         </span>
-                        {userRatings[selectedTaskForView.workerAddress] && (
-                          <div className="flex items-center gap-1">
-                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                            <span className="text-xs text-muted-foreground">
-                              {userRatings[selectedTaskForView.workerAddress].rating.toFixed(1)} (
-                              {userRatings[selectedTaskForView.workerAddress].count})
-                            </span>
-                          </div>
-                        )}
+                        {userRatings[selectedTaskForView.workerAddress] &&
+                          userRatings[selectedTaskForView.workerAddress].count > 0 && (
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                              <span className="text-xs text-muted-foreground">
+                                {userRatings[selectedTaskForView.workerAddress].rating.toFixed(1)} (
+                                {userRatings[selectedTaskForView.workerAddress].count})
+                              </span>
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>
@@ -1777,7 +1812,7 @@ export default function TaskPage() {
 
                 {selectedTaskForView.kasAmount && (
                   <div>
-                    <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Requested Amount</h4>
+                    <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Preferred KAS Amount</h4>
                     <div className="flex items-center gap-1">
                       <img src="/kaslogo.webp" alt="KAS" className="h-4 w-4" />
                       <span className="text-sm font-medium text-foreground">{selectedTaskForView.kasAmount} KAS</span>
@@ -1880,21 +1915,20 @@ export default function TaskPage() {
             <motion.div variants={fadeIn(0.2)} className="space-y-6 py-4">
               <div className="space-y-2">
                 <Label htmlFor="offer-amount" className="font-varien text-foreground">
-                  Total Amount (KAS)
+                  Total Amount (KAS) - Minimum 5 KAS
                 </Label>
                 <div className="relative">
                   <img
                     src="/kaslogo.webp"
                     alt="KAS"
-                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 transition-all duration-200 ${
-                      isOfferProcessing ? "blur-sm opacity-50" : ""
-                    }`}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4"
                   />
                   <Input
                     id="offer-amount"
                     type="number"
                     step="0.01"
-                    placeholder="0.00"
+                    min="5"
+                    placeholder="5.00"
                     value={offerFormData.kasAmount}
                     onChange={(e) => setOfferFormData((prev) => ({ ...prev, kasAmount: e.target.value }))}
                     className="pl-10 border-accent/30 focus:border-accent bg-background/50 backdrop-blur-sm"
