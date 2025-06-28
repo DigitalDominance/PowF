@@ -450,54 +450,82 @@ export function ConnectWallet() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Display Name Input */}
       {isSigned && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black/50 h-[100vh]">
-          <div className="w-full max-w-md p-6 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg shadow-lg">
-            <h2 className="text-lg font-semibold mb-4">Set Your Display Name and Role</h2>
+        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="w-full max-w-md p-8 bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-2xl shadow-2xl backdrop-blur-sm"
+          >
+            <div className="text-center mb-6">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                className="w-16 h-16 bg-gradient-to-br from-accent/20 to-accent/40 rounded-full flex items-center justify-center mx-auto mb-4"
+              >
+                <User className="h-8 w-8 text-accent" />
+              </motion.div>
+              <h2 className="font-varien text-2xl font-bold mb-2 text-foreground tracking-wider">Welcome!</h2>
+              <p className="font-varela text-muted-foreground">Set up your profile to get started</p>
+            </div>
 
-            <label htmlFor="displayName" className="block text-sm font-medium text-gray-300">
-              Display Name
-            </label>
-            <input
-              id="displayName"
-              type="text"
-              value={displayName_}
-              onChange={(e) => setDisplayName_(e.target.value)}
-              placeholder="Enter your display name"
-              className="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent bg-gray-700 text-white sm:text-sm"
-            />
+            <div className="space-y-6">
+              {/* Display Name Input */}
+              <div className="space-y-2">
+                <label htmlFor="displayName" className="block text-sm font-medium text-foreground font-varien">
+                  Display Name
+                </label>
+                <input
+                  id="displayName"
+                  type="text"
+                  value={displayName_}
+                  onChange={(e) => setDisplayName_(e.target.value)}
+                  placeholder="Enter your display name"
+                  className="w-full px-4 py-3 border border-accent/30 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela transition-all duration-200"
+                />
+              </div>
 
-            <label htmlFor="role" className="block text-sm font-medium text-gray-300 mt-4">
-              Role
-            </label>
-            <select
-              id="role"
-              value={role_}
-              onChange={(e) => setRole_(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent bg-gray-700 text-white sm:text-sm"
-            >
-              <option value="" disabled>
-                Select your role
-              </option>
-              <option value="employer">Employer</option>
-              <option value="worker">Employee</option>
-            </select>
+              {/* Role Selection */}
+              <div className="space-y-2">
+                <label htmlFor="role" className="block text-sm font-medium text-foreground font-varien">
+                  Role
+                </label>
+                <select
+                  id="role"
+                  value={role_}
+                  onChange={(e) => setRole_(e.target.value)}
+                  className="w-full px-4 py-3 border border-accent/30 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela transition-all duration-200"
+                >
+                  <option value="" disabled>
+                    Select your role
+                  </option>
+                  <option value="employer">Employer</option>
+                  <option value="worker">Employee</option>
+                </select>
+              </div>
 
-            <button
-              onClick={handleSubmitDisplayName}
-              className={`mt-4 px-4 py-2 rounded-md w-full ${
-                displayName_ && role_
-                  ? "bg-accent text-white hover:bg-accent-dark"
-                  : "bg-gray-600 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              Submit
-            </button>
-          </div>
+              {/* Submit Button */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleSubmitDisplayName}
+                disabled={!displayName_ || !role_}
+                className={`w-full py-3 px-6 rounded-xl font-varien font-medium transition-all duration-200 ${
+                  displayName_ && role_
+                    ? "bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 text-accent-foreground shadow-lg hover:shadow-xl"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                }`}
+              >
+                Get Started
+              </motion.button>
+            </div>
+          </motion.div>
         </div>
       )}
-
+      
       {/* Messages Popup */}
       {showMessagesPopup && (
         <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-0 md:backdrop-blur-sm h-[100vh] z-50">
