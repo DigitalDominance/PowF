@@ -569,7 +569,7 @@ export default function TaskPage() {
   }
 
   const handleAcceptOffer = async (offer: Offer) => {
-    if (!contracts?.jobFactory || !provider) {
+    if (!provider) {
       toast.error("Please connect your wallet first", { duration: 3000 })
       return
     }
@@ -597,35 +597,45 @@ export default function TaskPage() {
       const acceptData = await acceptResponse.json()
       console.log("Offer accepted, job created:", acceptData)
 
-      // Step 2: Get the latest job address from employer's jobs
-      const jobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
-      const latestJob = jobs[jobs.length - 1] // Get the latest job
-
-      if (!latestJob) {
-        throw new Error("Could not find the created job")
-      }
-
-      // Step 3: Auto-apply worker to the job using the submitApplication function
-      const applicationText = `I'm the worker who created the original task "${offer.task.taskName}". I accept this offer and am ready to begin work.`
-
-      await submitApplication(latestJob, applicationText, provider, wallet)
-
-      // Update context with new jobs for worker
-      if (role === "worker") {
+      // Step 2: Since we have the job data from the backend response, we can use it directly
+      // The backend already created the job and assigned the worker, so we just need to apply
+      if (acceptData.job && acceptData.job._id) {
+        // Get the latest job address from employer's jobs (try-catch to handle potential errors)
         try {
-          const updatedJobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
-          setEmployerJobs(updatedJobs)
+          if (contracts?.jobFactory) {
+            const jobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
+            const latestJob = jobs[jobs.length - 1] // Get the latest job
 
-          const jobDetailsPromises = updatedJobs.map((jobAddress) => fetchJobDetails(provider, jobAddress))
-          const allJobDetails = await Promise.all(jobDetailsPromises)
-          const validJobDetails = allJobDetails.filter((details) => details !== null)
-          setJobDetails(validJobDetails)
-        } catch (error) {
-          console.error("Error refreshing jobs data:", error)
+            if (latestJob) {
+              // Step 3: Auto-apply worker to the job using the submitApplication function
+              const applicationText = `I'm the worker who created the original task "${offer.task.taskName}". I accept this offer and am ready to begin work.`
+              await submitApplication(latestJob, applicationText, provider, wallet)
+            }
+          }
+        } catch (contractError) {
+          console.warn("Could not auto-apply via smart contract, but job was created successfully:", contractError)
+          // Don't throw here - the job was created successfully in the backend
         }
-      }
 
-      toast.success("Offer accepted! Job created and application submitted. Check the Jobs page!")
+        // Update context with new jobs for worker
+        if (role === "worker" && contracts?.jobFactory) {
+          try {
+            const updatedJobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
+            setEmployerJobs(updatedJobs)
+
+            const jobDetailsPromises = updatedJobs.map((jobAddress) => fetchJobDetails(provider, jobAddress))
+            const allJobDetails = await Promise.all(jobDetailsPromises)
+            const validJobDetails = allJobDetails.filter((details) => details !== null)
+            setJobDetails(validJobDetails)
+          } catch (error) {
+            console.error("Error refreshing jobs data:", error)
+          }
+        }
+
+        toast.success("Offer accepted! Job created successfully. Check the Jobs page!")
+      } else {
+        toast.success("Offer accepted successfully!")
+      }
 
       // Refresh data
       await fetchTasks()
@@ -1075,7 +1085,12 @@ export default function TaskPage() {
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Preferred KAS Amount:</span>
                               <div className="flex items-center gap-1">
-                                <img src="/kaslogo.webp" alt="KAS" className="h-3 w-3" />
+                                <img
+                                  src="/kaslogo.webp"
+                                  alt="KAS"
+                                  className="h-3 w-3 filter-none"
+                                  style={{ filter: "none", imageRendering: "crisp-edges" }}
+                                />
                                 <span className="font-medium text-foreground">{task.kasAmount} KAS</span>
                               </div>
                             </div>
@@ -1298,7 +1313,12 @@ export default function TaskPage() {
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">Preferred KAS Amount:</span>
                                 <div className="flex items-center gap-1">
-                                  <img src="/kaslogo.webp" alt="KAS" className="h-3 w-3" />
+                                  <img
+                                    src="/kaslogo.webp"
+                                    alt="KAS"
+                                    className="h-3 w-3 filter-none"
+                                    style={{ filter: "none", imageRendering: "crisp-edges" }}
+                                  />
                                   <span className="font-medium text-foreground">{task.kasAmount} KAS</span>
                                 </div>
                               </div>
@@ -1384,7 +1404,12 @@ export default function TaskPage() {
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Amount:</span>
                                   <div className="flex items-center gap-1">
-                                    <img src="/kaslogo.webp" alt="KAS" className="h-3 w-3" />
+                                    <img
+                                      src="/kaslogo.webp"
+                                      alt="KAS"
+                                      className="h-3 w-3 filter-none"
+                                      style={{ filter: "none", imageRendering: "crisp-edges" }}
+                                    />
                                     <span className="font-medium text-foreground">{offer.kasAmount} KAS</span>
                                   </div>
                                 </div>
@@ -1523,7 +1548,8 @@ export default function TaskPage() {
                         <img
                           src="/kaslogo.webp"
                           alt="KAS"
-                          className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4"
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 filter-none"
+                          style={{ filter: "none", imageRendering: "crisp-edges" }}
                         />
                         <Input
                           id="kas-amount"
@@ -1656,7 +1682,12 @@ export default function TaskPage() {
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Amount:</span>
                           <div className="flex items-center gap-1">
-                            <img src="/kaslogo.webp" alt="KAS" className="h-3 w-3" />
+                            <img
+                              src="/kaslogo.webp"
+                              alt="KAS"
+                              className="h-3 w-3 filter-none"
+                              style={{ filter: "none", imageRendering: "crisp-edges" }}
+                            />
                             <span className="font-medium text-foreground">{offer.kasAmount} KAS</span>
                           </div>
                         </div>
@@ -1927,7 +1958,8 @@ export default function TaskPage() {
                   <img
                     src="/kaslogo.webp"
                     alt="KAS"
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4"
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 filter-none"
+                    style={{ filter: "none", imageRendering: "crisp-edges" }}
                   />
                   <Input
                     id="offer-amount"
