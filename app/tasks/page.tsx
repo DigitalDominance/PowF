@@ -7,19 +7,48 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import type React from "react"
 import { useState, useEffect } from "react"
-import { ArrowRight, CheckCircle, Users, FileText, DollarSign, Eye, MessageSquare, Calendar, Star, Plus, Edit, Trash2, Loader2, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Filter, X, Clock, Send, AlertCircle, Briefcase, Target, TrendingUp, Zap, Heart, ThumbsUp, ThumbsDown, RefreshCw, Mail, UserCheck } from 'lucide-react'
+import {
+  ArrowRight,
+  FileText,
+  DollarSign,
+  Eye,
+  Calendar,
+  Plus,
+  Edit,
+  Trash2,
+  Loader2,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Search,
+  X,
+  Send,
+  Briefcase,
+  Target,
+  ThumbsUp,
+  ThumbsDown,
+  RefreshCw,
+  Mail,
+} from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
 import { ethers } from "ethers"
-import { fetchJobDetails, fetchJobsByEmployerFromEvents, useUserContext } from "@/context/UserContext"
-import PROOF_OF_WORK_JOB_ABI from "@/lib/contracts/ProofOfWorkJob.json"
+import { useUserContext } from "@/context/UserContext"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -37,16 +66,16 @@ const staggerContainer = (staggerChildren = 0.1, delayChildren = 0) => ({
 })
 
 const slideIn = (direction = "left", delay = 0) => ({
-  hidden: { 
+  hidden: {
     x: direction === "left" ? -100 : direction === "right" ? 100 : 0,
     y: direction === "up" ? 100 : direction === "down" ? -100 : 0,
-    opacity: 0 
+    opacity: 0,
   },
-  visible: { 
-    x: 0, 
-    y: 0, 
-    opacity: 1, 
-    transition: { delay, duration: 0.6, ease: "easeOut" } 
+  visible: {
+    x: 0,
+    y: 0,
+    opacity: 1,
+    transition: { delay, duration: 0.6, ease: "easeOut" },
   },
 })
 
@@ -100,7 +129,7 @@ interface Offer {
 
 export default function TaskPage() {
   const { wallet, role, contracts, provider, setEmployerJobs, setJobDetails } = useUserContext()
-  
+
   // Task creation state
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "confirming" | "success">("idle")
   const [taskFormData, setTaskFormData] = useState({
@@ -137,13 +166,18 @@ export default function TaskPage() {
   })
 
   // Processing states
-  const [processingStates, setProcessingStates] = useState<Record<string, {
-    accepting?: boolean
-    declining?: boolean
-    sendingOffer?: boolean
-    canceling?: boolean
-    convertingToJob?: boolean
-  }>>({})
+  const [processingStates, setProcessingStates] = useState<
+    Record<
+      string,
+      {
+        accepting?: boolean
+        declining?: boolean
+        sendingOffer?: boolean
+        canceling?: boolean
+        convertingToJob?: boolean
+      }
+    >
+  >({})
 
   const tasksPerPage = 6
   const API_BASE_URL = process.env.NEXT_PUBLIC_API
@@ -161,7 +195,17 @@ export default function TaskPage() {
     try {
       const response = await fetch(`${API_BASE_URL}/tasks`)
       const data = await response.json()
-      setTasks(data)
+      // Filter out tasks with invalid data
+      const validTasks = data.filter(
+        (task: Task) =>
+          task &&
+          task._id &&
+          task.taskName &&
+          task.taskDescription &&
+          task.workerAddress &&
+          Array.isArray(task.taskTags),
+      )
+      setTasks(validTasks)
     } catch (error) {
       console.error("Error fetching tasks:", error)
       toast.error("Failed to fetch tasks")
@@ -174,7 +218,17 @@ export default function TaskPage() {
     try {
       const response = await fetch(`${API_BASE_URL}/tasks`)
       const data = await response.json()
-      setMyTasks(data.filter((task: Task) => task.workerAddress === wallet))
+      const validTasks = data.filter(
+        (task: Task) =>
+          task &&
+          task._id &&
+          task.taskName &&
+          task.taskDescription &&
+          task.workerAddress &&
+          Array.isArray(task.taskTags) &&
+          task.workerAddress === wallet,
+      )
+      setMyTasks(validTasks)
     } catch (error) {
       console.error("Error fetching my tasks:", error)
     }
@@ -186,20 +240,32 @@ export default function TaskPage() {
         // Fetch offers received by this worker
         const response = await fetch(`${API_BASE_URL}/offers?workerAddress=${wallet}`, {
           headers: {
-            "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         })
-        const data = await response.json()
-        setReceivedOffers(data)
+        if (response.ok) {
+          const data = await response.json()
+          // Filter out offers with invalid data
+          const validOffers = data.filter(
+            (offer: Offer) => offer && offer._id && offer.task && offer.employerAddress && offer.workerAddress,
+          )
+          setReceivedOffers(validOffers)
+        }
       } else if (role === "employer") {
         // Fetch offers sent by this employer
         const response = await fetch(`${API_BASE_URL}/offers?employerAddress=${wallet}`, {
           headers: {
-            "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         })
-        const data = await response.json()
-        setSentOffers(data)
+        if (response.ok) {
+          const data = await response.json()
+          // Filter out offers with invalid data
+          const validOffers = data.filter(
+            (offer: Offer) => offer && offer._id && offer.task && offer.employerAddress && offer.workerAddress,
+          )
+          setSentOffers(validOffers)
+        }
       }
     } catch (error) {
       console.error("Error fetching offers:", error)
@@ -236,7 +302,7 @@ export default function TaskPage() {
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (role !== "worker") {
       toast.error("Only workers can create tasks.", { duration: 3000 })
       return
@@ -255,7 +321,7 @@ export default function TaskPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
         body: JSON.stringify({
           taskName: taskFormData.taskName,
@@ -274,18 +340,17 @@ export default function TaskPage() {
 
       setSubmitState("success")
       toast.success("Task created successfully!")
-      
+
       // Refresh tasks
       await fetchTasks()
       await fetchMyTasks()
-      
+
       // Reset form and close dialog
       setTimeout(() => {
         resetTaskForm()
         setSubmitState("idle")
         setShowCreateDialog(false)
       }, 2000)
-
     } catch (err: any) {
       console.error("Error creating task:", err)
       setSubmitState("idle")
@@ -305,17 +370,19 @@ export default function TaskPage() {
     }
 
     try {
-      setProcessingStates(prev => ({
+      setProcessingStates((prev) => ({
         ...prev,
-        [task._id]: { ...prev[task._id], sendingOffer: true }
+        [task._id]: { ...prev[task._id], sendingOffer: true },
       }))
 
       // Create job on smart contract first
-      const weeklyPayWei = offerFormData.paymentType === "weekly" ? ethers.parseEther(offerFormData.kasAmount) : BigInt(0)
+      const weeklyPayWei =
+        offerFormData.paymentType === "weekly" ? ethers.parseEther(offerFormData.kasAmount) : BigInt(0)
       const durationWeeks = BigInt(offerFormData.duration || "0")
-      const totalPayWei = offerFormData.paymentType === "oneoff"
-        ? ethers.parseEther(offerFormData.kasAmount)
-        : ethers.parseEther(offerFormData.kasAmount) * durationWeeks
+      const totalPayWei =
+        offerFormData.paymentType === "oneoff"
+          ? ethers.parseEther(offerFormData.kasAmount)
+          : ethers.parseEther(offerFormData.kasAmount) * durationWeeks
 
       const fee = (totalPayWei * BigInt(75)) / BigInt(10000)
       const value = offerFormData.paymentType === "weekly" ? weeklyPayWei * durationWeeks + fee : totalPayWei + fee
@@ -340,7 +407,7 @@ export default function TaskPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
         body: JSON.stringify({
           kasAmount: offerFormData.kasAmount,
@@ -354,32 +421,31 @@ export default function TaskPage() {
       }
 
       toast.success("Offer sent successfully!")
-      
+
       // Refresh data
       await fetchTasks()
       await fetchOffers()
-      
+
       // Reset form and close dialog
       setOfferFormData({ kasAmount: "", paymentType: "weekly", duration: "" })
       setShowOfferDialog(false)
       setSelectedTask(null)
-
     } catch (err: any) {
       console.error("Error sending offer:", err)
       toast.error(`Failed to send offer: ${err.message}`, { duration: 5000 })
     } finally {
-      setProcessingStates(prev => ({
+      setProcessingStates((prev) => ({
         ...prev,
-        [task._id]: { ...prev[task._id], sendingOffer: false }
+        [task._id]: { ...prev[task._id], sendingOffer: false },
       }))
     }
   }
 
   const handleAcceptOffer = async (offer: Offer) => {
     try {
-      setProcessingStates(prev => ({
+      setProcessingStates((prev) => ({
         ...prev,
-        [offer._id]: { ...prev[offer._id], accepting: true }
+        [offer._id]: { ...prev[offer._id], accepting: true },
       }))
 
       // Accept offer - this will create a job listing and remove the task
@@ -387,7 +453,7 @@ export default function TaskPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
       })
 
@@ -396,35 +462,34 @@ export default function TaskPage() {
       }
 
       toast.success("Offer accepted! Job listing created and moved to jobs page.")
-      
+
       // Refresh data
       await fetchTasks()
       await fetchMyTasks()
       await fetchOffers()
-
     } catch (err: any) {
       console.error("Error accepting offer:", err)
       toast.error(`Failed to accept offer: ${err.message}`, { duration: 5000 })
     } finally {
-      setProcessingStates(prev => ({
+      setProcessingStates((prev) => ({
         ...prev,
-        [offer._id]: { ...prev[offer._id], accepting: false }
+        [offer._id]: { ...prev[offer._id], accepting: false },
       }))
     }
   }
 
   const handleDeclineOffer = async (offer: Offer) => {
     try {
-      setProcessingStates(prev => ({
+      setProcessingStates((prev) => ({
         ...prev,
-        [offer._id]: { ...prev[offer._id], declining: true }
+        [offer._id]: { ...prev[offer._id], declining: true },
       }))
 
       const response = await fetch(`${API_BASE_URL}/offers/${offer._id}/decline`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
       })
 
@@ -433,26 +498,25 @@ export default function TaskPage() {
       }
 
       toast.success("Offer declined. Employer can now choose to convert to general job listing or cancel.")
-      
+
       // Refresh data
       await fetchOffers()
-
     } catch (err: any) {
       console.error("Error declining offer:", err)
       toast.error(`Failed to decline offer: ${err.message}`, { duration: 5000 })
     } finally {
-      setProcessingStates(prev => ({
+      setProcessingStates((prev) => ({
         ...prev,
-        [offer._id]: { ...prev[offer._id], declining: false }
+        [offer._id]: { ...prev[offer._id], declining: false },
       }))
     }
   }
 
   const handleConvertToJob = async (offer: Offer) => {
     try {
-      setProcessingStates(prev => ({
+      setProcessingStates((prev) => ({
         ...prev,
-        [offer._id]: { ...prev[offer._id], convertingToJob: true }
+        [offer._id]: { ...prev[offer._id], convertingToJob: true },
       }))
 
       // Convert declined offer to general job listing
@@ -460,7 +524,7 @@ export default function TaskPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
         body: JSON.stringify({
           paymentType: offer.paymentType?.toUpperCase() || "WEEKLY",
@@ -472,26 +536,25 @@ export default function TaskPage() {
       }
 
       toast.success("Offer converted to general job listing! Others can now apply.")
-      
+
       // Refresh data
       await fetchOffers()
-
     } catch (err: any) {
       console.error("Error converting offer to job:", err)
       toast.error(`Failed to convert offer to job: ${err.message}`, { duration: 5000 })
     } finally {
-      setProcessingStates(prev => ({
+      setProcessingStates((prev) => ({
         ...prev,
-        [offer._id]: { ...prev[offer._id], convertingToJob: false }
+        [offer._id]: { ...prev[offer._id], convertingToJob: false },
       }))
     }
   }
 
   const handleCancelOffer = async (offer: Offer) => {
     try {
-      setProcessingStates(prev => ({
+      setProcessingStates((prev) => ({
         ...prev,
-        [offer._id]: { ...prev[offer._id], canceling: true }
+        [offer._id]: { ...prev[offer._id], canceling: true },
       }))
 
       // Cancel offer and get refund (this would need smart contract interaction)
@@ -499,7 +562,7 @@ export default function TaskPage() {
       const response = await fetch(`${API_BASE_URL}/offers/${offer._id}`, {
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
       })
 
@@ -508,17 +571,16 @@ export default function TaskPage() {
       }
 
       toast.success("Offer cancelled and refund processed.")
-      
+
       // Refresh data
       await fetchOffers()
-
     } catch (err: any) {
       console.error("Error cancelling offer:", err)
       toast.error(`Failed to cancel offer: ${err.message}`, { duration: 5000 })
     } finally {
-      setProcessingStates(prev => ({
+      setProcessingStates((prev) => ({
         ...prev,
-        [offer._id]: { ...prev[offer._id], canceling: false }
+        [offer._id]: { ...prev[offer._id], canceling: false },
       }))
     }
   }
@@ -528,7 +590,7 @@ export default function TaskPage() {
       const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
       })
 
@@ -537,11 +599,10 @@ export default function TaskPage() {
       }
 
       toast.success("Task deleted successfully!")
-      
+
       // Refresh data
       await fetchTasks()
       await fetchMyTasks()
-
     } catch (err: any) {
       console.error("Error deleting task:", err)
       toast.error(`Failed to delete task: ${err.message}`, { duration: 5000 })
@@ -549,11 +610,15 @@ export default function TaskPage() {
   }
 
   // Filter and sort tasks
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.taskName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         task.taskDescription.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesTags = selectedTags.length === 0 || 
-                       selectedTags.some(tag => task.taskTags.includes(tag))
+  const filteredTasks = tasks.filter((task) => {
+    if (!task || !task.taskName || !task.taskDescription) return false
+
+    const matchesSearch =
+      task.taskName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.taskDescription.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesTags =
+      selectedTags.length === 0 ||
+      (Array.isArray(task.taskTags) && selectedTags.some((tag) => task.taskTags.includes(tag)))
     return matchesSearch && matchesTags
   })
 
@@ -576,8 +641,15 @@ export default function TaskPage() {
   const endIndex = startIndex + tasksPerPage
   const currentTasks = sortedTasks.slice(startIndex, endIndex)
 
-  // Get all unique tags
-  const allTags = Array.from(new Set(tasks.flatMap(task => task.taskTags)))
+  // Get all unique tags - with safety checks
+  const allTags = Array.from(
+    new Set(
+      tasks
+        .filter((task) => task && Array.isArray(task.taskTags))
+        .flatMap((task) => task.taskTags)
+        .filter((tag) => tag && typeof tag === "string"),
+    ),
+  )
 
   const getTaskButtonContent = () => {
     switch (submitState) {
@@ -636,8 +708,8 @@ export default function TaskPage() {
             className="mt-10 max-w-2xl mx-auto text-muted-foreground md:text-lg lg:text-xl"
           >
             <Balancer>
-              Create tasks to showcase your skills or browse available tasks to find the perfect opportunity. 
-              Connect with employers and workers in a decentralized marketplace.
+              Create tasks to showcase your skills or browse available tasks to find the perfect opportunity. Connect
+              with employers and workers in a decentralized marketplace.
             </Balancer>
           </motion.p>
         </div>
@@ -695,28 +767,17 @@ export default function TaskPage() {
                       key={tag}
                       variant={selectedTags.includes(tag) ? "default" : "outline"}
                       className={`cursor-pointer transition-all duration-200 ${
-                        selectedTags.includes(tag)
-                          ? "bg-accent text-accent-foreground"
-                          : "hover:bg-accent/10"
+                        selectedTags.includes(tag) ? "bg-accent text-accent-foreground" : "hover:bg-accent/10"
                       }`}
                       onClick={() => {
-                        setSelectedTags(prev =>
-                          prev.includes(tag)
-                            ? prev.filter(t => t !== tag)
-                            : [...prev, tag]
-                        )
+                        setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
                       }}
                     >
                       {tag}
                     </Badge>
                   ))}
                   {selectedTags.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedTags([])}
-                      className="h-6 px-2 text-xs"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedTags([])} className="h-6 px-2 text-xs">
                       Clear All
                     </Button>
                   )}
@@ -724,7 +785,10 @@ export default function TaskPage() {
               </motion.div>
 
               {/* Tasks Grid */}
-              <motion.div variants={staggerContainer(0.1)} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <motion.div
+                variants={staggerContainer(0.1)}
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              >
                 <AnimatePresence>
                   {currentTasks.map((task, i) => (
                     <motion.div
@@ -739,18 +803,18 @@ export default function TaskPage() {
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex-1">
                             <h3 className="text-lg font-semibold text-foreground mb-2">{task.taskName}</h3>
-                            <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
-                              {task.taskDescription}
-                            </p>
+                            <p className="text-sm text-muted-foreground line-clamp-3 mb-3">{task.taskDescription}</p>
                           </div>
                           <Badge
-                            variant={task.status === "OPEN" ? "default" : task.status === "OFFERED" ? "secondary" : "outline"}
+                            variant={
+                              task.status === "OPEN" ? "default" : task.status === "OFFERED" ? "secondary" : "outline"
+                            }
                             className={
                               task.status === "OPEN"
                                 ? "bg-green-500/10 text-green-600 border-green-500/20"
                                 : task.status === "OFFERED"
-                                ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
-                                : "bg-gray-500/10 text-gray-600 border-gray-500/20"
+                                  ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                                  : "bg-gray-500/10 text-gray-600 border-gray-500/20"
                             }
                           >
                             {task.status}
@@ -761,15 +825,17 @@ export default function TaskPage() {
                           <div className="flex items-center gap-2">
                             <Avatar className="h-6 w-6">
                               <AvatarImage
-                                src={`https://effigy.im/a/${task.workerAddress}.svg`}
-                                alt={task.workerAddress}
+                                src={`https://effigy.im/a/${task.workerAddress || "unknown"}.svg`}
+                                alt={task.workerAddress || "Unknown"}
                               />
                               <AvatarFallback className="bg-accent/10 text-accent text-xs">
-                                {task.workerAddress.charAt(2)}
+                                {task.workerAddress ? task.workerAddress.charAt(2) : "U"}
                               </AvatarFallback>
                             </Avatar>
                             <span className="text-muted-foreground text-xs">
-                              {task.workerAddress.slice(0, 6)}...{task.workerAddress.slice(-4)}
+                              {task.workerAddress
+                                ? `${task.workerAddress.slice(0, 6)}...${task.workerAddress.slice(-4)}`
+                                : "Unknown Worker"}
                             </span>
                           </div>
 
@@ -803,18 +869,19 @@ export default function TaskPage() {
                         </div>
 
                         <div className="flex flex-wrap gap-1 mb-4">
-                          {task.taskTags.map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
+                          {Array.isArray(task.taskTags) &&
+                            task.taskTags.map((tag) => (
+                              <Badge key={tag} variant="secondary" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
                         </div>
 
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1 border-accent/50 text-accent hover:bg-accent/10"
+                            className="flex-1 border-accent/50 text-accent hover:bg-accent/10 bg-transparent"
                           >
                             <Eye className="mr-1 h-4 w-4" />
                             View
@@ -869,7 +936,7 @@ export default function TaskPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
                       className="border-accent/30 hover:bg-accent/10"
                     >
@@ -899,7 +966,7 @@ export default function TaskPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
                       className="border-accent/30 hover:bg-accent/10"
                     >
@@ -950,16 +1017,17 @@ export default function TaskPage() {
 
                 {/* My Tasks Sub-tab */}
                 <TabsContent value="tasks" className="space-y-6">
-                  <motion.div variants={staggerContainer(0.1)} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <motion.div
+                    variants={staggerContainer(0.1)}
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  >
                     {myTasks.map((task, i) => (
                       <motion.div key={task._id} variants={fadeIn(i * 0.1)}>
                         <InteractiveCard className="h-full">
                           <div className="flex justify-between items-start mb-4">
                             <div className="flex-1">
                               <h3 className="text-lg font-semibold text-foreground mb-2">{task.taskName}</h3>
-                              <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
-                                {task.taskDescription}
-                              </p>
+                              <p className="text-sm text-muted-foreground line-clamp-3 mb-3">{task.taskDescription}</p>
                             </div>
                             <div className="flex gap-2">
                               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -980,13 +1048,19 @@ export default function TaskPage() {
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Status:</span>
                               <Badge
-                                variant={task.status === "OPEN" ? "default" : task.status === "OFFERED" ? "secondary" : "outline"}
+                                variant={
+                                  task.status === "OPEN"
+                                    ? "default"
+                                    : task.status === "OFFERED"
+                                      ? "secondary"
+                                      : "outline"
+                                }
                                 className={
                                   task.status === "OPEN"
                                     ? "bg-green-500/10 text-green-600 border-green-500/20"
                                     : task.status === "OFFERED"
-                                    ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
-                                    : "bg-gray-500/10 text-gray-600 border-gray-500/20"
+                                      ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                                      : "bg-gray-500/10 text-gray-600 border-gray-500/20"
                                 }
                               >
                                 {task.status}
@@ -1009,16 +1083,17 @@ export default function TaskPage() {
                           </div>
 
                           <div className="flex flex-wrap gap-1 mb-4">
-                            {task.taskTags.map((tag) => (
-                              <Badge key={tag} variant="secondary" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
+                            {Array.isArray(task.taskTags) &&
+                              task.taskTags.map((tag) => (
+                                <Badge key={tag} variant="secondary" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
                           </div>
 
                           <Button
                             variant="outline"
-                            className="w-full border-accent/50 text-accent hover:bg-accent/10"
+                            className="w-full border-accent/50 text-accent hover:bg-accent/10 bg-transparent"
                           >
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
@@ -1047,7 +1122,7 @@ export default function TaskPage() {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="flex-1">
                             <h4 className="text-lg font-semibold text-foreground mb-2">
-                              Offer for "{offer.task.taskName}"
+                              Offer for "{offer.task?.taskName || "Unknown Task"}"
                             </h4>
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between">
@@ -1055,59 +1130,67 @@ export default function TaskPage() {
                                 <div className="flex items-center gap-2">
                                   <Avatar className="h-5 w-5">
                                     <AvatarImage
-                                      src={`https://effigy.im/a/${offer.employerAddress}.svg`}
-                                      alt={offer.employerAddress}
+                                      src={`https://effigy.im/a/${offer.employerAddress || "unknown"}.svg`}
+                                      alt={offer.employerAddress || "Unknown"}
                                     />
                                     <AvatarFallback className="bg-accent/10 text-accent text-xs">
-                                      {offer.employerAddress.charAt(2)}
+                                      {offer.employerAddress ? offer.employerAddress.charAt(2) : "U"}
                                     </AvatarFallback>
                                   </Avatar>
                                   <span className="font-medium">
-                                    {offer.employerAddress.slice(0, 6)}...{offer.employerAddress.slice(-4)}
+                                    {offer.employerAddress
+                                      ? `${offer.employerAddress.slice(0, 6)}...${offer.employerAddress.slice(-4)}`
+                                      : "Unknown Employer"}
                                   </span>
                                 </div>
                               </div>
+
                               {offer.kasAmount && (
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Amount:</span>
                                   <span className="font-medium text-foreground">{offer.kasAmount} KAS</span>
                                 </div>
                               )}
+
                               {offer.paymentType && (
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Type:</span>
                                   <span className="font-medium text-foreground capitalize">{offer.paymentType}</span>
                                 </div>
                               )}
+
                               {offer.duration && offer.paymentType === "weekly" && (
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Duration:</span>
                                   <span className="font-medium text-foreground">{offer.duration} weeks</span>
                                 </div>
                               )}
+
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">Status:</span>
                                 <Badge
                                   variant={
-                                    offer.status === "PENDING" ? "secondary" :
-                                    offer.status === "ACCEPTED" ? "default" : "outline"
+                                    offer.status === "PENDING"
+                                      ? "secondary"
+                                      : offer.status === "ACCEPTED"
+                                        ? "default"
+                                        : "outline"
                                   }
                                   className={
                                     offer.status === "PENDING"
                                       ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
                                       : offer.status === "ACCEPTED"
-                                      ? "bg-green-500/10 text-green-600 border-green-500/20"
-                                      : "bg-red-500/10 text-red-600 border-red-500/20"
+                                        ? "bg-green-500/10 text-green-600 border-green-500/20"
+                                        : "bg-red-500/10 text-red-600 border-red-500/20"
                                   }
                                 >
                                   {offer.status}
                                 </Badge>
                               </div>
+
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">Received:</span>
-                                <span className="font-medium">
-                                  {new Date(offer.createdAt).toLocaleDateString()}
-                                </span>
+                                <span className="font-medium">{new Date(offer.createdAt).toLocaleDateString()}</span>
                               </div>
                             </div>
                           </div>
@@ -1129,7 +1212,7 @@ export default function TaskPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-red-500 text-red-500 hover:bg-red-50"
+                                className="border-red-500 text-red-500 hover:bg-red-50 bg-transparent"
                                 onClick={() => handleDeclineOffer(offer)}
                                 disabled={processingStates[offer._id]?.declining}
                               >
@@ -1169,9 +1252,7 @@ export default function TaskPage() {
                   <form onSubmit={handleCreateTask} className="space-y-6">
                     <div className="text-center mb-6">
                       <h2 className="font-varien text-2xl font-bold text-foreground mb-2">Create New Task</h2>
-                      <p className="text-muted-foreground">
-                        Showcase your skills and attract potential employers
-                      </p>
+                      <p className="text-muted-foreground">Showcase your skills and attract potential employers</p>
                     </div>
 
                     {/* Task Name */}
@@ -1362,7 +1443,7 @@ export default function TaskPage() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex-1">
                     <h4 className="text-lg font-semibold text-foreground mb-2">
-                      Offer for "{offer.task.taskName}"
+                      Offer for "{offer.task?.taskName || "Unknown Task"}"
                     </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
@@ -1370,47 +1451,53 @@ export default function TaskPage() {
                         <div className="flex items-center gap-2">
                           <Avatar className="h-5 w-5">
                             <AvatarImage
-                              src={`https://effigy.im/a/${offer.workerAddress}.svg`}
-                              alt={offer.workerAddress}
+                              src={`https://effigy.im/a/${offer.workerAddress || "unknown"}.svg`}
+                              alt={offer.workerAddress || "Unknown"}
                             />
                             <AvatarFallback className="bg-accent/10 text-accent text-xs">
-                              {offer.workerAddress.charAt(2)}
+                              {offer.workerAddress ? offer.workerAddress.charAt(2) : "U"}
                             </AvatarFallback>
                           </Avatar>
                           <span className="font-medium">
-                            {offer.workerAddress.slice(0, 6)}...{offer.workerAddress.slice(-4)}
+                            {offer.workerAddress
+                              ? `${offer.workerAddress.slice(0, 6)}...${offer.workerAddress.slice(-4)}`
+                              : "Unknown Worker"}
                           </span>
                         </div>
                       </div>
+
                       {offer.kasAmount && (
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Amount:</span>
                           <span className="font-medium text-foreground">{offer.kasAmount} KAS</span>
                         </div>
                       )}
+
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Status:</span>
                         <Badge
                           variant={
-                            offer.status === "PENDING" ? "secondary" :
-                            offer.status === "ACCEPTED" ? "default" : "outline"
+                            offer.status === "PENDING"
+                              ? "secondary"
+                              : offer.status === "ACCEPTED"
+                                ? "default"
+                                : "outline"
                           }
                           className={
                             offer.status === "PENDING"
                               ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
                               : offer.status === "ACCEPTED"
-                              ? "bg-green-500/10 text-green-600 border-green-500/20"
-                              : "bg-red-500/10 text-red-600 border-red-500/20"
+                                ? "bg-green-500/10 text-green-600 border-green-500/20"
+                                : "bg-red-500/10 text-red-600 border-red-500/20"
                           }
                         >
                           {offer.status}
                         </Badge>
                       </div>
+
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Sent:</span>
-                        <span className="font-medium">
-                          {new Date(offer.createdAt).toLocaleDateString()}
-                        </span>
+                        <span className="font-medium">{new Date(offer.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
@@ -1419,7 +1506,7 @@ export default function TaskPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-accent/50 text-accent hover:bg-accent/10"
+                        className="border-accent/50 text-accent hover:bg-accent/10 bg-transparent"
                         onClick={() => handleConvertToJob(offer)}
                         disabled={processingStates[offer._id]?.convertingToJob}
                       >
@@ -1433,7 +1520,7 @@ export default function TaskPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-red-500 text-red-500 hover:bg-red-50"
+                        className="border-red-500 text-red-500 hover:bg-red-50 bg-transparent"
                         onClick={() => handleCancelOffer(offer)}
                         disabled={processingStates[offer._id]?.canceling}
                       >
@@ -1455,9 +1542,7 @@ export default function TaskPage() {
                 <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
                   <Send className="h-12 w-12 text-accent mb-4" />
                   <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Offers Sent</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Browse tasks to send offers to talented workers!
-                  </p>
+                  <p className="text-sm text-muted-foreground">Browse tasks to send offers to talented workers!</p>
                 </InteractiveCard>
               </motion.div>
             )}
@@ -1470,18 +1555,14 @@ export default function TaskPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Send Offer</DialogTitle>
-            <DialogDescription>
-              Send an offer to the task creator for "{selectedTask?.taskName}"
-            </DialogDescription>
+            <DialogDescription>Send an offer to the task creator for "{selectedTask?.taskName}"</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="offer-payment-type">Payment Type</Label>
               <Select
                 value={offerFormData.paymentType}
-                onValueChange={(v: "weekly" | "oneoff") => 
-                  setOfferFormData(prev => ({ ...prev, paymentType: v }))
-                }
+                onValueChange={(v: "weekly" | "oneoff") => setOfferFormData((prev) => ({ ...prev, paymentType: v }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select payment type" />
@@ -1505,7 +1586,7 @@ export default function TaskPage() {
                   step="0.01"
                   placeholder="0.00"
                   value={offerFormData.kasAmount}
-                  onChange={(e) => setOfferFormData(prev => ({ ...prev, kasAmount: e.target.value }))}
+                  onChange={(e) => setOfferFormData((prev) => ({ ...prev, kasAmount: e.target.value }))}
                   className="pl-10"
                   required
                 />
@@ -1523,7 +1604,7 @@ export default function TaskPage() {
                     min="1"
                     placeholder="8"
                     value={offerFormData.duration}
-                    onChange={(e) => setOfferFormData(prev => ({ ...prev, duration: e.target.value }))}
+                    onChange={(e) => setOfferFormData((prev) => ({ ...prev, duration: e.target.value }))}
                     className="pl-10"
                     required
                   />
