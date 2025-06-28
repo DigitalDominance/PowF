@@ -23,7 +23,6 @@ import {
   FileText,
   Eye,
   Plus,
-  Edit,
   Trash2,
   Loader2,
   Check,
@@ -216,6 +215,41 @@ export default function TaskPage() {
 
   const tasksPerPage = 6
   const API_BASE_URL = process.env.NEXT_PUBLIC_API
+
+  // Helper function to parse blockchain errors into user-friendly messages
+  const parseBlockchainError = (error: any): string => {
+    const errorMessage = error?.message || error?.toString() || ""
+    const errorCode = error?.code || ""
+
+    // Check for insufficient funds patterns
+    if (
+      errorMessage.includes("insufficient funds") ||
+      errorMessage.includes("missing revert data") ||
+      errorMessage.includes("CALL_EXCEPTION") ||
+      errorCode === "CALL_EXCEPTION" ||
+      errorMessage.includes("estimateGas") ||
+      errorMessage.includes("cannot estimate gas")
+    ) {
+      return "You do not have enough KAS to make this offer. Please check your wallet balance."
+    }
+
+    // Check for user rejection
+    if (
+      errorMessage.includes("user rejected") ||
+      errorMessage.includes("User denied") ||
+      errorMessage.includes("rejected")
+    ) {
+      return "Transaction was cancelled by user."
+    }
+
+    // Check for network issues
+    if (errorMessage.includes("network") || errorMessage.includes("timeout") || errorMessage.includes("connection")) {
+      return "Network error. Please check your connection and try again."
+    }
+
+    // Default fallback for other errors
+    return "Failed to send offer. Please try again."
+  }
 
   // Fetch user display name
   const getUserDisplayName = async (address: string) => {
@@ -559,7 +593,10 @@ export default function TaskPage() {
     } catch (err: any) {
       console.error("Error sending offer:", err)
       setOfferDialogState("error")
-      toast.error(`Failed to send offer: ${err.message}`, { duration: 5000 })
+
+      // Use the helper function to parse the error
+      const userFriendlyMessage = parseBlockchainError(err)
+      toast.error(userFriendlyMessage, { duration: 5000 })
 
       // Reset to idle after delay
       setTimeout(() => {
@@ -1272,9 +1309,6 @@ export default function TaskPage() {
                               <p className="text-sm text-muted-foreground line-clamp-3 mb-3">{task.taskDescription}</p>
                             </div>
                             <div className="flex gap-2">
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <Edit className="h-4 w-4" />
-                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1340,18 +1374,6 @@ export default function TaskPage() {
                                 </Badge>
                               ))}
                           </div>
-
-                          <Button
-                            variant="outline"
-                            className="w-full border-accent/50 text-accent hover:bg-accent/10 bg-transparent"
-                            onClick={() => {
-                              setSelectedTaskForView(task)
-                              setShowTaskViewDialog(true)
-                            }}
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </Button>
                         </InteractiveCard>
                       </motion.div>
                     ))}
