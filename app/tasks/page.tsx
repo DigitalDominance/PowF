@@ -931,7 +931,7 @@ export default function TaskPage() {
         <div className="container px-4 md:px-6 relative z-10">
           <motion.h1
             variants={fadeIn(0.1)}
-            className="font-varien text-[4rem] font-bold tracking-wider sm:text-[3rem] md:text-[3rem] lg:text-[5rem] text-foreground mb-6"
+            className="font-varien text-[3rem] font-bold tracking-wider sm:text-[2rem] md:text-[3rem] lg:text-[3rem] text-foreground mb-6"
           >
             Task <span className="text-accent">Marketplace</span>
           </motion.h1>
