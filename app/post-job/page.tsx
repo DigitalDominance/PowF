@@ -9,26 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import type React from "react"
 import { useState } from "react"
-import {
-  ArrowRight,
-  CheckCircle,
-  Users,
-  FileText,
-  DollarSign,
-  Eye,
-  MessageSquare,
-  Calendar,
-  Star,
-  Plus,
-  Edit,
-  Trash2,
-  Loader2,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-} from "lucide-react"
+import { ArrowRight, CheckCircle, Users, FileText, Eye, MessageSquare, Calendar, Star, Plus, Trash2, Loader2, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
@@ -73,6 +54,7 @@ const SectionWrapper = ({
 export default function PostJobPage() {
   const { wallet, role, contracts, provider, jobDetails, applicants, setApplicants, setEmployerJobs, setJobDetails } =
     useUserContext()
+
   const [paymentType, setPaymentType] = useState<"weekly" | "oneoff">("weekly")
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "confirming" | "success">("idle")
   const [formData, setFormData] = useState<{
@@ -132,10 +114,12 @@ export default function PostJobPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     if (role !== "employer") {
       toast.error("Only employers can create job listings.", { duration: 3000 })
       return
     }
+
     if (!contracts?.jobFactory) {
       toast.error("Please connect your wallet first", { duration: 3000 })
       return
@@ -150,6 +134,7 @@ export default function PostJobPage() {
         paymentType === "oneoff"
           ? ethers.parseEther(formData.payAmount)
           : ethers.parseEther(formData.payAmount) * durationWeeks
+
       const fee = (totalPayWei * BigInt(75)) / BigInt(10000)
       const value = paymentType === "weekly" ? weeklyPayWei * durationWeeks + fee : totalPayWei + fee
 
@@ -168,8 +153,8 @@ export default function PostJobPage() {
 
       setSubmitState("confirming")
       await tx.wait()
-      setSubmitState("success")
 
+      setSubmitState("success")
       toast.success("Job created successfully!")
 
       // Fetch the updated employer jobs
@@ -280,6 +265,7 @@ export default function PostJobPage() {
             <Balancer>Simple steps to post your job and start hiring with blockchain-powered security.</Balancer>
           </p>
         </motion.div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {instructionSteps.map((step, i) => (
             <motion.div variants={fadeIn(i * 0.1)} key={step.title}>
@@ -339,7 +325,12 @@ export default function PostJobPage() {
                   {paymentType === "weekly" ? "Weekly Pay (KAS)" : "Total Pay (KAS)"}
                 </Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <img
+                    src="/kaslogo.webp"
+                    alt="KAS"
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 filter-none"
+                    style={{ filter: "none", imageRendering: "crisp-edges" }}
+                  />
                   <Input
                     id="pay-amount"
                     type="number"
@@ -511,9 +502,6 @@ export default function PostJobPage() {
                       <h3 className="text-lg font-semibold text-foreground mb-1">{listing.title}</h3>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Edit className="h-4 w-4" />
-                      </Button>
                       <Button 
                       variant="ghost" 
                       size="icon" 
@@ -556,26 +544,39 @@ export default function PostJobPage() {
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Payment:</span>
-                      <span className="font-medium text-foreground">{listing.totalPay} KAS</span>
+                      <div className="flex items-center gap-1">
+                        <img
+                          src="/kaslogo.webp"
+                          alt="KAS"
+                          className="h-3 w-3 filter-none"
+                          style={{ filter: "none", imageRendering: "crisp-edges" }}
+                        />
+                        <span className="font-medium text-foreground">{listing.totalPay} KAS</span>
+                      </div>
                     </div>
+
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Type:</span>
                       <span className="font-medium text-foreground capitalize">{listing.payType}</span>
                     </div>
+
                     {listing.payType === "weekly" && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Duration:</span>
                         <span className="font-medium text-foreground">{listing.duration}</span>
                       </div>
                     )}
+
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Positions:</span>
                       <span className="font-medium text-foreground">{listing.positions}</span>
                     </div>
+
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Applicants:</span>
                       <span className="font-medium text-accent">{listing.applicants}</span>
                     </div>
+
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Posted:</span>
                       <span className="font-medium text-foreground">
@@ -583,14 +584,6 @@ export default function PostJobPage() {
                       </span>
                     </div>
                   </div>
-
-                  <Button
-                    variant="outline"
-                    className="w-full mt-4 border-accent/50 text-accent hover:bg-accent/10 hover:text-accent group"
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    View Details
-                  </Button>
                 </InteractiveCard>
               </motion.div>
             ))
@@ -654,6 +647,7 @@ export default function PostJobPage() {
                                     {applicant.address.charAt(2)}
                                   </AvatarFallback>
                                 </Avatar>
+
                                 <div>
                                   <h3 className="text-lg font-semibold text-foreground">{applicant.name}</h3>
                                   <p className="text-sm text-muted-foreground">Applied for: {applicant.jobTitle}</p>
@@ -709,6 +703,7 @@ export default function PostJobPage() {
                                     </Badge>
                                   ))}
                                 </div>
+
                                 <div className="flex items-center gap-2">
                                   <Badge
                                     variant={applicant.status === "reviewed" ? "default" : "secondary"}
@@ -722,6 +717,7 @@ export default function PostJobPage() {
                                     {new Date(applicant.appliedDate).toLocaleDateString()}
                                   </span>
                                 </div>
+
                                 <div className="flex gap-2">
                                   <Button
                                     variant="outline"
@@ -731,7 +727,6 @@ export default function PostJobPage() {
                                     <MessageSquare className="mr-1 h-4 w-4" />
                                     Message
                                   </Button>
-
                                   {applicant.status !== "reviewed" && (
                                     <>
                                       <Button
@@ -751,12 +746,10 @@ export default function PostJobPage() {
                                               toast.info("This application has already been reviewed.")
                                               return
                                             }
-
                                             if (!provider) {
                                               toast.error("Provider is not available. Please connect your wallet.")
                                               return
                                             }
-
                                             // Set processing state
                                             setApplicantStates((prev) => ({
                                               ...prev,
@@ -765,7 +758,6 @@ export default function PostJobPage() {
                                                 acceptState: "processing",
                                               },
                                             }))
-
                                             const signer = await provider.getSigner()
                                             const c = new ethers.Contract(
                                               applicant.jobAddress,
@@ -773,7 +765,6 @@ export default function PostJobPage() {
                                               signer,
                                             )
                                             const tx = await c.acceptApplication(applicant.address)
-
                                             // Set confirming state
                                             setApplicantStates((prev) => ({
                                               ...prev,
@@ -782,9 +773,7 @@ export default function PostJobPage() {
                                                 acceptState: "confirming",
                                               },
                                             }))
-
                                             await tx.wait()
-
                                             // Set success state
                                             setApplicantStates((prev) => ({
                                               ...prev,
@@ -793,10 +782,8 @@ export default function PostJobPage() {
                                                 acceptState: "success",
                                               },
                                             }))
-
                                             toast.success("Application accepted successfully!")
                                             updateApplicantStatus(applicant.id)
-
                                             // Reset state after 2 seconds
                                             setTimeout(() => {
                                               setApplicantStates((prev) => ({
@@ -872,12 +859,10 @@ export default function PostJobPage() {
                                               toast.info("This application has already been reviewed.")
                                               return
                                             }
-
                                             if (!provider) {
                                               toast.error("Provider is not available. Please connect your wallet.")
                                               return
                                             }
-
                                             // Set processing state
                                             setApplicantStates((prev) => ({
                                               ...prev,
@@ -886,7 +871,6 @@ export default function PostJobPage() {
                                                 declineState: "processing",
                                               },
                                             }))
-
                                             const signer = await provider.getSigner()
                                             const c = new ethers.Contract(
                                               applicant.jobAddress,
@@ -894,7 +878,6 @@ export default function PostJobPage() {
                                               signer,
                                             )
                                             const tx = await c.declineApplication(applicant.address)
-
                                             // Set confirming state
                                             setApplicantStates((prev) => ({
                                               ...prev,
@@ -903,9 +886,7 @@ export default function PostJobPage() {
                                                 declineState: "confirming",
                                               },
                                             }))
-
                                             await tx.wait()
-
                                             // Set success state
                                             setApplicantStates((prev) => ({
                                               ...prev,
@@ -914,10 +895,8 @@ export default function PostJobPage() {
                                                 declineState: "success",
                                               },
                                             }))
-
                                             toast.success("Application declined successfully!")
                                             updateApplicantStatus(applicant.id)
-
                                             // Reset state after 2 seconds
                                             setTimeout(() => {
                                               setApplicantStates((prev) => ({
@@ -1064,6 +1043,7 @@ export default function PostJobPage() {
                                   </Button>,
                                 )
                               }
+
                               return pages
                             })()}
                           </div>
