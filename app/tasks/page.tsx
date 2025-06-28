@@ -42,13 +42,20 @@ import {
   ThumbsDown,
   RefreshCw,
   Mail,
+  AlertCircle,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
 import { ethers } from "ethers"
-import { fetchJobDetails, fetchJobsByEmployerFromEvents, useUserContext } from "@/context/UserContext"
+import {
+  fetchJobDetails,
+  fetchJobsByEmployerFromEvents,
+  useUserContext,
+  fetchEmployerDisplayName,
+} from "@/context/UserContext"
+import PROOF_OF_WORK_JOB_ABI from "@/lib/contracts/ProofOfWorkJob.json"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -76,6 +83,22 @@ const slideIn = (direction = "left", delay = 0) => ({
     y: 0,
     opacity: 1,
     transition: { delay, duration: 0.6, ease: "easeOut" },
+  },
+})
+
+const scaleIn = (delay = 0) => ({
+  hidden: { scale: 0.8, opacity: 0 },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    transition: {
+      delay,
+      duration: 0.4,
+      ease: "easeOut",
+      type: "spring",
+      stiffness: 300,
+      damping: 30,
+    },
   },
 })
 
@@ -128,7 +151,7 @@ interface Offer {
 }
 
 export default function TaskPage() {
-  const { wallet, role, contracts, provider, setEmployerJobs, setJobDetails } = useUserContext()
+  const { wallet, role, contracts, provider, setEmployerJobs, setJobDetails, displayName } = useUserContext()
 
   // Task creation state
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "confirming" | "success">("idle")
@@ -159,6 +182,8 @@ export default function TaskPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showOfferDialog, setShowOfferDialog] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [selectedTaskForView, setSelectedTaskForView] = useState<Task | null>(null)
+  const [showTaskViewDialog, setShowTaskViewDialog] = useState(false)
   const [offerFormData, setOfferFormData] = useState({
     kasAmount: "",
     paymentType: "weekly" as "weekly" | "oneoff",
@@ -179,8 +204,32 @@ export default function TaskPage() {
     >
   >({})
 
+  // Offer dialog state
+  const [offerDialogState, setOfferDialogState] = useState<"idle" | "processing" | "confirming" | "success" | "error">(
+    "idle",
+  )
+
+  // User display names cache
+  const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({})
+
   const tasksPerPage = 6
   const API_BASE_URL = process.env.NEXT_PUBLIC_API
+
+  // Fetch user display name
+  const getUserDisplayName = async (address: string) => {
+    if (userDisplayNames[address]) {
+      return userDisplayNames[address]
+    }
+
+    try {
+      const name = await fetchEmployerDisplayName(address)
+      setUserDisplayNames((prev) => ({ ...prev, [address]: name }))
+      return name
+    } catch (error) {
+      console.error("Error fetching display name:", error)
+      return `${address.slice(0, 6)}...${address.slice(-4)}`
+    }
+  }
 
   // Fetch data
   useEffect(() => {
@@ -190,6 +239,33 @@ export default function TaskPage() {
       fetchOffers()
     }
   }, [wallet])
+
+  // Fetch display names for all users
+  useEffect(() => {
+    const fetchAllDisplayNames = async () => {
+      const addresses = new Set<string>()
+
+      // Collect all unique addresses
+      tasks.forEach((task) => addresses.add(task.workerAddress))
+      receivedOffers.forEach((offer) => {
+        addresses.add(offer.employerAddress)
+        addresses.add(offer.workerAddress)
+      })
+      sentOffers.forEach((offer) => {
+        addresses.add(offer.employerAddress)
+        addresses.add(offer.workerAddress)
+      })
+
+      // Fetch display names for addresses we don't have yet
+      for (const address of addresses) {
+        if (!userDisplayNames[address]) {
+          await getUserDisplayName(address)
+        }
+      }
+    }
+
+    fetchAllDisplayNames()
+  }, [tasks, receivedOffers, sentOffers])
 
   const fetchTasks = async () => {
     try {
@@ -370,10 +446,7 @@ export default function TaskPage() {
     }
 
     try {
-      setProcessingStates((prev) => ({
-        ...prev,
-        [task._id]: { ...prev[task._id], sendingOffer: true },
-      }))
+      setOfferDialogState("processing")
 
       // Create job on smart contract first
       const weeklyPayWei =
@@ -400,6 +473,7 @@ export default function TaskPage() {
         { value },
       )
 
+      setOfferDialogState("confirming")
       await tx.wait()
 
       // Create offer in backend
@@ -420,36 +494,46 @@ export default function TaskPage() {
         throw new Error("Failed to create offer")
       }
 
+      setOfferDialogState("success")
       toast.success("Offer sent successfully!")
 
       // Refresh data
       await fetchTasks()
       await fetchOffers()
 
-      // Reset form and close dialog
-      setOfferFormData({ kasAmount: "", paymentType: "weekly", duration: "" })
-      setShowOfferDialog(false)
-      setSelectedTask(null)
+      // Reset form and close dialog after delay
+      setTimeout(() => {
+        setOfferFormData({ kasAmount: "", paymentType: "weekly", duration: "" })
+        setShowOfferDialog(false)
+        setSelectedTask(null)
+        setOfferDialogState("idle")
+      }, 2000)
     } catch (err: any) {
       console.error("Error sending offer:", err)
+      setOfferDialogState("error")
       toast.error(`Failed to send offer: ${err.message}`, { duration: 5000 })
-    } finally {
-      setProcessingStates((prev) => ({
-        ...prev,
-        [task._id]: { ...prev[task._id], sendingOffer: false },
-      }))
+
+      // Reset to idle after delay
+      setTimeout(() => {
+        setOfferDialogState("idle")
+      }, 3000)
     }
   }
 
   const handleAcceptOffer = async (offer: Offer) => {
+    if (!contracts?.jobFactory || !provider) {
+      toast.error("Please connect your wallet first", { duration: 3000 })
+      return
+    }
+
     try {
       setProcessingStates((prev) => ({
         ...prev,
         [offer._id]: { ...prev[offer._id], accepting: true },
       }))
 
-      // Accept offer - this will create a job listing and remove the task
-      const response = await fetch(`${API_BASE_URL}/offers/${offer._id}/accept`, {
+      // Step 1: Accept offer in backend
+      const acceptResponse = await fetch(`${API_BASE_URL}/offers/${offer._id}/accept`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -457,37 +541,83 @@ export default function TaskPage() {
         },
       })
 
-      if (!response.ok) {
+      if (!acceptResponse.ok) {
         throw new Error("Failed to accept offer")
       }
 
-      const result = await response.json()
+      // Step 2: Create job on smart contract
+      const weeklyPayWei = offer.paymentType === "weekly" ? ethers.parseEther(offer.kasAmount || "0") : BigInt(0)
+      const durationWeeks = BigInt(offer.duration || "0")
+      const totalPayWei =
+        offer.paymentType === "oneoff"
+          ? ethers.parseEther(offer.kasAmount || "0")
+          : ethers.parseEther(offer.kasAmount || "0") * durationWeeks
 
-      // If the backend returns job details, we can use them to update the context
-      if (result.jobAddress && contracts?.jobFactory && provider) {
+      const fee = (totalPayWei * BigInt(75)) / BigInt(10000)
+      const value = offer.paymentType === "weekly" ? weeklyPayWei * durationWeeks + fee : totalPayWei + fee
+
+      const tx = await contracts.jobFactory.createJob(
+        offer.employerAddress, // employer address
+        offer.paymentType === "weekly" ? 0 : 1,
+        weeklyPayWei,
+        durationWeeks,
+        totalPayWei,
+        offer.task.taskName,
+        offer.task.taskDescription,
+        "1", // positions
+        offer.task.taskTags,
+        { value },
+      )
+
+      await tx.wait()
+
+      // Step 3: Get the newly created job address from events
+      const jobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
+      const latestJob = jobs[jobs.length - 1] // Get the latest job
+
+      // Step 4: Create job in backend
+      const jobResponse = await fetch(`${API_BASE_URL}/jobs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify({
+          paymentType: offer.paymentType?.toUpperCase() || "WEEKLY",
+          jobName: offer.task.taskName,
+          jobDescription: offer.task.taskDescription,
+          jobTags: offer.task.taskTags,
+        }),
+      })
+
+      if (!jobResponse.ok) {
+        throw new Error("Failed to create job in backend")
+      }
+
+      // Step 5: Auto-apply worker to the job
+      const signer = await provider.getSigner()
+      const jobContract = new ethers.Contract(latestJob, PROOF_OF_WORK_JOB_ABI, signer)
+
+      const applicationText = `I'm the worker who created the original task "${offer.task.taskName}". I accept this offer and am ready to begin work.`
+      const applyTx = await jobContract.submitApplication(applicationText)
+      await applyTx.wait()
+
+      // Update context with new jobs
+      if (role === "worker") {
         try {
-          // Fetch updated employer jobs from the blockchain
-          const updatedEmployerJobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
+          const updatedJobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
+          setEmployerJobs(updatedJobs)
 
-          // Update employer jobs in context
-          setEmployerJobs(updatedEmployerJobs)
-
-          // Fetch job details for all jobs
-          const jobDetailsPromises = updatedEmployerJobs.map((jobAddress) => fetchJobDetails(provider, jobAddress))
+          const jobDetailsPromises = updatedJobs.map((jobAddress) => fetchJobDetails(provider, jobAddress))
           const allJobDetails = await Promise.all(jobDetailsPromises)
           const validJobDetails = allJobDetails.filter((details) => details !== null)
-
-          // Update job details in context
           setJobDetails(validJobDetails)
-
-          console.log("Successfully updated jobs context after accepting offer")
         } catch (error) {
-          console.error("Error refreshing jobs data after accepting offer:", error)
-          // Don't fail the whole operation if context update fails
+          console.error("Error refreshing jobs data:", error)
         }
       }
 
-      toast.success("Offer accepted! Job listing created and moved to jobs page.")
+      toast.success("Offer accepted! Job created and application submitted. Check the Jobs page!")
 
       // Refresh data
       await fetchTasks()
@@ -561,29 +691,18 @@ export default function TaskPage() {
         throw new Error("Failed to convert offer to job")
       }
 
-      const result = await response.json()
-
       // Refresh jobs data in context for employer
       if (role === "employer" && contracts?.jobFactory && provider) {
         try {
-          // Fetch updated employer jobs from the blockchain
           const updatedEmployerJobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
-
-          // Update employer jobs in context
           setEmployerJobs(updatedEmployerJobs)
 
-          // Fetch job details for all jobs
           const jobDetailsPromises = updatedEmployerJobs.map((jobAddress) => fetchJobDetails(provider, jobAddress))
           const allJobDetails = await Promise.all(jobDetailsPromises)
           const validJobDetails = allJobDetails.filter((details) => details !== null)
-
-          // Update job details in context
           setJobDetails(validJobDetails)
-
-          console.log("Successfully updated jobs context after converting offer to job")
         } catch (error) {
           console.error("Error refreshing employer jobs after converting offer:", error)
-          // Don't fail the whole operation if context update fails
         }
       }
 
@@ -737,7 +856,48 @@ export default function TaskPage() {
     }
   }
 
+  const getOfferButtonContent = () => {
+    switch (offerDialogState) {
+      case "processing":
+        return (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Creating Offer...
+          </>
+        )
+      case "confirming":
+        return (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Confirming Transaction...
+          </>
+        )
+      case "success":
+        return (
+          <>
+            <Check className="mr-2 h-4 w-4" />
+            Offer Sent!
+          </>
+        )
+      case "error":
+        return (
+          <>
+            <AlertCircle className="mr-2 h-4 w-4" />
+            Failed to Send
+          </>
+        )
+      default:
+        return (
+          <>
+            <Send className="mr-2 h-4 w-4" />
+            Send Offer
+          </>
+        )
+    }
+  }
+
   const isSubmitting = submitState !== "idle"
+  const isOfferProcessing = offerDialogState !== "idle"
 
   return (
     <div className="flex flex-col items-center">
@@ -885,9 +1045,8 @@ export default function TaskPage() {
                               </AvatarFallback>
                             </Avatar>
                             <span className="text-muted-foreground text-xs">
-                              {task.workerAddress
-                                ? `${task.workerAddress.slice(0, 6)}...${task.workerAddress.slice(-4)}`
-                                : "Unknown Worker"}
+                              {userDisplayNames[task.workerAddress] ||
+                                `${task.workerAddress?.slice(0, 6)}...${task.workerAddress?.slice(-4)}`}
                             </span>
                           </div>
 
@@ -934,6 +1093,10 @@ export default function TaskPage() {
                             variant="outline"
                             size="sm"
                             className="flex-1 border-accent/50 text-accent hover:bg-accent/10 bg-transparent"
+                            onClick={() => {
+                              setSelectedTaskForView(task)
+                              setShowTaskViewDialog(true)
+                            }}
                           >
                             <Eye className="mr-1 h-4 w-4" />
                             View
@@ -1041,7 +1204,9 @@ export default function TaskPage() {
               {sortedTasks.length === 0 && !loading && (
                 <motion.div variants={fadeIn()} className="flex justify-center">
                   <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
-                    <Target className="h-12 w-12 text-accent mb-4" />
+                    <div className="flex justify-center mb-4">
+                      <Target className="h-12 w-12 text-accent" />
+                    </div>
                     <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Tasks Found</h3>
                     <p className="text-sm text-muted-foreground">
                       {searchTerm || selectedTags.length > 0
@@ -1146,6 +1311,10 @@ export default function TaskPage() {
                           <Button
                             variant="outline"
                             className="w-full border-accent/50 text-accent hover:bg-accent/10 bg-transparent"
+                            onClick={() => {
+                              setSelectedTaskForView(task)
+                              setShowTaskViewDialog(true)
+                            }}
                           >
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
@@ -1158,7 +1327,9 @@ export default function TaskPage() {
                   {myTasks.length === 0 && (
                     <motion.div variants={fadeIn()} className="flex justify-center">
                       <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
-                        <Briefcase className="h-12 w-12 text-accent mb-4" />
+                        <div className="flex justify-center mb-4">
+                          <Briefcase className="h-12 w-12 text-accent" />
+                        </div>
                         <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Tasks Created</h3>
                         <p className="text-sm text-muted-foreground">Create your first task to get started!</p>
                       </InteractiveCard>
@@ -1190,9 +1361,8 @@ export default function TaskPage() {
                                     </AvatarFallback>
                                   </Avatar>
                                   <span className="font-medium">
-                                    {offer.employerAddress
-                                      ? `${offer.employerAddress.slice(0, 6)}...${offer.employerAddress.slice(-4)}`
-                                      : "Unknown Employer"}
+                                    {userDisplayNames[offer.employerAddress] ||
+                                      `${offer.employerAddress?.slice(0, 6)}...${offer.employerAddress?.slice(-4)}`}
                                   </span>
                                 </div>
                               </div>
@@ -1284,7 +1454,9 @@ export default function TaskPage() {
                     {receivedOffers.length === 0 && (
                       <motion.div variants={fadeIn()} className="flex justify-center">
                         <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
-                          <Mail className="h-12 w-12 text-accent mb-4" />
+                          <div className="flex justify-center mb-4">
+                            <Mail className="h-12 w-12 text-accent" />
+                          </div>
                           <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Offers Received</h3>
                           <p className="text-sm text-muted-foreground">
                             Create tasks to attract employers and receive offers!
@@ -1511,9 +1683,8 @@ export default function TaskPage() {
                             </AvatarFallback>
                           </Avatar>
                           <span className="font-medium">
-                            {offer.workerAddress
-                              ? `${offer.workerAddress.slice(0, 6)}...${offer.workerAddress.slice(-4)}`
-                              : "Unknown Worker"}
+                            {userDisplayNames[offer.workerAddress] ||
+                              `${offer.workerAddress?.slice(0, 6)}...${offer.workerAddress?.slice(-4)}`}
                           </span>
                         </div>
                       </div>
@@ -1592,7 +1763,9 @@ export default function TaskPage() {
             {sentOffers.length === 0 && (
               <motion.div variants={fadeIn()} className="flex justify-center">
                 <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
-                  <Send className="h-12 w-12 text-accent mb-4" />
+                  <div className="flex justify-center mb-4">
+                    <Send className="h-12 w-12 text-accent" />
+                  </div>
                   <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Offers Sent</h3>
                   <p className="text-sm text-muted-foreground">Browse tasks to send offers to talented workers!</p>
                 </InteractiveCard>
@@ -1602,87 +1775,343 @@ export default function TaskPage() {
         </SectionWrapper>
       )}
 
-      {/* Send Offer Dialog */}
-      <Dialog open={showOfferDialog} onOpenChange={setShowOfferDialog}>
-        <DialogContent className="sm:max-w-md">
+      {/* Task View Dialog */}
+      <Dialog open={showTaskViewDialog} onOpenChange={setShowTaskViewDialog}>
+        <DialogContent className="sm:max-w-2xl bg-gradient-to-br from-background via-background/95 to-accent/5 border border-accent/20">
           <DialogHeader>
-            <DialogTitle>Send Offer</DialogTitle>
-            <DialogDescription>Send an offer to the task creator for "{selectedTask?.taskName}"</DialogDescription>
+            <DialogTitle className="font-varien text-2xl tracking-wider text-foreground">
+              {selectedTaskForView?.taskName}
+            </DialogTitle>
+            <DialogDescription className="font-varela text-muted-foreground">
+              Task details and information
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="offer-payment-type">Payment Type</Label>
-              <Select
-                value={offerFormData.paymentType}
-                onValueChange={(v: "weekly" | "oneoff") => setOfferFormData((prev) => ({ ...prev, paymentType: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payment type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weekly">Weekly Payments</SelectItem>
-                  <SelectItem value="oneoff">One-off Payment</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="offer-amount">
-                {offerFormData.paymentType === "weekly" ? "Weekly Amount (KAS)" : "Total Amount (KAS)"}
-              </Label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="offer-amount"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={offerFormData.kasAmount}
-                  onChange={(e) => setOfferFormData((prev) => ({ ...prev, kasAmount: e.target.value }))}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
+          {selectedTaskForView && (
+            <motion.div variants={fadeIn()} initial="hidden" animate="visible" className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Description</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{selectedTaskForView.taskDescription}</p>
+                </div>
 
-            {offerFormData.paymentType === "weekly" && (
-              <div className="space-y-2">
-                <Label htmlFor="offer-duration">Duration (Weeks)</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="offer-duration"
-                    type="number"
-                    min="1"
-                    placeholder="8"
-                    value={offerFormData.duration}
-                    onChange={(e) => setOfferFormData((prev) => ({ ...prev, duration: e.target.value }))}
-                    className="pl-10"
-                    required
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Worker</h4>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage
+                          src={`https://effigy.im/a/${selectedTaskForView.workerAddress}.svg`}
+                          alt={selectedTaskForView.workerAddress}
+                        />
+                        <AvatarFallback className="bg-accent/10 text-accent text-xs">
+                          {selectedTaskForView.workerAddress.charAt(2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">
+                        {userDisplayNames[selectedTaskForView.workerAddress] ||
+                          `${selectedTaskForView.workerAddress.slice(0, 6)}...${selectedTaskForView.workerAddress.slice(-4)}`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Status</h4>
+                    <Badge
+                      variant={
+                        selectedTaskForView.status === "OPEN"
+                          ? "default"
+                          : selectedTaskForView.status === "OFFERED"
+                            ? "secondary"
+                            : "outline"
+                      }
+                      className={
+                        selectedTaskForView.status === "OPEN"
+                          ? "bg-green-500/10 text-green-600 border-green-500/20"
+                          : selectedTaskForView.status === "OFFERED"
+                            ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                            : "bg-gray-500/10 text-gray-600 border-gray-500/20"
+                      }
+                    >
+                      {selectedTaskForView.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                {selectedTaskForView.kasAmount && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Expected Amount</h4>
+                      <p className="text-sm font-medium text-foreground">{selectedTaskForView.kasAmount} KAS</p>
+                    </div>
+
+                    <div>
+                      <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Payment Type</h4>
+                      <p className="text-sm font-medium text-foreground capitalize">
+                        {selectedTaskForView.paymentType}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {selectedTaskForView.duration && selectedTaskForView.paymentType === "weekly" && (
+                  <div>
+                    <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Duration</h4>
+                    <p className="text-sm font-medium text-foreground">{selectedTaskForView.duration} weeks</p>
+                  </div>
+                )}
+
+                <div>
+                  <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Skills & Tags</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTaskForView.taskTags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Posted</h4>
+                  <p className="text-sm font-medium text-foreground">
+                    {new Date(selectedTaskForView.createdAt).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
-            )}
-          </div>
+            </motion.div>
+          )}
+
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => {
-                setShowOfferDialog(false)
-                setSelectedTask(null)
-                setOfferFormData({ kasAmount: "", paymentType: "weekly", duration: "" })
+                setShowTaskViewDialog(false)
+                setSelectedTaskForView(null)
               }}
+              className="font-varien"
             >
-              Cancel
+              Close
             </Button>
-            <Button
-              onClick={() => selectedTask && handleSendOffer(selectedTask)}
-              disabled={!offerFormData.kasAmount || (offerFormData.paymentType === "weekly" && !offerFormData.duration)}
-            >
-              <Send className="mr-2 h-4 w-4" />
-              Send Offer
-            </Button>
+            {role === "employer" && selectedTaskForView?.status === "OPEN" && (
+              <Button
+                className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
+                onClick={() => {
+                  setShowTaskViewDialog(false)
+                  setSelectedTask(selectedTaskForView)
+                  setShowOfferDialog(true)
+                  setSelectedTaskForView(null)
+                }}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                Send Offer
+              </Button>
+            )}
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Offer Dialog */}
+      <Dialog open={showOfferDialog} onOpenChange={setShowOfferDialog}>
+        <DialogContent className="sm:max-w-md bg-gradient-to-br from-background via-background/95 to-accent/5 border border-accent/20 overflow-hidden">
+          <motion.div variants={scaleIn()} initial="hidden" animate="visible" className="relative">
+            {/* Animated background elements */}
+            <div className="absolute inset-0 -z-10">
+              <motion.div
+                className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-3xl"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.3, 0.6, 0.3],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div
+                className="absolute bottom-0 left-0 w-24 h-24 bg-accent/5 rounded-full blur-2xl"
+                animate={{
+                  scale: [1.2, 1, 1.2],
+                  opacity: [0.2, 0.4, 0.2],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                  delay: 1,
+                }}
+              />
+            </div>
+
+            <DialogHeader>
+              <motion.div variants={fadeIn(0.1)}>
+                <DialogTitle className="font-varien text-2xl tracking-wider text-foreground">Send Offer</DialogTitle>
+                <DialogDescription className="font-varela text-muted-foreground">
+                  Send an offer to the task creator for "{selectedTask?.taskName}"
+                </DialogDescription>
+              </motion.div>
+            </DialogHeader>
+
+            <motion.div variants={fadeIn(0.2)} className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="offer-payment-type" className="font-varien text-foreground">
+                  Payment Type
+                </Label>
+                <Select
+                  value={offerFormData.paymentType}
+                  onValueChange={(v: "weekly" | "oneoff") => setOfferFormData((prev) => ({ ...prev, paymentType: v }))}
+                  disabled={isOfferProcessing}
+                >
+                  <SelectTrigger className="border-accent/30 focus:border-accent bg-background/50 backdrop-blur-sm">
+                    <SelectValue placeholder="Select payment type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="weekly">Weekly Payments</SelectItem>
+                    <SelectItem value="oneoff">One-off Payment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="offer-amount" className="font-varien text-foreground">
+                  {offerFormData.paymentType === "weekly" ? "Weekly Amount (KAS)" : "Total Amount (KAS)"}
+                </Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="offer-amount"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={offerFormData.kasAmount}
+                    onChange={(e) => setOfferFormData((prev) => ({ ...prev, kasAmount: e.target.value }))}
+                    className="pl-10 border-accent/30 focus:border-accent bg-background/50 backdrop-blur-sm"
+                    disabled={isOfferProcessing}
+                    required
+                  />
+                </div>
+              </div>
+
+              {offerFormData.paymentType === "weekly" && (
+                <motion.div variants={fadeIn(0.3)} className="space-y-2">
+                  <Label htmlFor="offer-duration" className="font-varien text-foreground">
+                    Duration (Weeks)
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="offer-duration"
+                      type="number"
+                      min="1"
+                      placeholder="8"
+                      value={offerFormData.duration}
+                      onChange={(e) => setOfferFormData((prev) => ({ ...prev, duration: e.target.value }))}
+                      className="pl-10 border-accent/30 focus:border-accent bg-background/50 backdrop-blur-sm"
+                      disabled={isOfferProcessing}
+                      required
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Status Messages */}
+              <AnimatePresence>
+                {offerDialogState === "processing" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex items-center gap-2 text-sm text-accent font-varien"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating offer on blockchain...
+                  </motion.div>
+                )}
+
+                {offerDialogState === "confirming" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex items-center gap-2 text-sm text-blue-600 font-varien"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Confirming transaction...
+                  </motion.div>
+                )}
+
+                {offerDialogState === "success" && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="flex items-center gap-2 text-sm text-green-600 font-varien"
+                  >
+                    <Check className="h-4 w-4" />
+                    Offer sent successfully!
+                  </motion.div>
+                )}
+
+                {offerDialogState === "error" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex items-center gap-2 text-sm text-red-600 font-varien"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    Failed to send offer. Please try again.
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            <DialogFooter>
+              <motion.div variants={fadeIn(0.4)} className="flex gap-2 w-full">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowOfferDialog(false)
+                    setSelectedTask(null)
+                    setOfferFormData({ kasAmount: "", paymentType: "weekly", duration: "" })
+                    setOfferDialogState("idle")
+                  }}
+                  disabled={isOfferProcessing}
+                  className="font-varien border-accent/30 hover:bg-accent/10"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => selectedTask && handleSendOffer(selectedTask)}
+                  disabled={
+                    isOfferProcessing ||
+                    !offerFormData.kasAmount ||
+                    (offerFormData.paymentType === "weekly" && !offerFormData.duration)
+                  }
+                  className={`font-varien flex-1 transition-all duration-300 ${
+                    offerDialogState === "success"
+                      ? "bg-green-500 hover:bg-green-600 text-white"
+                      : offerDialogState === "error"
+                        ? "bg-red-500 hover:bg-red-600 text-white"
+                        : "bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg hover:shadow-accent/40"
+                  }`}
+                >
+                  <motion.div
+                    className="flex items-center"
+                    animate={
+                      offerDialogState === "processing" || offerDialogState === "confirming"
+                        ? { scale: [1, 1.05, 1] }
+                        : {}
+                    }
+                    transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY }}
+                  >
+                    {getOfferButtonContent()}
+                  </motion.div>
+                </Button>
+              </motion.div>
+            </DialogFooter>
+          </motion.div>
         </DialogContent>
       </Dialog>
     </div>
