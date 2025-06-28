@@ -22,7 +22,6 @@ import {
   ArrowRight,
   FileText,
   Eye,
-  Calendar,
   Plus,
   Edit,
   Trash2,
@@ -42,6 +41,7 @@ import {
   RefreshCw,
   Mail,
   AlertCircle,
+  Star,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
@@ -158,7 +158,7 @@ export default function TaskPage() {
     taskName: "",
     taskDescription: "",
     kasAmount: "",
-    paymentType: "weekly" as "weekly" | "oneoff",
+    paymentType: "oneoff" as "weekly" | "oneoff", // Changed to oneoff default
     duration: "",
     taskTags: [] as string[],
   })
@@ -211,6 +211,9 @@ export default function TaskPage() {
   // User display names cache
   const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({})
 
+  // User ratings cache
+  const [userRatings, setUserRatings] = useState<Record<string, { rating: number; count: number }>>({})
+
   const tasksPerPage = 6
   const API_BASE_URL = process.env.NEXT_PUBLIC_API
 
@@ -230,6 +233,22 @@ export default function TaskPage() {
     }
   }
 
+  // Mock function to get user rating (replace with actual API call)
+  const getUserRating = async (address: string) => {
+    if (userRatings[address]) {
+      return userRatings[address]
+    }
+
+    // Mock rating data - replace with actual API call
+    const mockRating = {
+      rating: Math.random() * 2 + 3, // Random rating between 3-5
+      count: Math.floor(Math.random() * 50) + 1, // Random count 1-50
+    }
+
+    setUserRatings((prev) => ({ ...prev, [address]: mockRating }))
+    return mockRating
+  }
+
   // Fetch data
   useEffect(() => {
     fetchTasks()
@@ -239,9 +258,9 @@ export default function TaskPage() {
     }
   }, [wallet])
 
-  // Fetch display names for all users
+  // Fetch display names and ratings for all users
   useEffect(() => {
-    const fetchAllDisplayNames = async () => {
+    const fetchAllUserData = async () => {
       const addresses = new Set<string>()
 
       // Collect all unique addresses
@@ -255,22 +274,25 @@ export default function TaskPage() {
         addresses.add(offer.workerAddress)
       })
 
-      // Fetch display names for addresses we don't have yet
+      // Fetch display names and ratings for addresses we don't have yet
       for (const address of addresses) {
         if (!userDisplayNames[address]) {
           await getUserDisplayName(address)
         }
+        if (!userRatings[address]) {
+          await getUserRating(address)
+        }
       }
     }
 
-    fetchAllDisplayNames()
+    fetchAllUserData()
   }, [tasks, receivedOffers, sentOffers])
 
   const fetchTasks = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/tasks`)
       const data = await response.json()
-      // Filter out tasks with invalid data
+      // Filter out tasks with invalid data and hide CONVERTED tasks
       const validTasks = data.filter(
         (task: Task) =>
           task &&
@@ -278,7 +300,8 @@ export default function TaskPage() {
           task.taskName &&
           task.taskDescription &&
           task.workerAddress &&
-          Array.isArray(task.taskTags),
+          Array.isArray(task.taskTags) &&
+          task.status !== "CONVERTED", // Hide converted tasks
       )
       setTasks(validTasks)
     } catch (error) {
@@ -369,7 +392,7 @@ export default function TaskPage() {
       taskName: "",
       taskDescription: "",
       kasAmount: "",
-      paymentType: "weekly",
+      paymentType: "oneoff", // Changed to oneoff default
       duration: "",
       taskTags: [],
     })
@@ -391,7 +414,7 @@ export default function TaskPage() {
     try {
       setSubmitState("submitting")
 
-      // Create task in backend
+      // Create task in backend with kasAmount
       const response = await fetch(`${API_BASE_URL}/tasks`, {
         method: "POST",
         headers: {
@@ -402,7 +425,7 @@ export default function TaskPage() {
           taskName: taskFormData.taskName,
           taskDescription: taskFormData.taskDescription,
           taskTags: taskFormData.taskTags,
-          kasAmount: taskFormData.kasAmount,
+          kasAmount: taskFormData.kasAmount, // Include kasAmount
           paymentType: taskFormData.paymentType,
           duration: taskFormData.duration,
         }),
@@ -524,7 +547,7 @@ export default function TaskPage() {
         [offer._id]: { ...prev[offer._id], accepting: true },
       }))
 
-      // Step 1: Accept offer in backend
+      // Step 1: Accept offer in backend (this will create the job)
       const acceptResponse = await fetch(`${API_BASE_URL}/offers/${offer._id}/accept`, {
         method: "POST",
         headers: {
@@ -534,36 +557,15 @@ export default function TaskPage() {
       })
 
       if (!acceptResponse.ok) {
-        throw new Error("Failed to accept offer")
+        const errorData = await acceptResponse.json()
+        throw new Error(errorData.error || "Failed to accept offer")
       }
 
-      const acceptResult = await acceptResponse.json()
-
-      // Step 2: Create job in backend (the contract already exists from the offer)
-      const jobResponse = await fetch(`${API_BASE_URL}/jobs`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify({
-          paymentType: "ONEOFF",
-          jobName: offer.task.taskName,
-          jobDescription: offer.task.taskDescription,
-          jobTags: offer.task.taskTags,
-        }),
-      })
-
-      if (!jobResponse.ok) {
-        throw new Error("Failed to create job in backend")
-      }
-
-      // Step 3: Get the job address from the offer (we need this from backend)
-      // For now, we'll get the latest job from the employer
+      // Step 2: Get the job address from the employer's latest job
       const jobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
       const latestJob = jobs[jobs.length - 1] // Get the latest job
 
-      // Step 4: Auto-apply worker to the job
+      // Step 3: Auto-apply worker to the job
       const signer = await provider.getSigner()
       const jobContract = new ethers.Contract(latestJob, PROOF_OF_WORK_JOB_ABI, signer)
 
@@ -652,7 +654,7 @@ export default function TaskPage() {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
         body: JSON.stringify({
-          paymentType: offer.paymentType?.toUpperCase() || "WEEKLY",
+          paymentType: "ONE_OFF", // Always one-off for offers
         }),
       })
 
@@ -1013,30 +1015,30 @@ export default function TaskPage() {
                                 {task.workerAddress ? task.workerAddress.charAt(2) : "U"}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-muted-foreground text-xs">
-                              {userDisplayNames[task.workerAddress] ||
-                                `${task.workerAddress?.slice(0, 6)}...${task.workerAddress?.slice(-4)}`}
-                            </span>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">
+                                {userDisplayNames[task.workerAddress] ||
+                                  `${task.workerAddress?.slice(0, 6)}...${task.workerAddress?.slice(-4)}`}
+                              </span>
+                              {userRatings[task.workerAddress] && (
+                                <div className="flex items-center gap-1">
+                                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                  <span className="text-xs text-muted-foreground">
+                                    {userRatings[task.workerAddress].rating.toFixed(1)} (
+                                    {userRatings[task.workerAddress].count})
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
 
                           {task.kasAmount && (
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Amount:</span>
-                              <span className="font-medium text-foreground">{task.kasAmount} KAS</span>
-                            </div>
-                          )}
-
-                          {task.paymentType && (
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Type:</span>
-                              <span className="font-medium text-foreground capitalize">{task.paymentType}</span>
-                            </div>
-                          )}
-
-                          {task.duration && task.paymentType === "weekly" && (
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Duration:</span>
-                              <span className="font-medium text-foreground">{task.duration} weeks</span>
+                              <span className="text-muted-foreground">Requested:</span>
+                              <div className="flex items-center gap-1">
+                                <img src="/kaslogo.webp" alt="KAS" className="h-3 w-3" />
+                                <span className="font-medium text-foreground">{task.kasAmount} KAS</span>
+                              </div>
                             </div>
                           )}
 
@@ -1255,8 +1257,11 @@ export default function TaskPage() {
 
                             {task.kasAmount && (
                               <div className="flex justify-between">
-                                <span className="text-muted-foreground">Amount:</span>
-                                <span className="font-medium text-foreground">{task.kasAmount} KAS</span>
+                                <span className="text-muted-foreground">Requested:</span>
+                                <div className="flex items-center gap-1">
+                                  <img src="/kaslogo.webp" alt="KAS" className="h-3 w-3" />
+                                  <span className="font-medium text-foreground">{task.kasAmount} KAS</span>
+                                </div>
                               </div>
                             )}
 
@@ -1339,21 +1344,10 @@ export default function TaskPage() {
                               {offer.kasAmount && (
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Amount:</span>
-                                  <span className="font-medium text-foreground">{offer.kasAmount} KAS</span>
-                                </div>
-                              )}
-
-                              {offer.paymentType && (
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Type:</span>
-                                  <span className="font-medium text-foreground capitalize">{offer.paymentType}</span>
-                                </div>
-                              )}
-
-                              {offer.duration && offer.paymentType === "weekly" && (
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Duration:</span>
-                                  <span className="font-medium text-foreground">{offer.duration} weeks</span>
+                                  <div className="flex items-center gap-1">
+                                    <img src="/kaslogo.webp" alt="KAS" className="h-3 w-3" />
+                                    <span className="font-medium text-foreground">{offer.kasAmount} KAS</span>
+                                  </div>
                                 </div>
                               )}
 
@@ -1481,74 +1475,30 @@ export default function TaskPage() {
                       />
                     </div>
 
-                    {/* Payment Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="payment-type" className="text-foreground font-varien">
-                          Payment Type
-                        </Label>
-                        <Select
-                          value={taskFormData.paymentType}
-                          onValueChange={(v: "weekly" | "oneoff") => handleTaskInputChange("paymentType", v)}
+                    {/* Expected Amount */}
+                    <div className="space-y-2">
+                      <Label htmlFor="kas-amount" className="text-foreground font-varien">
+                        Expected Amount (KAS)
+                      </Label>
+                      <div className="relative">
+                        <img
+                          src="/kaslogo.webp"
+                          alt="KAS"
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4"
+                        />
+                        <Input
+                          id="kas-amount"
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={taskFormData.kasAmount}
+                          onChange={(e) => handleTaskInputChange("kasAmount", e.target.value)}
+                          className="pl-10 border-border focus:border-accent"
                           disabled={isSubmitting}
-                        >
-                          <SelectTrigger className="border-border focus:border-accent">
-                            <SelectValue placeholder="Select payment type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="weekly">Weekly Payments</SelectItem>
-                            <SelectItem value="oneoff">One-off Payment</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="kas-amount" className="text-foreground font-varien">
-                          Expected Amount (KAS)
-                        </Label>
-                        <div className="relative">
-                          <img
-                            src="/kaslogo.webp"
-                            alt="KAS"
-                            className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-70"
-                          />
-                          <Input
-                            id="kas-amount"
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={taskFormData.kasAmount}
-                            onChange={(e) => handleTaskInputChange("kasAmount", e.target.value)}
-                            className="pl-10 border-border focus:border-accent"
-                            disabled={isSubmitting}
-                            required
-                          />
-                        </div>
+                          required
+                        />
                       </div>
                     </div>
-
-                    {/* Duration for weekly payments */}
-                    {taskFormData.paymentType === "weekly" && (
-                      <div className="space-y-2">
-                        <Label htmlFor="duration" className="text-foreground font-varien">
-                          Expected Duration (Weeks)
-                        </Label>
-                        <div className="relative">
-                          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="duration"
-                            type="number"
-                            min="1"
-                            placeholder="8"
-                            value={taskFormData.duration}
-                            onChange={(e) => handleTaskInputChange("duration", e.target.value)}
-                            className="pl-10 border-border focus:border-accent"
-                            disabled={isSubmitting}
-                            required
-                          />
-                        </div>
-                      </div>
-                    )}
 
                     {/* Tags */}
                     <div className="space-y-2">
@@ -1665,7 +1615,10 @@ export default function TaskPage() {
                       {offer.kasAmount && (
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Amount:</span>
-                          <span className="font-medium text-foreground">{offer.kasAmount} KAS</span>
+                          <div className="flex items-center gap-1">
+                            <img src="/kaslogo.webp" alt="KAS" className="h-3 w-3" />
+                            <span className="font-medium text-foreground">{offer.kasAmount} KAS</span>
+                          </div>
                         </div>
                       )}
 
@@ -1781,10 +1734,21 @@ export default function TaskPage() {
                           {selectedTaskForView.workerAddress.charAt(2)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm font-medium">
-                        {userDisplayNames[selectedTaskForView.workerAddress] ||
-                          `${selectedTaskForView.workerAddress.slice(0, 6)}...${selectedTaskForView.workerAddress.slice(-4)}`}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">
+                          {userDisplayNames[selectedTaskForView.workerAddress] ||
+                            `${selectedTaskForView.workerAddress.slice(0, 6)}...${selectedTaskForView.workerAddress.slice(-4)}`}
+                        </span>
+                        {userRatings[selectedTaskForView.workerAddress] && (
+                          <div className="flex items-center gap-1">
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                            <span className="text-xs text-muted-foreground">
+                              {userRatings[selectedTaskForView.workerAddress].rating.toFixed(1)} (
+                              {userRatings[selectedTaskForView.workerAddress].count})
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1812,25 +1776,12 @@ export default function TaskPage() {
                 </div>
 
                 {selectedTaskForView.kasAmount && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Expected Amount</h4>
-                      <p className="text-sm font-medium text-foreground">{selectedTaskForView.kasAmount} KAS</p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Payment Type</h4>
-                      <p className="text-sm font-medium text-foreground capitalize">
-                        {selectedTaskForView.paymentType}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {selectedTaskForView.duration && selectedTaskForView.paymentType === "weekly" && (
                   <div>
-                    <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Duration</h4>
-                    <p className="text-sm font-medium text-foreground">{selectedTaskForView.duration} weeks</p>
+                    <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Requested Amount</h4>
+                    <div className="flex items-center gap-1">
+                      <img src="/kaslogo.webp" alt="KAS" className="h-4 w-4" />
+                      <span className="text-sm font-medium text-foreground">{selectedTaskForView.kasAmount} KAS</span>
+                    </div>
                   </div>
                 )}
 
@@ -1935,7 +1886,9 @@ export default function TaskPage() {
                   <img
                     src="/kaslogo.webp"
                     alt="KAS"
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-70"
+                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 transition-all duration-200 ${
+                      isOfferProcessing ? "blur-sm opacity-50" : ""
+                    }`}
                   />
                   <Input
                     id="offer-amount"
