@@ -137,7 +137,7 @@ interface Asset {
   reviewCount: number
   createdAt: string
   featured: boolean
-  license: "standard" | "extended" | "exclusive"
+  license: "standard" | "exclusive"
   status: "active" | "pending" | "sold"
 }
 
@@ -174,7 +174,6 @@ const ASSET_TYPES = [
 
 const LICENSE_TYPES = [
   { value: "standard", label: "Standard License", description: "Personal and commercial use" },
-  { value: "extended", label: "Extended License", description: "Unlimited commercial use" },
   { value: "exclusive", label: "Exclusive License", description: "Exclusive rights to the asset" },
 ]
 
@@ -282,7 +281,7 @@ export default function MarketPage() {
       reviewCount: 23,
       createdAt: "2024-01-10T14:20:00Z",
       featured: true,
-      license: "extended",
+      license: "exclusive",
       status: "active",
     },
     {
@@ -329,7 +328,7 @@ export default function MarketPage() {
       reviewCount: 34,
       createdAt: "2024-01-05T16:45:00Z",
       featured: false,
-      license: "extended",
+      license: "exclusive",
       status: "active",
     },
     {
