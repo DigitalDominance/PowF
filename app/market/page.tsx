@@ -206,8 +206,8 @@ export default function MarketPage() {
   const [myAssetsSubTab, setMyAssetsSubTab] = useState("listed")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("")
-  const [selectedType, setSelectedType] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("all-categories")
+  const [selectedType, setSelectedType] = useState("all-types")
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState({ min: "", max: "" })
   const [sortBy, setSortBy] = useState("newest")
@@ -550,8 +550,8 @@ export default function MarketPage() {
       asset.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       asset.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
 
-    const matchesCategory = !selectedCategory || asset.category === selectedCategory
-    const matchesType = !selectedType || asset.type === selectedType
+    const matchesCategory = selectedCategory === "all-categories" || asset.category === selectedCategory
+    const matchesType = selectedType === "all-types" || asset.type === selectedType
     const matchesTags = selectedTags.length === 0 || selectedTags.some((tag) => asset.tags.includes(tag))
 
     const price = Number.parseFloat(asset.price)
@@ -925,7 +925,7 @@ export default function MarketPage() {
                         <SelectValue placeholder="Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Categories</SelectItem>
+                        <SelectItem value="all-categories">All Categories</SelectItem>
                         {ASSET_CATEGORIES.map((category) => (
                           <SelectItem key={category} value={category}>
                             {category}
@@ -939,7 +939,7 @@ export default function MarketPage() {
                         <SelectValue placeholder="Type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Types</SelectItem>
+                        <SelectItem value="all-types">All Types</SelectItem>
                         {ASSET_TYPES.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             {type.label}
@@ -1385,7 +1385,10 @@ export default function MarketPage() {
                     </div>
                     <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Assets Found</h3>
                     <p className="text-sm text-muted-foreground font-varela">
-                      {searchTerm || selectedTags.length > 0 || selectedCategory || selectedType
+                      {searchTerm ||
+                      selectedTags.length > 0 ||
+                      selectedCategory !== "all-categories" ||
+                      selectedType !== "all-types"
                         ? "Try adjusting your search criteria"
                         : "Be the first to list an asset!"}
                     </p>
