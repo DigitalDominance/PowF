@@ -53,6 +53,9 @@ import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
 import { useUserContext, fetchEmployerDisplayName } from "@/context/UserContext"
+import { ethers } from "ethers"
+import STANDARD_LICENSE_1155 from '@/lib/contracts/StandardLicense1155.json';
+import EXCLUSIVE_LICENSE_721 from '@/lib/contracts/ExclusiveLicense721.json';
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -117,8 +120,8 @@ const SectionWrapper = ({
 )
 
 interface Asset {
-  _id: string
-  id: string
+  _id: string,
+  id: string,
   title: string
   description: string
   type: "image" | "video" | "audio" | "3d" | "template"
@@ -179,7 +182,7 @@ const LICENSE_TYPES = [
 ]
 
 export default function MarketPage() {
-  const { wallet, role, contracts, provider, displayName, listAssetOnChain, purchaseAssetOnChain } = useUserContext()
+  const { wallet, role, contracts, provider, displayName } = useUserContext()
 
   // Asset listing state
   const [listingState, setListingState] = useState<"idle" | "uploading" | "processing" | "success">("idle")
@@ -227,19 +230,170 @@ export default function MarketPage() {
     "idle" | "processing" | "confirming" | "success" | "error"
   >("idle")
 
+  // User data cache
+  // const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({})
   const [favoriteAssets, setFavoriteAssets] = useState<string[]>([])
+
   const assetsPerPage = 12
   const API_BASE_URL = process.env.NEXT_PUBLIC_API
+
+  // // Mock data for development
+  // const mockAssets: Asset[] = [
+  //   {
+  //     _id: "1",
+  //     title: "Sunset Mountain Landscape",
+  //     description:
+  //       "Beautiful sunset over mountain peaks with vibrant colors and dramatic lighting. Perfect for websites, presentations, and marketing materials.",
+  //     type: "image",
+  //     category: "Photography",
+  //     tags: ["landscape", "sunset", "mountains", "nature", "dramatic"],
+  //     price: "15.50",
+  //     currency: "KAS",
+  //     creatorAddress: "0x1234567890123456789012345678901234567890",
+  //     creatorName: "NaturePhotoPro",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=1080&width=1920",
+  //     fileSize: "2.4 MB",
+  //     dimensions: "1920x1080",
+  //     downloads: 234,
+  //     rating: 4.8,
+  //     reviewCount: 45,
+  //     createdAt: "2024-01-15T10:30:00Z",
+  //     featured: true,
+  //     license: "standard",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "2",
+  //     title: "Corporate Business Video",
+  //     description:
+  //       "Professional corporate video background with smooth transitions and modern aesthetic. Ideal for business presentations and promotional content.",
+  //     type: "video",
+  //     category: "Videos",
+  //     tags: ["corporate", "business", "professional", "modern", "clean"],
+  //     price: "45.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x2345678901234567890123456789012345678901",
+  //     creatorName: "VideoCreative",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=720&width=1280",
+  //     fileSize: "125 MB",
+  //     dimensions: "1920x1080",
+  //     duration: "0:30",
+  //     downloads: 89,
+  //     rating: 4.6,
+  //     reviewCount: 23,
+  //     createdAt: "2024-01-10T14:20:00Z",
+  //     featured: true,
+  //     license: "exclusive",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "3",
+  //     title: "Minimalist UI Icons Pack",
+  //     description:
+  //       "Collection of 50 minimalist icons perfect for web and mobile applications. Clean, scalable vector graphics in multiple formats.",
+  //     type: "template",
+  //     category: "Icons",
+  //     tags: ["icons", "minimalist", "ui", "vector", "web", "mobile"],
+  //     price: "25.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x3456789012345678901234567890123456789012",
+  //     creatorName: "IconMaster",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=800&width=800",
+  //     fileSize: "5.2 MB",
+  //     downloads: 156,
+  //     rating: 4.9,
+  //     reviewCount: 67,
+  //     createdAt: "2024-01-08T09:15:00Z",
+  //     featured: false,
+  //     license: "standard",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "4",
+  //     title: "Ambient Electronic Music",
+  //     description:
+  //       "Atmospheric electronic music track perfect for background use in videos, presentations, or meditation apps. Royalty-free license included.",
+  //     type: "audio",
+  //     category: "Audio",
+  //     tags: ["ambient", "electronic", "background", "meditation", "atmospheric"],
+  //     price: "20.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x4567890123456789012345678901234567890123",
+  //     creatorName: "SoundScape",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=200&width=400",
+  //     fileSize: "8.5 MB",
+  //     duration: "3:45",
+  //     downloads: 78,
+  //     rating: 4.7,
+  //     reviewCount: 34,
+  //     createdAt: "2024-01-05T16:45:00Z",
+  //     featured: false,
+  //     license: "exclusive",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "5",
+  //     title: "Low Poly Tree 3D Model",
+  //     description:
+  //       "High-quality low poly tree 3D model optimized for games and real-time applications. Includes textures and multiple LOD versions.",
+  //     type: "3d",
+  //     category: "3D Models",
+  //     tags: ["3d", "lowpoly", "tree", "game", "nature", "optimized"],
+  //     price: "35.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x5678901234567890123456789012345678901234",
+  //     creatorName: "3DForest",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=400&width=400",
+  //     fileSize: "12.8 MB",
+  //     downloads: 45,
+  //     rating: 4.5,
+  //     reviewCount: 18,
+  //     createdAt: "2024-01-03T11:30:00Z",
+  //     featured: false,
+  //     license: "standard",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "6",
+  //     title: "Abstract Digital Art",
+  //     description:
+  //       "Vibrant abstract digital artwork with flowing shapes and gradient colors. Perfect for modern design projects and digital displays.",
+  //     type: "image",
+  //     category: "Illustrations",
+  //     tags: ["abstract", "digital", "art", "colorful", "modern", "gradient"],
+  //     price: "18.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x6789012345678901234567890123456789012345",
+  //     creatorName: "DigitalArtist",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=1080&width=1080",
+  //     fileSize: "3.1 MB",
+  //     dimensions: "2048x2048",
+  //     downloads: 167,
+  //     rating: 4.6,
+  //     reviewCount: 52,
+  //     createdAt: "2024-01-01T08:00:00Z",
+  //     featured: true,
+  //     license: "standard",
+  //     status: "active",
+  //   },
+  // ]
 
   // Fetch assets from the API
   const fetchAssets = async () => {
     try {
-      setLoading(true)
-      const response = await fetch(`${API_BASE_URL}/assets`)
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/assets`);
       if (!response.ok) {
-        throw new Error("Failed to fetch assets")
+        throw new Error("Failed to fetch assets");
       }
-      const data = await response.json()
+      const data = await response.json();
+
       // Transform the data to match the Asset interface
       const transformedAssets: Asset[] = await Promise.all(
         data.map(async (asset: any) => ({
@@ -266,26 +420,53 @@ export default function MarketPage() {
           featured: false, // Default featured status, update this if you have a way to determine it
           license: asset.license,
           status: asset.status,
-        })),
-      )
+        }))
+      );
 
-      console.log("Transformed Assets", transformedAssets)
-      setAssets(transformedAssets)
-      setFeaturedAssets(transformedAssets.filter((asset: Asset) => asset.featured))
-      if (wallet) {
+      console.log('Transformed Assets', transformedAssets)
+      setAssets(transformedAssets);
+      setFeaturedAssets(transformedAssets.filter((asset: Asset) => asset.featured));
+      if(wallet) {
         setMyAssets(transformedAssets.filter((asset: Asset) => asset.creatorAddress === wallet))
       }
     } catch (err) {
-      console.error("Error fetching assets:", err)
+      console.error("Error fetching assets:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchAssets()
-  }, [wallet])
+    fetchAssets();
+  }, [wallet]);
 
+  // // Initialize with mock data
+  // useEffect(() => {
+  //   setAssets(mockAssets)
+  //   setFeaturedAssets(mockAssets.filter((asset) => asset.featured))
+  //   setLoading(false)
+
+  //   if (wallet) {
+  //     setMyAssets(mockAssets.filter((asset) => asset.creatorAddress === wallet))
+  //   }
+  // }, [wallet])
+
+  // Fetch user display names
+  // const getUserDisplayName = async (address: string) => {
+  //   if (userDisplayNames[address]) {
+  //     return userDisplayNames[address]
+  //   }
+  //   try {
+  //     const name = await fetchEmployerDisplayName(address)
+  //     setUserDisplayNames((prev) => ({ ...prev, [address]: name }))
+  //     return name
+  //   } catch (error) {
+  //     console.error("Error fetching display name:", error)
+  //     return `${address.slice(0, 6)}...${address.slice(-4)}`
+  //   }
+  // }
+
+  // Handle form inputs
   const handleAssetInputChange = (field: string, value: string | string[] | File | null) => {
     setAssetFormData((prev) => ({ ...prev, [field]: value }))
   }
@@ -316,7 +497,7 @@ export default function MarketPage() {
     })
   }
 
-  // Handle asset listing - Updated to use context function
+  // Handle asset listing
   const handleListAsset = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -334,26 +515,30 @@ export default function MarketPage() {
     try {
       setListingState("uploading")
 
+      // Simulate file upload
+      // await new Promise((resolve) => setTimeout(resolve, 2000))
       // Step 1: Upload file to Pinata via backend
-      const formData = new FormData()
+      const formData = new FormData();
       if (assetFormData.file) {
-        formData.append("file", assetFormData.file)
+        formData.append("file", assetFormData.file);
       }
 
       const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/upload`, {
         method: "POST",
         body: formData,
-      })
+      });
 
       if (!uploadResponse.ok) {
-        throw new Error("File upload failed")
+        throw new Error("File upload failed");
       }
-
-      const { cid: fileCid, url: fileUrl, size: fileSize } = await uploadResponse.json()
+  
+      const { cid: fileCid, url: fileUrl, size: fileSize } = await uploadResponse.json();      
 
       setListingState("processing")
 
-      // Step 2: Upload metadata
+      // Simulate blockchain transaction
+      // await new Promise((resolve) => setTimeout(resolve, 3000))
+
       const metadata = {
         title: assetFormData.title,
         description: assetFormData.description,
@@ -366,8 +551,8 @@ export default function MarketPage() {
         fileUrl,
         fileSize,
         creatorAddress: wallet,
-      }
-
+      };
+  
       const metadataResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/metadata`, {
         method: "POST",
         headers: {
@@ -375,16 +560,37 @@ export default function MarketPage() {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
         body: JSON.stringify(metadata),
-      })
-
+      });
+  
       if (!metadataResponse.ok) {
-        throw new Error("Metadata upload failed")
+        throw new Error("Metadata upload failed");
+      }      
+
+      const { metadataUri } = await metadataResponse.json();
+
+      const signer = await provider?.getSigner();
+      let tx;
+
+      if (assetFormData.license === "standard") {
+        const standardContract = new ethers.Contract(
+          process.env.NEXT_PUBLIC_ERC1155_ADDRESS || '',
+          STANDARD_LICENSE_1155,
+          signer
+        );
+  
+        tx = await standardContract.registerStandardAsset(metadataUri, ethers.parseEther(assetFormData.price));
+      } else if (assetFormData.license === "exclusive") {
+        const exclusiveContract = new ethers.Contract(
+          process.env.NEXT_PUBLIC_ERC721_ADDRESS || '',
+          EXCLUSIVE_LICENSE_721,
+          signer
+        );
+  
+        tx = await exclusiveContract.registerExclusiveAsset(metadataUri, ethers.parseEther(assetFormData.price));
       }
 
-      const { metadataUri } = await metadataResponse.json()
-
-      // Step 3: Use context function for blockchain interaction
-      const receipt = await listAssetOnChain(metadataUri, assetFormData.price, assetFormData.license)
+      // Wait for the transaction to be mined
+      const receipt = await tx.wait();      
 
       // Step 4: Save the asset in the database
       const saveResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/assets`, {
@@ -398,17 +604,14 @@ export default function MarketPage() {
           metadataUri,
           transactionHash: receipt.transactionHash,
         }),
-      })
+      });
 
       if (!saveResponse.ok) {
-        throw new Error("Failed to save asset in the database")
-      }
+        throw new Error("Failed to save asset in the database");
+      }      
 
       setListingState("success")
       toast.success("Asset listed successfully!")
-
-      // Refresh assets list
-      await fetchAssets()
 
       // Reset form and close dialog
       setTimeout(() => {
@@ -423,7 +626,7 @@ export default function MarketPage() {
     }
   }
 
-  // Handle asset purchase - Updated to use context function
+  // Handle asset purchase
   const handlePurchaseAsset = async (asset: Asset) => {
     if (!wallet) {
       toast.error("Please connect your wallet first", { duration: 3000 })
@@ -433,30 +636,64 @@ export default function MarketPage() {
     try {
       setPurchaseDialogState("processing")
 
-      // Use context function for blockchain interaction
-      const quantity = asset.license === "standard" ? 1 : undefined
-      const receipt = await purchaseAssetOnChain(asset.id, asset.price, asset.license, quantity)
+      // Simulate blockchain transaction
+      // await new Promise((resolve) => setTimeout(resolve, 3000))
 
-      // Send the transaction hash to the backend for confirmation
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/mint-${asset.license}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify({
-          txHash: receipt.transactionHash,
-          assetId: asset._id,
-          ...(asset.license === "standard" && { quantity: 1 }), // Include quantity for standard license
-        }),
-      })
+      const signer = await provider?.getSigner();
 
-      if (!response.ok) {
-        throw new Error("Failed to confirm purchase")
+      let tx;
+      if (asset.license === "standard") {
+        // StandardLicense1155: Call purchaseStandard
+        const standardContract = new ethers.Contract(
+          process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
+          STANDARD_LICENSE_1155,
+          signer
+        );
+  
+        tx = await standardContract.purchaseStandard(asset.id, 1, {
+          value: ethers.parseEther(asset.price), // Ensure price is in ETH
+        });
+      } else if (asset.license === "exclusive") {
+        // ExclusiveLicense721: Call purchaseExclusive
+        const exclusiveContract = new ethers.Contract(
+          process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
+          EXCLUSIVE_LICENSE_721,
+          signer
+        );
+  
+        tx = await exclusiveContract.purchaseExclusive(asset.id, {
+          value: ethers.parseEther(asset.price), // Ensure price is in ETH
+        });
+      } else {
+        throw new Error("Invalid license type");
       }
 
-      const data = await response.json()
-      console.log("Purchase confirmed:", data)
+      // Wait for the transaction to be mined
+      const receipt = await tx.wait();
+
+      // Send the transaction hash to the backend for confirmation
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/mint-${asset.license}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+          body: JSON.stringify({
+            txHash: receipt.transactionHash,
+            assetId: asset._id,
+            ...(asset.license === "standard" && { quantity: 1 }), // Include quantity for standard license
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to confirm purchase");
+      }
+
+      const data = await response.json();
+      console.log("Purchase confirmed:", data);      
 
       setPurchaseDialogState("success")
       toast.success("Asset purchased successfully!")
@@ -471,6 +708,7 @@ export default function MarketPage() {
       console.error("Error purchasing asset:", err)
       setPurchaseDialogState("error")
       toast.error(`Failed to purchase asset: ${err.message}`, { duration: 5000 })
+
       setTimeout(() => {
         setPurchaseDialogState("idle")
       }, 3000)
@@ -489,9 +727,12 @@ export default function MarketPage() {
         ...prev,
         [assetId]: { ...prev[assetId], favoriting: true },
       }))
+
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 500))
+
       setFavoriteAssets((prev) => (prev.includes(assetId) ? prev.filter((id) => id !== assetId) : [...prev, assetId]))
+
       toast.success(favoriteAssets.includes(assetId) ? "Removed from favorites" : "Added to favorites")
     } catch (err: any) {
       console.error("Error toggling favorite:", err)
@@ -514,6 +755,7 @@ export default function MarketPage() {
     const matchesCategory = selectedCategory === "all-categories" || asset.category === selectedCategory
     const matchesType = selectedType === "all-types" || asset.type === selectedType
     const matchesTags = selectedTags.length === 0 || selectedTags.some((tag) => asset.tags.includes(tag))
+
     const price = Number.parseFloat(asset.price)
     const matchesPrice =
       (!priceRange.min || price >= Number.parseFloat(priceRange.min)) &&
@@ -757,6 +999,7 @@ export default function MarketPage() {
                       </div>
                     </div>
                   </div>
+
                   <div className="space-y-3">
                     <div>
                       <h3 className="font-varien text-lg font-semibold text-foreground mb-1 line-clamp-1">
@@ -764,6 +1007,7 @@ export default function MarketPage() {
                       </h3>
                       <p className="text-sm text-muted-foreground line-clamp-2 font-varela">{asset.description}</p>
                     </div>
+
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
                         <AvatarImage
@@ -778,6 +1022,7 @@ export default function MarketPage() {
                         {asset.creatorName || `${asset.creatorAddress.slice(0, 6)}...${asset.creatorAddress.slice(-4)}`}
                       </span>
                     </div>
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -786,6 +1031,7 @@ export default function MarketPage() {
                       </div>
                       <div className="text-sm text-muted-foreground">{asset.downloads} downloads</div>
                     </div>
+
                     <div className="flex flex-wrap gap-1">
                       {asset.tags.slice(0, 3).map((tag) => (
                         <Badge key={tag} variant="outline" className="text-xs">
@@ -798,6 +1044,7 @@ export default function MarketPage() {
                         </Badge>
                       )}
                     </div>
+
                     <div className="flex items-center justify-between pt-2 border-t border-border/50">
                       <div className="flex items-center gap-1">
                         <img
@@ -873,6 +1120,7 @@ export default function MarketPage() {
                       className="pl-10 border-border focus:border-accent font-varela"
                     />
                   </div>
+
                   <div className="flex flex-wrap gap-2">
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                       <SelectTrigger className="w-full sm:w-48 border-border focus:border-accent">
@@ -887,6 +1135,7 @@ export default function MarketPage() {
                         ))}
                       </SelectContent>
                     </Select>
+
                     <Select value={selectedType} onValueChange={setSelectedType}>
                       <SelectTrigger className="w-full sm:w-32 border-border focus:border-accent">
                         <SelectValue placeholder="Type" />
@@ -900,6 +1149,7 @@ export default function MarketPage() {
                         ))}
                       </SelectContent>
                     </Select>
+
                     <Select value={sortBy} onValueChange={setSortBy}>
                       <SelectTrigger className="w-full sm:w-40 border-border focus:border-accent">
                         <SelectValue placeholder="Sort by" />
@@ -914,6 +1164,7 @@ export default function MarketPage() {
                         <SelectItem value="name">Name A-Z</SelectItem>
                       </SelectContent>
                     </Select>
+
                     <div className="flex gap-2">
                       <Button
                         variant={viewMode === "grid" ? "default" : "outline"}
@@ -956,6 +1207,7 @@ export default function MarketPage() {
                     />
                     <span className="text-sm text-muted-foreground">KAS</span>
                   </div>
+
                   {(priceRange.min || priceRange.max) && (
                     <Button
                       variant="ghost"
@@ -1066,6 +1318,7 @@ export default function MarketPage() {
                                 </div>
                               </div>
                             </div>
+
                             <div className="space-y-2">
                               <h3 className="font-varien text-sm font-semibold text-foreground line-clamp-1">
                                 {asset.title}
@@ -1073,6 +1326,7 @@ export default function MarketPage() {
                               <p className="text-xs text-muted-foreground line-clamp-2 font-varela">
                                 {asset.description}
                               </p>
+
                               <div className="flex items-center gap-1">
                                 <Avatar className="h-5 w-5">
                                   <AvatarImage
@@ -1087,6 +1341,7 @@ export default function MarketPage() {
                                   {asset.creatorName || `${asset.creatorAddress.slice(0, 6)}...`}
                                 </span>
                               </div>
+
                               <div className="flex items-center justify-between text-xs">
                                 <div className="flex items-center gap-1">
                                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
@@ -1095,6 +1350,7 @@ export default function MarketPage() {
                                 </div>
                                 <span className="text-muted-foreground">{asset.downloads} downloads</span>
                               </div>
+
                               <div className="flex items-center justify-between pt-2 border-t border-border/50">
                                 <div className="flex items-center gap-1">
                                   <img
@@ -1135,6 +1391,7 @@ export default function MarketPage() {
                                   </Badge>
                                 </div>
                               </div>
+
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between mb-2">
                                   <h3 className="font-varien text-lg font-semibold text-foreground line-clamp-1">
@@ -1156,9 +1413,11 @@ export default function MarketPage() {
                                     />
                                   </Button>
                                 </div>
+
                                 <p className="text-sm text-muted-foreground line-clamp-2 mb-3 font-varela">
                                   {asset.description}
                                 </p>
+
                                 <div className="flex items-center gap-4 mb-3 text-sm">
                                   <div className="flex items-center gap-2">
                                     <Avatar className="h-6 w-6">
@@ -1175,13 +1434,16 @@ export default function MarketPage() {
                                         `${asset.creatorAddress.slice(0, 6)}...${asset.creatorAddress.slice(-4)}`}
                                     </span>
                                   </div>
+
                                   <div className="flex items-center gap-1">
                                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                                     <span>{asset.rating}</span>
                                     <span className="text-muted-foreground">({asset.reviewCount})</span>
                                   </div>
+
                                   <span className="text-muted-foreground">{asset.downloads} downloads</span>
                                 </div>
+
                                 <div className="flex flex-wrap gap-1 mb-3">
                                   {asset.tags.slice(0, 4).map((tag) => (
                                     <Badge key={tag} variant="outline" className="text-xs">
@@ -1194,6 +1456,7 @@ export default function MarketPage() {
                                     </Badge>
                                   )}
                                 </div>
+
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-1">
                                     <img
@@ -1206,6 +1469,7 @@ export default function MarketPage() {
                                       {asset.price} KAS
                                     </span>
                                   </div>
+
                                   <div className="flex gap-2">
                                     <Button
                                       variant="outline"
@@ -1253,6 +1517,7 @@ export default function MarketPage() {
                     <span className="font-semibold text-accent">{Math.min(endIndex, sortedAssets.length)}</span> of{" "}
                     <span className="font-semibold text-accent">{sortedAssets.length}</span> assets
                   </div>
+
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -1388,6 +1653,7 @@ export default function MarketPage() {
                                 </Button>
                               </div>
                             </div>
+
                             <div className="space-y-3">
                               <div>
                                 <h3 className="font-varien text-lg font-semibold text-foreground mb-1 line-clamp-1">
@@ -1397,6 +1663,7 @@ export default function MarketPage() {
                                   {asset.description}
                                 </p>
                               </div>
+
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Status:</span>
@@ -1419,10 +1686,12 @@ export default function MarketPage() {
                                     {asset.status}
                                   </Badge>
                                 </div>
+
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Downloads:</span>
                                   <span className="font-medium text-foreground">{asset.downloads}</span>
                                 </div>
+
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Rating:</span>
                                   <div className="flex items-center gap-1">
@@ -1431,6 +1700,7 @@ export default function MarketPage() {
                                     <span className="text-muted-foreground">({asset.reviewCount})</span>
                                   </div>
                                 </div>
+
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Price:</span>
                                   <div className="flex items-center gap-1">
@@ -1443,6 +1713,7 @@ export default function MarketPage() {
                                     <span className="font-medium text-foreground">{asset.price} KAS</span>
                                   </div>
                                 </div>
+
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Listed:</span>
                                   <span className="font-medium text-foreground">
@@ -1450,6 +1721,7 @@ export default function MarketPage() {
                                   </span>
                                 </div>
                               </div>
+
                               <div className="flex flex-wrap gap-1 mb-4">
                                 {asset.tags.map((tag) => (
                                   <Badge key={tag} variant="secondary" className="text-xs">
@@ -1457,6 +1729,7 @@ export default function MarketPage() {
                                   </Badge>
                                 ))}
                               </div>
+
                               <Button
                                 variant="outline"
                                 className="w-full border-accent/50 text-accent hover:bg-accent/10 bg-transparent font-varien"
@@ -1504,6 +1777,7 @@ export default function MarketPage() {
                                 className="w-16 h-16 object-cover rounded-lg"
                               />
                             </div>
+
                             <div className="flex-1 min-w-0">
                               <h4 className="font-varien text-lg font-semibold text-foreground mb-1 line-clamp-1">
                                 {purchase.asset.title}
@@ -1536,6 +1810,7 @@ export default function MarketPage() {
                               </div>
                             </div>
                           </div>
+
                           <div className="flex gap-2">
                             <Button
                               size="sm"
@@ -1560,6 +1835,7 @@ export default function MarketPage() {
                         </div>
                       </InteractiveCard>
                     ))}
+
                     {myPurchases.length === 0 && (
                       <motion.div variants={fadeIn()} className="flex justify-center">
                         <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
@@ -1734,10 +2010,10 @@ export default function MarketPage() {
                         className="border-2 border-dashed border-border rounded-lg p-6 text-center"
                         onDragOver={(e) => e.preventDefault()} // Prevent default to allow drop
                         onDrop={(e) => {
-                          e.preventDefault()
-                          const file = e.dataTransfer.files[0] // Get the first dropped file
+                          e.preventDefault();
+                          const file = e.dataTransfer.files[0]; // Get the first dropped file
                           if (file) {
-                            handleAssetInputChange("file", file) // Update the state with the dropped file
+                            handleAssetInputChange("file", file); // Update the state with the dropped file
                           }
                         }}
                       >
@@ -1760,6 +2036,7 @@ export default function MarketPage() {
                           required
                         />
                       </div>
+
                       {/* File Preview */}
                       {assetFormData.file && (
                         <div className="mt-4 p-4 border border-border rounded-lg bg-background/50">
@@ -1767,13 +2044,14 @@ export default function MarketPage() {
                             {/* File Icon or Thumbnail */}
                             {assetFormData.file.type.startsWith("image/") ? (
                               <img
-                                src={URL.createObjectURL(assetFormData.file) || "/placeholder.svg"}
+                                src={URL.createObjectURL(assetFormData.file)}
                                 alt="Uploaded file preview"
                                 className="h-16 w-16 object-cover rounded-lg"
                               />
                             ) : (
                               <FileText className="h-16 w-16 text-muted-foreground" />
                             )}
+
                             {/* File Details */}
                             <div className="flex-1">
                               <p className="text-sm font-medium text-foreground">{assetFormData.file.name}</p>
@@ -1781,6 +2059,7 @@ export default function MarketPage() {
                                 {(assetFormData.file.size / 1024 / 1024).toFixed(2)} MB
                               </p>
                             </div>
+
                             {/* Remove File Button */}
                             <Button
                               variant="outline"
@@ -1792,7 +2071,7 @@ export default function MarketPage() {
                             </Button>
                           </div>
                         </div>
-                      )}
+                      )}                      
                     </div>
 
                     {/* Tags */}
@@ -2130,7 +2409,6 @@ export default function MarketPage() {
                     {selectedAsset?.license}
                   </Badge>
                 </div>
-
                 <div className="flex justify-between">
                   <span className="text-muted-foreground font-varela">Price:</span>
                   <div className="flex items-center gap-1">
@@ -2143,7 +2421,6 @@ export default function MarketPage() {
                     <span className="font-varien text-lg font-bold text-foreground">{selectedAsset?.price} KAS</span>
                   </div>
                 </div>
-
                 <div className="flex justify-between">
                   <span className="text-muted-foreground font-varela">Platform Fee (2.5%):</span>
                   <div className="flex items-center gap-1">
@@ -2158,7 +2435,6 @@ export default function MarketPage() {
                     </span>
                   </div>
                 </div>
-
                 <div className="flex justify-between pt-2 border-t border-border/50">
                   <span className="font-varien font-semibold text-foreground">Total:</span>
                   <div className="flex items-center gap-1">
