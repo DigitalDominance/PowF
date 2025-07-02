@@ -120,7 +120,8 @@ const SectionWrapper = ({
 )
 
 interface Asset {
-  _id: string
+  _id: string,
+  id: string,
   title: string
   description: string
   type: "image" | "video" | "audio" | "3d" | "template"
@@ -230,13 +231,159 @@ export default function MarketPage() {
   >("idle")
 
   // User data cache
-  const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({})
+  // const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({})
   const [favoriteAssets, setFavoriteAssets] = useState<string[]>([])
 
   const assetsPerPage = 12
   const API_BASE_URL = process.env.NEXT_PUBLIC_API
 
-  
+  // // Mock data for development
+  // const mockAssets: Asset[] = [
+  //   {
+  //     _id: "1",
+  //     title: "Sunset Mountain Landscape",
+  //     description:
+  //       "Beautiful sunset over mountain peaks with vibrant colors and dramatic lighting. Perfect for websites, presentations, and marketing materials.",
+  //     type: "image",
+  //     category: "Photography",
+  //     tags: ["landscape", "sunset", "mountains", "nature", "dramatic"],
+  //     price: "15.50",
+  //     currency: "KAS",
+  //     creatorAddress: "0x1234567890123456789012345678901234567890",
+  //     creatorName: "NaturePhotoPro",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=1080&width=1920",
+  //     fileSize: "2.4 MB",
+  //     dimensions: "1920x1080",
+  //     downloads: 234,
+  //     rating: 4.8,
+  //     reviewCount: 45,
+  //     createdAt: "2024-01-15T10:30:00Z",
+  //     featured: true,
+  //     license: "standard",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "2",
+  //     title: "Corporate Business Video",
+  //     description:
+  //       "Professional corporate video background with smooth transitions and modern aesthetic. Ideal for business presentations and promotional content.",
+  //     type: "video",
+  //     category: "Videos",
+  //     tags: ["corporate", "business", "professional", "modern", "clean"],
+  //     price: "45.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x2345678901234567890123456789012345678901",
+  //     creatorName: "VideoCreative",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=720&width=1280",
+  //     fileSize: "125 MB",
+  //     dimensions: "1920x1080",
+  //     duration: "0:30",
+  //     downloads: 89,
+  //     rating: 4.6,
+  //     reviewCount: 23,
+  //     createdAt: "2024-01-10T14:20:00Z",
+  //     featured: true,
+  //     license: "exclusive",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "3",
+  //     title: "Minimalist UI Icons Pack",
+  //     description:
+  //       "Collection of 50 minimalist icons perfect for web and mobile applications. Clean, scalable vector graphics in multiple formats.",
+  //     type: "template",
+  //     category: "Icons",
+  //     tags: ["icons", "minimalist", "ui", "vector", "web", "mobile"],
+  //     price: "25.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x3456789012345678901234567890123456789012",
+  //     creatorName: "IconMaster",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=800&width=800",
+  //     fileSize: "5.2 MB",
+  //     downloads: 156,
+  //     rating: 4.9,
+  //     reviewCount: 67,
+  //     createdAt: "2024-01-08T09:15:00Z",
+  //     featured: false,
+  //     license: "standard",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "4",
+  //     title: "Ambient Electronic Music",
+  //     description:
+  //       "Atmospheric electronic music track perfect for background use in videos, presentations, or meditation apps. Royalty-free license included.",
+  //     type: "audio",
+  //     category: "Audio",
+  //     tags: ["ambient", "electronic", "background", "meditation", "atmospheric"],
+  //     price: "20.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x4567890123456789012345678901234567890123",
+  //     creatorName: "SoundScape",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=200&width=400",
+  //     fileSize: "8.5 MB",
+  //     duration: "3:45",
+  //     downloads: 78,
+  //     rating: 4.7,
+  //     reviewCount: 34,
+  //     createdAt: "2024-01-05T16:45:00Z",
+  //     featured: false,
+  //     license: "exclusive",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "5",
+  //     title: "Low Poly Tree 3D Model",
+  //     description:
+  //       "High-quality low poly tree 3D model optimized for games and real-time applications. Includes textures and multiple LOD versions.",
+  //     type: "3d",
+  //     category: "3D Models",
+  //     tags: ["3d", "lowpoly", "tree", "game", "nature", "optimized"],
+  //     price: "35.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x5678901234567890123456789012345678901234",
+  //     creatorName: "3DForest",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=400&width=400",
+  //     fileSize: "12.8 MB",
+  //     downloads: 45,
+  //     rating: 4.5,
+  //     reviewCount: 18,
+  //     createdAt: "2024-01-03T11:30:00Z",
+  //     featured: false,
+  //     license: "standard",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "6",
+  //     title: "Abstract Digital Art",
+  //     description:
+  //       "Vibrant abstract digital artwork with flowing shapes and gradient colors. Perfect for modern design projects and digital displays.",
+  //     type: "image",
+  //     category: "Illustrations",
+  //     tags: ["abstract", "digital", "art", "colorful", "modern", "gradient"],
+  //     price: "18.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x6789012345678901234567890123456789012345",
+  //     creatorName: "DigitalArtist",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=1080&width=1080",
+  //     fileSize: "3.1 MB",
+  //     dimensions: "2048x2048",
+  //     downloads: 167,
+  //     rating: 4.6,
+  //     reviewCount: 52,
+  //     createdAt: "2024-01-01T08:00:00Z",
+  //     featured: true,
+  //     license: "standard",
+  //     status: "active",
+  //   },
+  // ]
+
   // Fetch assets from the API
   const fetchAssets = async () => {
     try {
@@ -246,10 +393,41 @@ export default function MarketPage() {
         throw new Error("Failed to fetch assets");
       }
       const data = await response.json();
-      setAssets(data);
-      setFeaturedAssets(data.filter((asset: Asset) => asset.featured));
+
+      // Transform the data to match the Asset interface
+      const transformedAssets: Asset[] = await Promise.all(
+        data.map(async (asset: any) => ({
+          _id: asset._id,
+          id: asset.tokenId,
+          title: asset.title,
+          description: asset.description,
+          type: "image", // Default type, update this if you have a way to determine the type
+          category: asset.category,
+          tags: asset.tags || [],
+          price: asset.price,
+          currency: "KAS", // Default currency
+          creatorAddress: asset.creatorAddress,
+          creatorName: await fetchEmployerDisplayName(asset.creatorAddress), // Fetch display name asynchronously
+          thumbnailUrl: `https://gateway.pinata.cloud/ipfs/${asset.fileCid}?height=300&width=400`, // Generate thumbnail URL
+          assetUrl: `https://gateway.pinata.cloud/ipfs/${asset.fileCid}`, // Generate asset URL
+          fileSize: asset.fileSize || "Unknown", // Default file size, update this if you have a way to determine it
+          dimensions: undefined, // Default dimensions, update this if you have a way to determine it
+          duration: undefined, // Default duration, update this if you have a way to determine it
+          downloads: asset.downloads || 0,
+          rating: asset.rating || 0,
+          reviewCount: asset.reviewCount || 0,
+          createdAt: asset.createdAt,
+          featured: false, // Default featured status, update this if you have a way to determine it
+          license: asset.license,
+          status: asset.status,
+        }))
+      );
+
+      console.log('Transformed Assets', transformedAssets)
+      setAssets(transformedAssets);
+      setFeaturedAssets(transformedAssets.filter((asset: Asset) => asset.featured));
       if(wallet) {
-        setMyAssets(data.filter((asset: Asset) => asset.creatorAddress === wallet))
+        setMyAssets(transformedAssets.filter((asset: Asset) => asset.creatorAddress === wallet))
       }
     } catch (err) {
       console.error("Error fetching assets:", err);
@@ -274,19 +452,19 @@ export default function MarketPage() {
   // }, [wallet])
 
   // Fetch user display names
-  const getUserDisplayName = async (address: string) => {
-    if (userDisplayNames[address]) {
-      return userDisplayNames[address]
-    }
-    try {
-      const name = await fetchEmployerDisplayName(address)
-      setUserDisplayNames((prev) => ({ ...prev, [address]: name }))
-      return name
-    } catch (error) {
-      console.error("Error fetching display name:", error)
-      return `${address.slice(0, 6)}...${address.slice(-4)}`
-    }
-  }
+  // const getUserDisplayName = async (address: string) => {
+  //   if (userDisplayNames[address]) {
+  //     return userDisplayNames[address]
+  //   }
+  //   try {
+  //     const name = await fetchEmployerDisplayName(address)
+  //     setUserDisplayNames((prev) => ({ ...prev, [address]: name }))
+  //     return name
+  //   } catch (error) {
+  //     console.error("Error fetching display name:", error)
+  //     return `${address.slice(0, 6)}...${address.slice(-4)}`
+  //   }
+  // }
 
   // Handle form inputs
   const handleAssetInputChange = (field: string, value: string | string[] | File | null) => {
@@ -354,7 +532,7 @@ export default function MarketPage() {
         throw new Error("File upload failed");
       }
   
-      const { cid: fileCid, url: fileUrl } = await uploadResponse.json();      
+      const { cid: fileCid, url: fileUrl, size: fileSize } = await uploadResponse.json();      
 
       setListingState("processing")
 
@@ -371,6 +549,7 @@ export default function MarketPage() {
         license: assetFormData.license,
         fileCid,
         fileUrl,
+        fileSize,
         creatorAddress: wallet,
       };
   
@@ -471,7 +650,7 @@ export default function MarketPage() {
           signer
         );
   
-        tx = await standardContract.purchaseStandard(asset._id, 1, {
+        tx = await standardContract.purchaseStandard(asset.id, 1, {
           value: ethers.parseEther(asset.price), // Ensure price is in ETH
         });
       } else if (asset.license === "exclusive") {
@@ -482,7 +661,7 @@ export default function MarketPage() {
           signer
         );
   
-        tx = await exclusiveContract.purchaseExclusive(asset._id, {
+        tx = await exclusiveContract.purchaseExclusive(asset.id, {
           value: ethers.parseEther(asset.price), // Ensure price is in ETH
         });
       } else {
