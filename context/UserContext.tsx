@@ -8,6 +8,8 @@ import JOB_FACTORY_ABI from "../lib/contracts/JobFactory.json"
 import DISPUTE_DAO_ABI from "../lib/contracts/DisputeDAO.json"
 import REPUTATION_SYSTEM_ABI from "../lib/contracts/ReputationSystem.json"
 import PROOF_OF_WORK_JOB_ABI from "../lib/contracts/ProofOfWorkJob.json"
+import STANDARD_LICENSE_1155 from "../lib/contracts/StandardLicense1155.json"
+import EXCLUSIVE_LICENSE_721 from "../lib/contracts/ExclusiveLicense721.json"
 import axios from "axios"
 
 interface UserContextType {
@@ -31,6 +33,8 @@ interface UserContextType {
   jobDetails: any[]
   setJobDetails: React.Dispatch<React.SetStateAction<any[]>>
   applicants: any[]
+  listAssetOnChain: (metadataUri: string, price: string, license: "standard" | "exclusive") => Promise<ethers.TransactionReceipt>
+  purchaseAssetOnChain: (assetId: string, price: string, license: "standard" | "exclusive", quantity?: number) => Promise<ethers.TransactionReceipt>
   setApplicants: React.Dispatch<React.SetStateAction<any[]>>
   sendMessage: (disputeId: string, content: string) => void
   sendP2PMessage: (to: string, content: string) => Promise<void>
@@ -254,8 +258,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [wallet, setWallet] = useState("")
   const [displayName, setDisplayName] = useState("")
   const [role, setRole] = useState("")
-  const [allJobs, setAllJobs] = useState<any[]>([]) // Add this
-  const [jobAddresses, setJobAddresses] = useState<string[]>([]) // Add this
+  const [allJobs, setAllJobs] = useState<any[]>([])
+  const [jobAddresses, setJobAddresses] = useState<string[]>([])
   const [myJobs, setMyJobs] = useState<any[]>([])
   const [disputes, setDisputes] = useState<any[]>([])
   const [myDisputes, setMyDisputes] = useState<any[]>([])
@@ -263,24 +267,88 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [jobDetails, setJobDetails] = useState<any[]>([])
   const [applicants, setApplicants] = useState<any[]>([])
 
-  // Wallet and contract state
   const { address, isConnected } = useAppKitAccount()
 
-  const publicProvider = useMemo(() => {
-    return new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL) // Replace with your RPC URL
-  }, [])
+  const publicProvider = useMemo(
+    () => new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL),
+    []
+  )
   const { walletProvider } = useAppKitProvider("eip155")
-  const provider = useMemo(() => {
-    if (!walletProvider) return null
-    return new BrowserProvider(walletProvider as Eip1193Provider)
-  }, [walletProvider])
+  const provider = useMemo(
+    () => walletProvider ? new BrowserProvider(walletProvider as Eip1193Provider) : null,
+    [walletProvider]
+  )
 
-  const [contracts, setContracts] = useState<{ jobFactory: ethers.Contract; disputeDAO: ethers.Contract } | null>(null)
+  // Signer for on-chain writes
+  const signer = useMemo(() => provider?.getSigner() ?? null, [provider])
+
+  const [contracts, setContracts] = useState<{
+    jobFactory: ethers.Contract
+    disputeDAO: ethers.Contract
+  } | null>(null)
 
   const setUserData = (data: { wallet: string; displayName: string; role: string }) => {
     setWallet(data.wallet)
     setDisplayName(data.displayName)
     setRole(data.role)
+  }
+
+  // --- New on-chain handlers ---
+
+  const listAssetOnChain = async (
+    metadataUri: string,
+    price: string,
+    license: "standard" | "exclusive"
+  ): Promise<ethers.TransactionReceipt> => {
+    if (!signer) throw new Error("Wallet not connected")
+    let contract: ethers.Contract
+    if (license === "standard") {
+      contract = new ethers.Contract(
+        process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
+        STANDARD_LICENSE_1155,
+        signer
+      )
+      const tx = await contract.registerStandardAsset(metadataUri, ethers.parseEther(price))
+      return await tx.wait()
+    } else {
+      contract = new ethers.Contract(
+        process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
+        EXCLUSIVE_LICENSE_721,
+        signer
+      )
+      const tx = await contract.registerExclusiveAsset(metadataUri, ethers.parseEther(price))
+      return await tx.wait()
+    }
+  }
+
+  const purchaseAssetOnChain = async (
+    assetId: string,
+    price: string,
+    license: "standard" | "exclusive",
+    quantity: number = 1
+  ): Promise<ethers.TransactionReceipt> => {
+    if (!signer) throw new Error("Wallet not connected")
+    if (license === "standard") {
+      const contract = new ethers.Contract(
+        process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
+        STANDARD_LICENSE_1155,
+        signer
+      )
+      const tx = await contract.purchaseStandard(assetId, quantity, {
+        value: ethers.parseEther(price),
+      })
+      return await tx.wait()
+    } else {
+      const contract = new ethers.Contract(
+        process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
+        EXCLUSIVE_LICENSE_721,
+        signer
+      )
+      const tx = await contract.purchaseExclusive(assetId, {
+        value: ethers.parseEther(price),
+      })
+      return await tx.wait()
+    }
   }
 
   const fetchTags = async (jobContract: ethers.Contract) => {
@@ -872,16 +940,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setDisputes,
         myDisputes,
         employerJobs,
+        setEmployerJobs,
         jobDetails,
+        setJobDetails,
         applicants,
         setApplicants,
         sendMessage,
         sendP2PMessage,
         fetchP2PMessages,
-        setEmployerJobs,
-        setJobDetails,
         setMyDisputes,
         fetchConversations,
+        listAssetOnChain,
+        purchaseAssetOnChain,
       }}
     >
       {children}
