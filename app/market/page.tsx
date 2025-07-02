@@ -53,6 +53,9 @@ import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
 import { useUserContext, fetchEmployerDisplayName } from "@/context/UserContext"
+import { ethers } from "ethers"
+import STANDARD_LICENSE_1155 from '@/lib/contracts/StandardLicense1155.json';
+import EXCLUSIVE_LICENSE_721 from '@/lib/contracts/ExclusiveLicense721.json';
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -233,163 +236,188 @@ export default function MarketPage() {
   const assetsPerPage = 12
   const API_BASE_URL = process.env.NEXT_PUBLIC_API
 
-  // Mock data for development
-  const mockAssets: Asset[] = [
-    {
-      _id: "1",
-      title: "Sunset Mountain Landscape",
-      description:
-        "Beautiful sunset over mountain peaks with vibrant colors and dramatic lighting. Perfect for websites, presentations, and marketing materials.",
-      type: "image",
-      category: "Photography",
-      tags: ["landscape", "sunset", "mountains", "nature", "dramatic"],
-      price: "15.50",
-      currency: "KAS",
-      creatorAddress: "0x1234567890123456789012345678901234567890",
-      creatorName: "NaturePhotoPro",
-      thumbnailUrl: "/placeholder.svg?height=300&width=400",
-      assetUrl: "/placeholder.svg?height=1080&width=1920",
-      fileSize: "2.4 MB",
-      dimensions: "1920x1080",
-      downloads: 234,
-      rating: 4.8,
-      reviewCount: 45,
-      createdAt: "2024-01-15T10:30:00Z",
-      featured: true,
-      license: "standard",
-      status: "active",
-    },
-    {
-      _id: "2",
-      title: "Corporate Business Video",
-      description:
-        "Professional corporate video background with smooth transitions and modern aesthetic. Ideal for business presentations and promotional content.",
-      type: "video",
-      category: "Videos",
-      tags: ["corporate", "business", "professional", "modern", "clean"],
-      price: "45.00",
-      currency: "KAS",
-      creatorAddress: "0x2345678901234567890123456789012345678901",
-      creatorName: "VideoCreative",
-      thumbnailUrl: "/placeholder.svg?height=300&width=400",
-      assetUrl: "/placeholder.svg?height=720&width=1280",
-      fileSize: "125 MB",
-      dimensions: "1920x1080",
-      duration: "0:30",
-      downloads: 89,
-      rating: 4.6,
-      reviewCount: 23,
-      createdAt: "2024-01-10T14:20:00Z",
-      featured: true,
-      license: "exclusive",
-      status: "active",
-    },
-    {
-      _id: "3",
-      title: "Minimalist UI Icons Pack",
-      description:
-        "Collection of 50 minimalist icons perfect for web and mobile applications. Clean, scalable vector graphics in multiple formats.",
-      type: "template",
-      category: "Icons",
-      tags: ["icons", "minimalist", "ui", "vector", "web", "mobile"],
-      price: "25.00",
-      currency: "KAS",
-      creatorAddress: "0x3456789012345678901234567890123456789012",
-      creatorName: "IconMaster",
-      thumbnailUrl: "/placeholder.svg?height=300&width=400",
-      assetUrl: "/placeholder.svg?height=800&width=800",
-      fileSize: "5.2 MB",
-      downloads: 156,
-      rating: 4.9,
-      reviewCount: 67,
-      createdAt: "2024-01-08T09:15:00Z",
-      featured: false,
-      license: "standard",
-      status: "active",
-    },
-    {
-      _id: "4",
-      title: "Ambient Electronic Music",
-      description:
-        "Atmospheric electronic music track perfect for background use in videos, presentations, or meditation apps. Royalty-free license included.",
-      type: "audio",
-      category: "Audio",
-      tags: ["ambient", "electronic", "background", "meditation", "atmospheric"],
-      price: "20.00",
-      currency: "KAS",
-      creatorAddress: "0x4567890123456789012345678901234567890123",
-      creatorName: "SoundScape",
-      thumbnailUrl: "/placeholder.svg?height=300&width=400",
-      assetUrl: "/placeholder.svg?height=200&width=400",
-      fileSize: "8.5 MB",
-      duration: "3:45",
-      downloads: 78,
-      rating: 4.7,
-      reviewCount: 34,
-      createdAt: "2024-01-05T16:45:00Z",
-      featured: false,
-      license: "exclusive",
-      status: "active",
-    },
-    {
-      _id: "5",
-      title: "Low Poly Tree 3D Model",
-      description:
-        "High-quality low poly tree 3D model optimized for games and real-time applications. Includes textures and multiple LOD versions.",
-      type: "3d",
-      category: "3D Models",
-      tags: ["3d", "lowpoly", "tree", "game", "nature", "optimized"],
-      price: "35.00",
-      currency: "KAS",
-      creatorAddress: "0x5678901234567890123456789012345678901234",
-      creatorName: "3DForest",
-      thumbnailUrl: "/placeholder.svg?height=300&width=400",
-      assetUrl: "/placeholder.svg?height=400&width=400",
-      fileSize: "12.8 MB",
-      downloads: 45,
-      rating: 4.5,
-      reviewCount: 18,
-      createdAt: "2024-01-03T11:30:00Z",
-      featured: false,
-      license: "standard",
-      status: "active",
-    },
-    {
-      _id: "6",
-      title: "Abstract Digital Art",
-      description:
-        "Vibrant abstract digital artwork with flowing shapes and gradient colors. Perfect for modern design projects and digital displays.",
-      type: "image",
-      category: "Illustrations",
-      tags: ["abstract", "digital", "art", "colorful", "modern", "gradient"],
-      price: "18.00",
-      currency: "KAS",
-      creatorAddress: "0x6789012345678901234567890123456789012345",
-      creatorName: "DigitalArtist",
-      thumbnailUrl: "/placeholder.svg?height=300&width=400",
-      assetUrl: "/placeholder.svg?height=1080&width=1080",
-      fileSize: "3.1 MB",
-      dimensions: "2048x2048",
-      downloads: 167,
-      rating: 4.6,
-      reviewCount: 52,
-      createdAt: "2024-01-01T08:00:00Z",
-      featured: true,
-      license: "standard",
-      status: "active",
-    },
-  ]
+  // // Mock data for development
+  // const mockAssets: Asset[] = [
+  //   {
+  //     _id: "1",
+  //     title: "Sunset Mountain Landscape",
+  //     description:
+  //       "Beautiful sunset over mountain peaks with vibrant colors and dramatic lighting. Perfect for websites, presentations, and marketing materials.",
+  //     type: "image",
+  //     category: "Photography",
+  //     tags: ["landscape", "sunset", "mountains", "nature", "dramatic"],
+  //     price: "15.50",
+  //     currency: "KAS",
+  //     creatorAddress: "0x1234567890123456789012345678901234567890",
+  //     creatorName: "NaturePhotoPro",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=1080&width=1920",
+  //     fileSize: "2.4 MB",
+  //     dimensions: "1920x1080",
+  //     downloads: 234,
+  //     rating: 4.8,
+  //     reviewCount: 45,
+  //     createdAt: "2024-01-15T10:30:00Z",
+  //     featured: true,
+  //     license: "standard",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "2",
+  //     title: "Corporate Business Video",
+  //     description:
+  //       "Professional corporate video background with smooth transitions and modern aesthetic. Ideal for business presentations and promotional content.",
+  //     type: "video",
+  //     category: "Videos",
+  //     tags: ["corporate", "business", "professional", "modern", "clean"],
+  //     price: "45.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x2345678901234567890123456789012345678901",
+  //     creatorName: "VideoCreative",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=720&width=1280",
+  //     fileSize: "125 MB",
+  //     dimensions: "1920x1080",
+  //     duration: "0:30",
+  //     downloads: 89,
+  //     rating: 4.6,
+  //     reviewCount: 23,
+  //     createdAt: "2024-01-10T14:20:00Z",
+  //     featured: true,
+  //     license: "exclusive",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "3",
+  //     title: "Minimalist UI Icons Pack",
+  //     description:
+  //       "Collection of 50 minimalist icons perfect for web and mobile applications. Clean, scalable vector graphics in multiple formats.",
+  //     type: "template",
+  //     category: "Icons",
+  //     tags: ["icons", "minimalist", "ui", "vector", "web", "mobile"],
+  //     price: "25.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x3456789012345678901234567890123456789012",
+  //     creatorName: "IconMaster",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=800&width=800",
+  //     fileSize: "5.2 MB",
+  //     downloads: 156,
+  //     rating: 4.9,
+  //     reviewCount: 67,
+  //     createdAt: "2024-01-08T09:15:00Z",
+  //     featured: false,
+  //     license: "standard",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "4",
+  //     title: "Ambient Electronic Music",
+  //     description:
+  //       "Atmospheric electronic music track perfect for background use in videos, presentations, or meditation apps. Royalty-free license included.",
+  //     type: "audio",
+  //     category: "Audio",
+  //     tags: ["ambient", "electronic", "background", "meditation", "atmospheric"],
+  //     price: "20.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x4567890123456789012345678901234567890123",
+  //     creatorName: "SoundScape",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=200&width=400",
+  //     fileSize: "8.5 MB",
+  //     duration: "3:45",
+  //     downloads: 78,
+  //     rating: 4.7,
+  //     reviewCount: 34,
+  //     createdAt: "2024-01-05T16:45:00Z",
+  //     featured: false,
+  //     license: "exclusive",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "5",
+  //     title: "Low Poly Tree 3D Model",
+  //     description:
+  //       "High-quality low poly tree 3D model optimized for games and real-time applications. Includes textures and multiple LOD versions.",
+  //     type: "3d",
+  //     category: "3D Models",
+  //     tags: ["3d", "lowpoly", "tree", "game", "nature", "optimized"],
+  //     price: "35.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x5678901234567890123456789012345678901234",
+  //     creatorName: "3DForest",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=400&width=400",
+  //     fileSize: "12.8 MB",
+  //     downloads: 45,
+  //     rating: 4.5,
+  //     reviewCount: 18,
+  //     createdAt: "2024-01-03T11:30:00Z",
+  //     featured: false,
+  //     license: "standard",
+  //     status: "active",
+  //   },
+  //   {
+  //     _id: "6",
+  //     title: "Abstract Digital Art",
+  //     description:
+  //       "Vibrant abstract digital artwork with flowing shapes and gradient colors. Perfect for modern design projects and digital displays.",
+  //     type: "image",
+  //     category: "Illustrations",
+  //     tags: ["abstract", "digital", "art", "colorful", "modern", "gradient"],
+  //     price: "18.00",
+  //     currency: "KAS",
+  //     creatorAddress: "0x6789012345678901234567890123456789012345",
+  //     creatorName: "DigitalArtist",
+  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
+  //     assetUrl: "/placeholder.svg?height=1080&width=1080",
+  //     fileSize: "3.1 MB",
+  //     dimensions: "2048x2048",
+  //     downloads: 167,
+  //     rating: 4.6,
+  //     reviewCount: 52,
+  //     createdAt: "2024-01-01T08:00:00Z",
+  //     featured: true,
+  //     license: "standard",
+  //     status: "active",
+  //   },
+  // ]
 
-  // Initialize with mock data
-  useEffect(() => {
-    setAssets(mockAssets)
-    setFeaturedAssets(mockAssets.filter((asset) => asset.featured))
-    setLoading(false)
-
-    if (wallet) {
-      setMyAssets(mockAssets.filter((asset) => asset.creatorAddress === wallet))
+  // Fetch assets from the API
+  const fetchAssets = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/assets`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch assets");
+      }
+      const data = await response.json();
+      setAssets(data);
+      setFeaturedAssets(data.filter((asset: Asset) => asset.featured));
+      if(wallet) {
+        setMyAssets(data.filter((asset: Asset) => asset.creatorAddress === wallet))
+      }
+    } catch (err) {
+      console.error("Error fetching assets:", err);
+    } finally {
+      setLoading(false);
     }
-  }, [wallet])
+  };
+
+  useEffect(() => {
+    fetchAssets();
+  }, [wallet]);
+
+  // // Initialize with mock data
+  // useEffect(() => {
+  //   setAssets(mockAssets)
+  //   setFeaturedAssets(mockAssets.filter((asset) => asset.featured))
+  //   setLoading(false)
+
+  //   if (wallet) {
+  //     setMyAssets(mockAssets.filter((asset) => asset.creatorAddress === wallet))
+  //   }
+  // }, [wallet])
 
   // Fetch user display names
   const getUserDisplayName = async (address: string) => {
@@ -456,12 +484,98 @@ export default function MarketPage() {
       setListingState("uploading")
 
       // Simulate file upload
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // await new Promise((resolve) => setTimeout(resolve, 2000))
+      // Step 1: Upload file to Pinata via backend
+      const formData = new FormData();
+      if (assetFormData.file) {
+        formData.append("file", assetFormData.file);
+      }
+
+      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("File upload failed");
+      }
+  
+      const { cid: fileCid, url: fileUrl } = await uploadResponse.json();      
 
       setListingState("processing")
 
       // Simulate blockchain transaction
-      await new Promise((resolve) => setTimeout(resolve, 3000))
+      // await new Promise((resolve) => setTimeout(resolve, 3000))
+
+      const metadata = {
+        title: assetFormData.title,
+        description: assetFormData.description,
+        type: assetFormData.type,
+        category: assetFormData.category,
+        tags: assetFormData.tags,
+        price: assetFormData.price,
+        license: assetFormData.license,
+        fileCid,
+        fileUrl,
+        creatorAddress: wallet,
+      };
+  
+      const metadataResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/metadata`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify(metadata),
+      });
+  
+      if (!metadataResponse.ok) {
+        throw new Error("Metadata upload failed");
+      }      
+
+      const { metadataUri } = await metadataResponse.json();
+
+      const signer = await provider?.getSigner();
+      let tx;
+
+      if (assetFormData.license === "standard") {
+        const standardContract = new ethers.Contract(
+          process.env.NEXT_PUBLIC_ERC1155_ADDRESS || '',
+          STANDARD_LICENSE_1155,
+          signer
+        );
+  
+        tx = await standardContract.registerStandardAsset(metadataUri, ethers.parseEther(assetFormData.price));
+      } else if (assetFormData.license === "exclusive") {
+        const exclusiveContract = new ethers.Contract(
+          process.env.NEXT_PUBLIC_ERC721_ADDRESS || '',
+          EXCLUSIVE_LICENSE_721,
+          signer
+        );
+  
+        tx = await exclusiveContract.registerExclusiveAsset(metadataUri, ethers.parseEther(assetFormData.price));
+      }
+
+      // Wait for the transaction to be mined
+      const receipt = await tx.wait();      
+
+      // Step 4: Save the asset in the database
+      const saveResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/assets`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify({
+          ...metadata,
+          metadataUri,
+          transactionHash: receipt.transactionHash,
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save asset in the database");
+      }      
 
       setListingState("success")
       toast.success("Asset listed successfully!")
@@ -490,7 +604,63 @@ export default function MarketPage() {
       setPurchaseDialogState("processing")
 
       // Simulate blockchain transaction
-      await new Promise((resolve) => setTimeout(resolve, 3000))
+      // await new Promise((resolve) => setTimeout(resolve, 3000))
+
+      const signer = await provider?.getSigner();
+
+      let tx;
+      if (asset.license === "standard") {
+        // StandardLicense1155: Call purchaseStandard
+        const standardContract = new ethers.Contract(
+          process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
+          STANDARD_LICENSE_1155,
+          signer
+        );
+  
+        tx = await standardContract.purchaseStandard(asset._id, 1, {
+          value: ethers.parseEther(asset.price), // Ensure price is in ETH
+        });
+      } else if (asset.license === "exclusive") {
+        // ExclusiveLicense721: Call purchaseExclusive
+        const exclusiveContract = new ethers.Contract(
+          process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
+          EXCLUSIVE_LICENSE_721,
+          signer
+        );
+  
+        tx = await exclusiveContract.purchaseExclusive(asset._id, {
+          value: ethers.parseEther(asset.price), // Ensure price is in ETH
+        });
+      } else {
+        throw new Error("Invalid license type");
+      }
+
+      // Wait for the transaction to be mined
+      const receipt = await tx.wait();
+
+      // Send the transaction hash to the backend for confirmation
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/mint-${asset.license}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+          body: JSON.stringify({
+            txHash: receipt.transactionHash,
+            assetId: asset._id,
+            ...(asset.license === "standard" && { quantity: 1 }), // Include quantity for standard license
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to confirm purchase");
+      }
+
+      const data = await response.json();
+      console.log("Purchase confirmed:", data);      
 
       setPurchaseDialogState("success")
       toast.success("Asset purchased successfully!")
@@ -1803,14 +1973,26 @@ export default function MarketPage() {
                       <Label htmlFor="asset-file" className="text-foreground font-varien">
                         Asset File
                       </Label>
-                      <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                        <div className="flex flex-col items-center gap-2">
-                          <Upload className="h-8 w-8 text-muted-foreground" />
-                          <div className="text-sm text-muted-foreground font-varela">
-                            <span className="font-medium">Click to upload</span> or drag and drop
+                      <div
+                        className="border-2 border-dashed border-border rounded-lg p-6 text-center"
+                        onDragOver={(e) => e.preventDefault()} // Prevent default to allow drop
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files[0]; // Get the first dropped file
+                          if (file) {
+                            handleAssetInputChange("file", file); // Update the state with the dropped file
+                          }
+                        }}
+                      >
+                        <label htmlFor="asset-file" className="cursor-pointer">
+                          <div className="flex flex-col items-center gap-2">
+                            <Upload className="h-8 w-8 text-muted-foreground" />
+                            <div className="text-sm text-muted-foreground font-varela">
+                              <span className="font-medium">Click to upload</span> or drag and drop
+                            </div>
+                            <div className="text-xs text-muted-foreground">PNG, JPG, MP4, MP3, ZIP up to 100MB</div>
                           </div>
-                          <div className="text-xs text-muted-foreground">PNG, JPG, MP4, MP3, ZIP up to 100MB</div>
-                        </div>
+                        </label>
                         <Input
                           id="asset-file"
                           type="file"
@@ -1821,6 +2003,42 @@ export default function MarketPage() {
                           required
                         />
                       </div>
+
+                      {/* File Preview */}
+                      {assetFormData.file && (
+                        <div className="mt-4 p-4 border border-border rounded-lg bg-background/50">
+                          <div className="flex items-center gap-4">
+                            {/* File Icon or Thumbnail */}
+                            {assetFormData.file.type.startsWith("image/") ? (
+                              <img
+                                src={URL.createObjectURL(assetFormData.file)}
+                                alt="Uploaded file preview"
+                                className="h-16 w-16 object-cover rounded-lg"
+                              />
+                            ) : (
+                              <FileText className="h-16 w-16 text-muted-foreground" />
+                            )}
+
+                            {/* File Details */}
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-foreground">{assetFormData.file.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {(assetFormData.file.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+
+                            {/* Remove File Button */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleAssetInputChange("file", null)}
+                              className="text-red-500 border-red-500 hover:bg-red-500/10"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      )}                      
                     </div>
 
                     {/* Tags */}
