@@ -296,60 +296,73 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // --- New on-chain handlers ---
 
   const listAssetOnChain = async (
-    metadataUri: string,
-    price: string,
-    license: "standard" | "exclusive"
-  ): Promise<ethers.TransactionReceipt> => {
-    if (!signer) throw new Error("Wallet not connected")
-    let contract: ethers.Contract
-    if (license === "standard") {
-      contract = new ethers.Contract(
-        process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
-        STANDARD_LICENSE_1155,
-        signer
-      )
-      const tx = await contract.registerStandardAsset(metadataUri, ethers.parseEther(price))
-      return await tx.wait()
-    } else {
-      contract = new ethers.Contract(
-        process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
-        EXCLUSIVE_LICENSE_721,
-        signer
-      )
-      const tx = await contract.registerExclusiveAsset(metadataUri, ethers.parseEther(price))
-      return await tx.wait()
-    }
-  }
+  metadataUri: string,
+  price: string,
+  license: "standard" | "exclusive"
+): Promise<ethers.TransactionReceipt> => {
+  if (!provider) throw new Error("Wallet provider not available");
+  // Ensure the user is connected
+  await provider.send("eth_requestAccounts", []);
+  const signer = provider.getSigner();
+  let contract: ethers.Contract;
 
-  const purchaseAssetOnChain = async (
-    assetId: string,
-    price: string,
-    license: "standard" | "exclusive",
-    quantity: number = 1
-  ): Promise<ethers.TransactionReceipt> => {
-    if (!signer) throw new Error("Wallet not connected")
-    if (license === "standard") {
-      const contract = new ethers.Contract(
-        process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
-        STANDARD_LICENSE_1155,
-        signer
-      )
-      const tx = await contract.purchaseStandard(assetId, quantity, {
-        value: ethers.parseEther(price),
-      })
-      return await tx.wait()
-    } else {
-      const contract = new ethers.Contract(
-        process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
-        EXCLUSIVE_LICENSE_721,
-        signer
-      )
-      const tx = await contract.purchaseExclusive(assetId, {
-        value: ethers.parseEther(price),
-      })
-      return await tx.wait()
-    }
+  if (license === "standard") {
+    contract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_ERC1155_ADDRESS!,
+      STANDARD_LICENSE_1155,
+      signer
+    );
+    const tx = await contract.registerStandardAsset(
+      metadataUri,
+      ethers.parseEther(price)
+    );
+    return tx.wait();
+  } else {
+    contract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_ERC721_ADDRESS!,
+      EXCLUSIVE_LICENSE_721,
+      signer
+    );
+    const tx = await contract.registerExclusiveAsset(
+      metadataUri,
+      ethers.parseEther(price)
+    );
+    return tx.wait();
   }
+};
+
+const purchaseAssetOnChain = async (
+  assetId: string,
+  price: string,
+  license: "standard" | "exclusive",
+  quantity = 1
+): Promise<ethers.TransactionReceipt> => {
+  if (!provider) throw new Error("Wallet provider not available");
+  await provider.send("eth_requestAccounts", []);
+  const signer = provider.getSigner();
+
+  if (license === "standard") {
+    const contract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_ERC1155_ADDRESS!,
+      STANDARD_LICENSE_1155,
+      signer
+    );
+    const tx = await contract.purchaseStandard(assetId, quantity, {
+      value: ethers.parseEther(price),
+    });
+    return tx.wait();
+  } else {
+    const contract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_ERC721_ADDRESS!,
+      EXCLUSIVE_LICENSE_721,
+      signer
+    );
+    const tx = await contract.purchaseExclusive(assetId, {
+      value: ethers.parseEther(price),
+    });
+    return tx.wait();
+  }
+};
 
   const fetchTags = async (jobContract: ethers.Contract) => {
     try {
