@@ -250,6 +250,50 @@ const fetchApplicantsForJobs = async (jobAddresses: string[], provider: ethers.P
   return all
 }
 
+export async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  const accessToken = localStorage.getItem("accessToken");
+  const refreshToken = localStorage.getItem("refreshToken");
+
+  // Add Authorization header if accessToken exists
+  if (accessToken) {
+    options.headers = {
+      ...options.headers,
+      Authorization: `Bearer ${accessToken}`,
+    };
+  }
+
+  let response = await fetch(url, options);
+
+  // If access token is expired, refresh it
+  if (response.status === 401 && refreshToken) {
+    const refreshResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (refreshResponse.ok) {
+      const { accessToken: newAccessToken } = await refreshResponse.json();
+      localStorage.setItem("accessToken", newAccessToken);
+
+      // Retry the original request with the new access token
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${newAccessToken}`,
+      };
+      response = await fetch(url, options);
+    } else {
+      // If refresh token is invalid, log the user out
+      console.error("Refresh token expired or invalid");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      window.location.reload(); // Redirect to login page
+    }
+  }
+
+  return response;
+}
+
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [wallet, setWallet] = useState("")
   const [displayName, setDisplayName] = useState("")
