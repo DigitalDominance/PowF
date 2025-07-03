@@ -52,7 +52,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
 import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
-import { useUserContext, fetchEmployerDisplayName } from "@/context/UserContext"
+import { useUserContext, fetchEmployerDisplayName, fetchWithAuth } from "@/context/UserContext"
 import { ethers } from "ethers"
 import STANDARD_LICENSE_1155 from '@/lib/contracts/StandardLicense1155.json';
 import EXCLUSIVE_LICENSE_721 from '@/lib/contracts/ExclusiveLicense721.json';
@@ -553,7 +553,7 @@ export default function MarketPage() {
         creatorAddress: wallet,
       };
   
-      const metadataResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/metadata`, {
+      const metadataResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/metadata`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -566,7 +566,7 @@ export default function MarketPage() {
         throw new Error("Metadata upload failed");
       }      
 
-      const { metadataUri } = await metadataResponse.json();
+      const { metadataUri, metadataCid } = await metadataResponse.json();
 
       const signer = await provider?.getSigner();
       let tx;
@@ -592,8 +592,10 @@ export default function MarketPage() {
       // Wait for the transaction to be mined
       const receipt = await tx.wait();      
 
+      console.log('Receipt', receipt);
+
       // Step 4: Save the asset in the database
-      const saveResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/assets`, {
+      const saveResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/assets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -602,7 +604,8 @@ export default function MarketPage() {
         body: JSON.stringify({
           ...metadata,
           metadataUri,
-          transactionHash: receipt.transactionHash,
+          metadataCid,
+          transactionHash: receipt.hash,
         }),
       });
 
@@ -672,7 +675,7 @@ export default function MarketPage() {
       const receipt = await tx.wait();
 
       // Send the transaction hash to the backend for confirmation
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API}/mint-${asset.license}`,
         {
           method: "POST",
