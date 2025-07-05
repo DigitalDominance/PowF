@@ -674,6 +674,8 @@ export default function MarketPage() {
       // Wait for the transaction to be mined
       const receipt = await tx.wait();
 
+      console.log('receipt', receipt);
+
       // Send the transaction hash to the backend for confirmation
       const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API}/mint-${asset.license}`,
@@ -684,8 +686,8 @@ export default function MarketPage() {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
           body: JSON.stringify({
-            txHash: receipt.transactionHash,
-            assetId: asset._id,
+            txHash: receipt.hash,
+            assetId: asset.id,
             ...(asset.license === "standard" && { quantity: 1 }), // Include quantity for standard license
           }),
         }
@@ -880,6 +882,12 @@ export default function MarketPage() {
     }
   }
 
+  const isImage = (url: string) =>
+    /\.(jpe?g|png|gif|bmp|webp|svg)$/i.test(url);
+  
+  const isVideo = (url: string) =>
+    /\.(mp4|webm|ogg|mov)$/i.test(url);  
+
   const isListing = listingState !== "idle"
   const isPurchasing = purchaseDialogState !== "idle"
 
@@ -952,11 +960,31 @@ export default function MarketPage() {
               <motion.div key={asset._id} variants={fadeIn(i * 0.1)}>
                 <InteractiveCard className="h-full group">
                   <div className="relative overflow-hidden rounded-lg mb-4">
-                    <img
-                      src={asset.thumbnailUrl || "/placeholder.svg"}
-                      alt={asset.title}
-                      className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
+                    {asset.thumbnailUrl ? (
+                      isImage(asset.thumbnailUrl) ? (
+                        <img
+                          src={asset.thumbnailUrl}
+                          alt="Asset"
+                          className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : isVideo(asset.thumbnailUrl) ? (
+                        <video
+                          src={asset.thumbnailUrl}
+                          controls
+                          className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-48 flex items-center justify-center bg-gray-200 text-gray-500">
+                          Unsupported file type
+                        </div>
+                      )
+                    ) : (
+                      <img
+                        src="/placeholder.svg"
+                        alt="Placeholder"
+                        className="w-full h-48 object-cover"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <div className="absolute top-3 left-3">
                       <Badge variant="secondary" className="bg-black/50 text-white border-0">
