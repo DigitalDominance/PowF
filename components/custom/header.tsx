@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Briefcase, Users, ShieldCheck, Menu, X, Target } from "lucide-react"
+import { Briefcase, Users, ShieldCheck, Menu, X, Target, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useEffect, useState } from "react"
@@ -13,6 +13,7 @@ import Image from "next/image"
 const navItems = [
   { name: "Find Work", href: "/jobs", icon: <Briefcase className="h-5 w-5" /> },
   { name: "Tasks", href: "/tasks", icon: <Target className="h-5 w-5" /> },
+  { name: "Market", href: "/market", icon: <Store className="h-5 w-5" /> },
   { name: "Post a Job", href: "/post-job", icon: <Users className="h-5 w-5" /> },
   { name: "Disputes", href: "/disputes", icon: <ShieldCheck className="h-5 w-5" /> },
 ]
@@ -116,7 +117,6 @@ export function Header() {
                         <span className="sr-only">Close menu</span>
                       </motion.button>
                     </div>
-
                     <nav className="flex flex-col gap-6">
                       {navItems.map((item) => (
                         <Link
@@ -130,7 +130,6 @@ export function Header() {
                         </Link>
                       ))}
                     </nav>
-
                     <div className="mt-auto pt-6 border-t border-border/40">
                       <p className="text-xs text-muted-foreground text-center font-varien tracking-wider">
                         &copy; {new Date().getFullYear()} Proof Of Works
@@ -162,11 +161,9 @@ export function Header() {
                 </motion.div>
               ))}
             </nav>
-
             <div className="hidden md:block">
               <ConnectWallet />
             </div>
-
             <ThemeSwitch />
           </div>
         )}
