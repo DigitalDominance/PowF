@@ -44,11 +44,9 @@ import {
   Share2,
   AlertCircle,
   Play,
+  Palette,
   Music,
   FileImage,
-  Volume2,
-  Pause,
-  Box,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
@@ -56,8 +54,8 @@ import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
 import { useUserContext, fetchEmployerDisplayName, fetchWithAuth } from "@/context/UserContext"
 import { ethers } from "ethers"
-import STANDARD_LICENSE_1155 from "@/lib/contracts/StandardLicense1155.json"
-import EXCLUSIVE_LICENSE_721 from "@/lib/contracts/ExclusiveLicense721.json"
+import STANDARD_LICENSE_1155 from '@/lib/contracts/StandardLicense1155.json';
+import EXCLUSIVE_LICENSE_721 from '@/lib/contracts/ExclusiveLicense721.json';
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -122,22 +120,22 @@ const SectionWrapper = ({
 )
 
 interface Asset {
-  _id: string
-  id: string
+  _id: string,
+  id: string,
   title: string
   description: string
-  type: "image" | "video" | "audio" | "3d"
+  type: "image" | "video" | "audio" | "3d" | "template"
   category: string
   tags: string[]
   price: string
   currency: "KAS"
   creatorAddress: string
   creatorName?: string
-  thumbnailUrl: string
-  mimeType: string
+  thumbnailUrl: string,
+  mimeType: string,
   assetUrl: string
-  fileSize: string
-  fileCid: string
+  fileSize: string,
+  fileCid: string,
   dimensions?: string
   duration?: string
   downloads: number
@@ -150,17 +148,24 @@ interface Asset {
 }
 
 interface MyAsset {
-  purchaseDate: string
-  licenseType: string
-  price: string
-  asset: Asset
+  purchaseDate: string;
+  licenseType: string;
+  price: string;
+  asset: Asset;
 }
 
 interface Purchase {
-  purchaseDate: string
-  licenseType: string
-  price: string
-  asset: Asset
+  // _id: string
+  // asset: Asset
+  // buyerAddress: string
+  // price: string
+  // purchaseDate: string
+  // licenseType: string
+  // transactionHash: string
+  purchaseDate: string;
+  licenseType: string;
+  price: string;
+  asset: Asset;
 }
 
 const ASSET_CATEGORIES = [
@@ -169,6 +174,7 @@ const ASSET_CATEGORIES = [
   "Videos",
   "Audio",
   "3D Models",
+  "Templates",
   "Graphics",
   "Icons",
   "Textures",
@@ -176,194 +182,17 @@ const ASSET_CATEGORIES = [
 ]
 
 const ASSET_TYPES = [
-  {
-    value: "image",
-    label: "Images",
-    icon: ImageIcon,
-    extensions: "(JPG, PNG, GIF, WebP, SVG, BMP, TIFF)",
-  },
-  {
-    value: "video",
-    label: "Videos",
-    icon: Video,
-    extensions: "(MP4, AVI, MOV, WMV, WebM, MKV, FLV)",
-  },
-  {
-    value: "audio",
-    label: "Audio",
-    icon: Music,
-    extensions: "(MP3, WAV, FLAC, AAC, OGG, M4A)",
-  },
-  {
-    value: "3d",
-    label: "3D Models",
-    icon: Box,
-    extensions: "(GLB, GLTF, OBJ, FBX, DAE, STL, 3DS)",
-  },
+  { value: "image", label: "Images", icon: ImageIcon },
+  { value: "video", label: "Videos", icon: Video },
+  { value: "audio", label: "Audio", icon: Music },
+  { value: "3d", label: "3D Models", icon: Palette },
+  { value: "template", label: "Templates", icon: FileText },
 ]
 
 const LICENSE_TYPES = [
   { value: "standard", label: "Standard License", description: "Personal and commercial use" },
   { value: "exclusive", label: "Exclusive License", description: "Exclusive rights to the asset" },
 ]
-
-// Audio Player Component
-const AudioPlayer = ({ url, className }: { url: string; className?: string }) => {
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [audio] = useState(new Audio(url))
-
-  useEffect(() => {
-    audio.addEventListener("ended", () => setIsPlaying(false))
-    return () => {
-      audio.removeEventListener("ended", () => setIsPlaying(false))
-      audio.pause()
-    }
-  }, [audio])
-
-  const togglePlay = () => {
-    if (isPlaying) {
-      audio.pause()
-    } else {
-      audio.play()
-    }
-    setIsPlaying(!isPlaying)
-  }
-
-  return (
-    <div
-      className={`flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-blue-500/20 ${className}`}
-    >
-      <div className="text-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={togglePlay}
-          className="h-16 w-16 bg-black/20 hover:bg-black/40 text-white border-0 rounded-full mb-2"
-        >
-          {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-        </Button>
-        <div className="flex items-center gap-1 text-white text-sm">
-          <Volume2 className="h-4 w-4" />
-          Audio Preview
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Simple 3D Model Placeholder Component
-const Model3DViewer = ({ url, className }: { url: string; className?: string }) => {
-  return (
-    <div className={`relative ${className}`}>
-      <div className="w-full h-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center rounded-lg">
-        <div className="text-center text-white">
-          <Box className="h-16 w-16 mx-auto mb-2" />
-          <div className="text-sm">3D Model</div>
-          <div className="text-xs opacity-75">Click to view</div>
-        </div>
-      </div>
-      <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">3D Preview</div>
-    </div>
-  )
-}
-
-// Enhanced Asset Preview Component
-const AssetPreview = ({ asset, className }: { asset: Asset; className?: string }) => {
-  const getFileExtension = (url: string) => {
-    return url.split(".").pop()?.toLowerCase() || ""
-  }
-
-  const isImageFile = (mimeType: string, url: string) => {
-    const imageTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "image/svg+xml",
-      "image/bmp",
-      "image/tiff",
-    ]
-    const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tiff"]
-    return imageTypes.includes(mimeType?.toLowerCase()) || imageExtensions.includes(getFileExtension(url))
-  }
-
-  const isVideoFile = (mimeType: string, url: string) => {
-    const videoTypes = [
-      "video/mp4",
-      "video/avi",
-      "video/mov",
-      "video/wmv",
-      "video/flv",
-      "video/webm",
-      "video/mkv",
-      "video/quicktime",
-    ]
-    const videoExtensions = ["mp4", "avi", "mov", "wmv", "flv", "webm", "mkv"]
-    return videoTypes.includes(mimeType?.toLowerCase()) || videoExtensions.includes(getFileExtension(url))
-  }
-
-  const isAudioFile = (mimeType: string, url: string) => {
-    const audioTypes = ["audio/mpeg", "audio/wav", "audio/flac", "audio/aac", "audio/ogg", "audio/m4a", "audio/mp3"]
-    const audioExtensions = ["mp3", "wav", "flac", "aac", "ogg", "m4a"]
-    return audioTypes.includes(mimeType?.toLowerCase()) || audioExtensions.includes(getFileExtension(url))
-  }
-
-  const is3DFile = (mimeType: string, url: string) => {
-    const modelExtensions = ["glb", "gltf", "obj", "fbx", "dae", "stl", "3ds"]
-    return modelExtensions.includes(getFileExtension(url)) || asset.type === "3d"
-  }
-
-  if (asset.thumbnailUrl || asset.assetUrl) {
-    const previewUrl = asset.thumbnailUrl || asset.assetUrl
-
-    if (isImageFile(asset.mimeType, previewUrl)) {
-      return (
-        <img
-          src={previewUrl || "/placeholder.svg"}
-          alt={asset.title}
-          className={`object-cover transition-transform duration-300 group-hover:scale-105 ${className}`}
-        />
-      )
-    }
-
-    if (isVideoFile(asset.mimeType, previewUrl)) {
-      return (
-        <div className={`relative ${className}`}>
-          <video
-            src={previewUrl}
-            className="w-full h-full object-cover"
-            muted
-            loop
-            onMouseEnter={(e) => e.currentTarget.play()}
-            onMouseLeave={(e) => e.currentTarget.pause()}
-          />
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/20">
-            <Play className="h-8 w-8 text-white" />
-          </div>
-        </div>
-      )
-    }
-
-    if (isAudioFile(asset.mimeType, previewUrl)) {
-      return <AudioPlayer url={previewUrl} className={className} />
-    }
-
-    if (is3DFile(asset.mimeType, previewUrl)) {
-      return <Model3DViewer url={previewUrl} className={className} />
-    }
-  }
-
-  // Fallback for unsupported file types
-  return (
-    <div className={`flex items-center justify-center bg-gray-200 dark:bg-gray-800 text-gray-500 ${className}`}>
-      <div className="text-center">
-        <FileImage className="h-8 w-8 mx-auto mb-2" />
-        <div className="text-xs">Preview not available</div>
-      </div>
-    </div>
-  )
-}
 
 export default function MarketPage() {
   const { wallet, role, contracts, provider, displayName } = useUserContext()
@@ -414,6 +243,8 @@ export default function MarketPage() {
     "idle" | "processing" | "confirming" | "success" | "error"
   >("idle")
 
+  // User data cache
+  // const [userDisplayNames, setUserDisplayNames] = useState<Record<string, string>>({})
   const [favoriteAssets, setFavoriteAssets] = useState<string[]>([])
 
   const assetsPerPage = 12
@@ -422,12 +253,13 @@ export default function MarketPage() {
   // Fetch assets from the API
   const fetchAssets = async () => {
     try {
-      setLoading(true)
-      const response = await fetch(`${API_BASE_URL}/assets`)
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/assets`);
       if (!response.ok) {
-        throw new Error("Failed to fetch assets")
+        throw new Error("Failed to fetch assets");
       }
-      const data = await response.json()
+      const data = await response.json();
+
       // Transform the data to match the Asset interface
       const transformedAssets: Asset[] = await Promise.all(
         data.map(async (asset: any) => ({
@@ -435,7 +267,7 @@ export default function MarketPage() {
           id: asset.tokenId,
           title: asset.title,
           description: asset.description,
-          type: asset.type || "image", // Default type, update this if you have a way to determine the type
+          type: asset.type || 'file', // Default type, update this if you have a way to determine the type
           category: asset.category,
           tags: asset.tags || [],
           price: asset.price,
@@ -455,22 +287,24 @@ export default function MarketPage() {
           featured: false, // Default featured status, update this if you have a way to determine it
           license: asset.license,
           status: asset.status,
-        })),
-      )
-      console.log("Transformed Assets", transformedAssets)
-      setAssets(transformedAssets)
-      const featuredAssets = transformedAssets
-      setFeaturedAssets(featuredAssets.sort((a: Asset, b: Asset) => b.downloads - a.downloads).slice(0, 3))
+        }))
+      );
+
+      console.log('Transformed Assets', transformedAssets)
+      setAssets(transformedAssets);
+      // setFeaturedAssets(transformedAssets.filter((asset: Asset) => asset.featured));
+      const featuredAssets = transformedAssets;
+      setFeaturedAssets(featuredAssets.sort((a: Asset, b: Asset) =>  b.downloads - a.downloads).slice(0, 3));
       if (wallet) {
-        setMyAssets(transformedAssets.filter((asset: Asset) => asset.creatorAddress === wallet))
-        await fetchPurchases()
+        setMyAssets(transformedAssets.filter((asset: Asset) => asset.creatorAddress === wallet));
+        await fetchPurchases();
       }
     } catch (err) {
-      console.error("Error fetching assets:", err)
+      console.error("Error fetching assets:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const fetchPurchases = async () => {
     const response = await fetchWithAuth(`${API_BASE_URL}/purchases`, {
@@ -478,11 +312,13 @@ export default function MarketPage() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
       },
-    })
+    });
     if (!response.ok) {
-      throw new Error("Failed to fetch purchases")
+      throw new Error("Failed to fetch purchases");
     }
-    const data = await response.json()
+
+    const data = await response.json();
+
     // Transform the data to match the Asset interface
     const transformedPurchases: Purchase[] = await Promise.all(
       data.assets.map(async (asset_: any) => ({
@@ -514,15 +350,16 @@ export default function MarketPage() {
           featured: false, // Default featured status, update this if you have a way to determine it
           license: asset_.asset.license,
           status: asset_.asset.status,
-        },
-      })),
-    )
-    setMyPurchases(transformedPurchases)
+        }
+      }))
+    );
+
+    setMyPurchases(transformedPurchases);
   }
 
   useEffect(() => {
-    fetchAssets()
-  }, [wallet])
+    fetchAssets();
+  }, [wallet]);
 
   // Handle form inputs
   const handleAssetInputChange = (field: string, value: string | string[] | File | null) => {
@@ -558,6 +395,7 @@ export default function MarketPage() {
   // Handle asset listing
   const handleListAsset = async (e: React.FormEvent) => {
     e.preventDefault()
+
     if (!wallet) {
       toast.error("Please connect your wallet first", { duration: 3000 })
       return
@@ -572,23 +410,29 @@ export default function MarketPage() {
     try {
       setListingState("uploading")
 
+      // Simulate file upload
+      // await new Promise((resolve) => setTimeout(resolve, 2000))
       // Step 1: Upload file to Pinata via backend
-      const formData = new FormData()
+      const formData = new FormData();
       if (assetFormData.file) {
-        formData.append("file", assetFormData.file)
+        formData.append("file", assetFormData.file);
       }
+
       const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/upload`, {
         method: "POST",
         body: formData,
-      })
+      });
 
       if (!uploadResponse.ok) {
-        throw new Error("File upload failed")
+        throw new Error("File upload failed");
       }
 
-      const { cid: fileCid, url: fileUrl, size: fileSize, mimeType } = await uploadResponse.json()
+      const { cid: fileCid, url: fileUrl, size: fileSize, mimeType } = await uploadResponse.json();
 
       setListingState("processing")
+
+      // Simulate blockchain transaction
+      // await new Promise((resolve) => setTimeout(resolve, 3000))
 
       const metadata = {
         title: assetFormData.title,
@@ -602,8 +446,8 @@ export default function MarketPage() {
         fileUrl,
         fileSize,
         creatorAddress: wallet,
-        mimeType,
-      }
+        mimeType
+      };
 
       const metadataResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/metadata`, {
         method: "POST",
@@ -612,36 +456,39 @@ export default function MarketPage() {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
         body: JSON.stringify(metadata),
-      })
+      });
 
       if (!metadataResponse.ok) {
-        throw new Error("Metadata upload failed")
+        throw new Error("Metadata upload failed");
       }
 
-      const { metadataUri, metadataCid } = await metadataResponse.json()
+      const { metadataUri, metadataCid } = await metadataResponse.json();
 
-      const signer = await provider?.getSigner()
-      let tx
+      const signer = await provider?.getSigner();
+      let tx;
 
       if (assetFormData.license === "standard") {
         const standardContract = new ethers.Contract(
-          process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
+          process.env.NEXT_PUBLIC_ERC1155_ADDRESS || '',
           STANDARD_LICENSE_1155,
-          signer,
-        )
-        tx = await standardContract.registerStandardAsset(metadataUri, ethers.parseEther(assetFormData.price))
+          signer
+        );
+
+        tx = await standardContract.registerStandardAsset(metadataUri, ethers.parseEther(assetFormData.price));
       } else if (assetFormData.license === "exclusive") {
         const exclusiveContract = new ethers.Contract(
-          process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
+          process.env.NEXT_PUBLIC_ERC721_ADDRESS || '',
           EXCLUSIVE_LICENSE_721,
-          signer,
-        )
-        tx = await exclusiveContract.registerExclusiveAsset(metadataUri, ethers.parseEther(assetFormData.price))
+          signer
+        );
+
+        tx = await exclusiveContract.registerExclusiveAsset(metadataUri, ethers.parseEther(assetFormData.price));
       }
 
       // Wait for the transaction to be mined
-      const receipt = await tx.wait()
-      console.log("Receipt", receipt)
+      const receipt = await tx.wait();
+
+      console.log('Receipt', receipt);
 
       // Step 4: Save the asset in the database
       const saveResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/assets`, {
@@ -656,10 +503,10 @@ export default function MarketPage() {
           metadataCid,
           transactionHash: receipt.hash,
         }),
-      })
+      });
 
       if (!saveResponse.ok) {
-        throw new Error("Failed to save asset in the database")
+        throw new Error("Failed to save asset in the database");
       }
 
       setListingState("success")
@@ -670,7 +517,7 @@ export default function MarketPage() {
         resetAssetForm()
         setListingState("idle")
         setShowListDialog(false)
-        fetchAssets()
+        fetchAssets();
       }, 2000)
     } catch (err: any) {
       console.error("Error listing asset:", err)
@@ -689,72 +536,83 @@ export default function MarketPage() {
     try {
       setPurchaseDialogState("processing")
 
-      const signer = await provider?.getSigner()
-      let tx
+      // Simulate blockchain transaction
+      // await new Promise((resolve) => setTimeout(resolve, 3000))
 
+      const signer = await provider?.getSigner();
+
+      let tx;
       if (asset.license === "standard") {
         // StandardLicense1155: Call purchaseStandard
         const standardContract = new ethers.Contract(
           process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
           STANDARD_LICENSE_1155,
-          signer,
-        )
+          signer
+        );
+
         tx = await standardContract.purchaseStandard(asset.id, 1, {
           value: ethers.parseEther(asset.price), // Ensure price is in ETH
-        })
+        });
       } else if (asset.license === "exclusive") {
         // ExclusiveLicense721: Call purchaseExclusive
         const exclusiveContract = new ethers.Contract(
           process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
           EXCLUSIVE_LICENSE_721,
-          signer,
-        )
+          signer
+        );
+
         tx = await exclusiveContract.purchaseExclusive(asset.id, {
           value: ethers.parseEther(asset.price), // Ensure price is in ETH
-        })
+        });
       } else {
-        throw new Error("Invalid license type")
+        throw new Error("Invalid license type");
       }
 
       // Wait for the transaction to be mined
-      const receipt = await tx.wait()
-      console.log("receipt", receipt)
+      const receipt = await tx.wait();
+
+      console.log('receipt', receipt);
 
       // Send the transaction hash to the backend for confirmation
-      const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/mint-${asset.license}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify({
-          txHash: receipt.hash,
-          assetId: asset.id,
-          ...(asset.license === "standard" && { quantity: 1 }), // Include quantity for standard license
-        }),
-      })
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API}/mint-${asset.license}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+          body: JSON.stringify({
+            txHash: receipt.hash,
+            assetId: asset.id,
+            ...(asset.license === "standard" && { quantity: 1 }), // Include quantity for standard license
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to confirm purchase")
+        throw new Error("Failed to confirm purchase");
       }
 
-      const data = await response.json()
-      console.log("Purchase confirmed:", data)
+      const data = await response.json();
+      console.log("Purchase confirmed:", data);
 
       setPurchaseDialogState("success")
       toast.success("Asset purchased successfully!")
+
 
       // Close dialog after delay
       setTimeout(() => {
         setShowPurchaseDialog(false)
         setSelectedAsset(null)
         setPurchaseDialogState("idle")
-        fetchPurchases()
+        fetchPurchases();
       }, 2000)
     } catch (err: any) {
       console.error("Error purchasing asset:", err)
       setPurchaseDialogState("error")
       toast.error(`Failed to purchase asset: ${err.message}`, { duration: 5000 })
+
       setTimeout(() => {
         setPurchaseDialogState("idle")
       }, 3000)
@@ -773,9 +631,12 @@ export default function MarketPage() {
         ...prev,
         [assetId]: { ...prev[assetId], favoriting: true },
       }))
+
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 500))
+
       setFavoriteAssets((prev) => (prev.includes(assetId) ? prev.filter((id) => id !== assetId) : [...prev, assetId]))
+
       toast.success(favoriteAssets.includes(assetId) ? "Removed from favorites" : "Added to favorites")
     } catch (err: any) {
       console.error("Error toggling favorite:", err)
@@ -845,8 +706,8 @@ export default function MarketPage() {
 
   const getAssetTypeText = (type: Asset["type"]) => {
     const typeConfig = ASSET_TYPES.find((t) => t.value === type)
-    return typeConfig ? typeConfig.label : "File"
-  }
+    return typeConfig ? typeConfig.label : 'File'
+  }  
 
   // Format file size
   const formatFileSize = (size: string) => {
@@ -925,6 +786,49 @@ export default function MarketPage() {
     }
   }
 
+  // Helper function to check if mimeType is an image
+  const isImage = (mimeType: string) => {
+    if (!mimeType) return false;
+    return mimeType.startsWith('image/');
+  };
+
+  // Helper function to check if mimeType is a video
+  const isVideo = (mimeType: string) => {
+    if (!mimeType) return false;
+    return mimeType.startsWith('video/');
+  };
+
+  // Alternative version with more specific checks (if you want to be more restrictive)
+  const isImageSpecific = (mimeType: string) => {
+    if (!mimeType) return false;
+    const imageTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/svg+xml',
+      'image/bmp',
+      'image/tiff'
+    ];
+    return imageTypes.includes(mimeType.toLowerCase());
+  };
+
+  const isVideoSpecific = (mimeType: string) => {
+    if (!mimeType) return false;
+    const videoTypes = [
+      'video/mp4',
+      'video/avi',
+      'video/mov',
+      'video/wmv',
+      'video/flv',
+      'video/webm',
+      'video/mkv',
+      'video/quicktime'
+    ];
+    return videoTypes.includes(mimeType.toLowerCase());
+  };
+
   const isListing = listingState !== "idle"
   const isPurchasing = purchaseDialogState !== "idle"
 
@@ -953,6 +857,26 @@ export default function MarketPage() {
               models, and audio tracks - find everything you need for your creative projects.
             </Balancer>
           </motion.p>
+
+          {/* Featured Stats */}
+          <motion.div variants={fadeIn(0.3)} className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl mx-auto">
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-bold text-accent font-varien">10K+</div>
+              <div className="text-sm text-muted-foreground font-varela">Assets</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-bold text-accent font-varien">5K+</div>
+              <div className="text-sm text-muted-foreground font-varela">Creators</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-bold text-accent font-varien">50K+</div>
+              <div className="text-sm text-muted-foreground font-varela">Downloads</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-bold text-accent font-varien">4.8★</div>
+              <div className="text-sm text-muted-foreground font-varela">Avg Rating</div>
+            </div>
+          </motion.div>
         </div>
       </motion.section>
 
@@ -966,6 +890,7 @@ export default function MarketPage() {
             <Balancer>Handpicked premium assets from our top creators</Balancer>
           </p>
         </motion.div>
+
         <motion.div
           variants={staggerContainer(0.1)}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
@@ -977,7 +902,32 @@ export default function MarketPage() {
               <motion.div key={asset._id} variants={fadeIn(i * 0.1)}>
                 <InteractiveCard className="h-full group">
                   <div className="relative overflow-hidden rounded-lg mb-4">
-                    <AssetPreview asset={asset} className="w-full h-48" />
+                    {asset.thumbnailUrl ? (
+                      isImage(asset.mimeType) ? (
+                        <img
+                          src={asset.thumbnailUrl}
+                          alt="Asset"
+                          className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : isVideo(asset.mimeType) ? (
+                        <video
+                          src={asset.thumbnailUrl}
+                          controls
+                          className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                          autoPlay
+                        />
+                      ) : (
+                        <div className="w-full h-48 flex items-center justify-center bg-gray-200 text-gray-500">
+                          Unsupported file type
+                        </div>
+                      )
+                    ) : (
+                      <img
+                        src="/placeholder.svg"
+                        alt="Placeholder"
+                        className="w-full h-48 object-cover"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <div className="absolute top-3 left-3">
                       <Badge variant="secondary" className="bg-black/50 text-white border-0">
@@ -994,9 +944,8 @@ export default function MarketPage() {
                         disabled={processingStates[asset._id]?.favoriting}
                       >
                         <Heart
-                          className={`h-4 w-4 ${
-                            favoriteAssets.includes(asset._id) ? "fill-red-500 text-red-500" : "text-white"
-                          }`}
+                          className={`h-4 w-4 ${favoriteAssets.includes(asset._id) ? "fill-red-500 text-red-500" : "text-white"
+                            }`}
                         />
                       </Button>
                     </div>
@@ -1023,6 +972,7 @@ export default function MarketPage() {
                       </div>
                     </div>
                   </div>
+
                   <div className="space-y-3">
                     <div>
                       <h3 className="font-varien text-lg font-semibold text-foreground mb-1 line-clamp-1">
@@ -1030,6 +980,7 @@ export default function MarketPage() {
                       </h3>
                       <p className="text-sm text-muted-foreground line-clamp-2 font-varela">{asset.description}</p>
                     </div>
+
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
                         <AvatarImage
@@ -1044,6 +995,7 @@ export default function MarketPage() {
                         {asset.creatorName || `${asset.creatorAddress.slice(0, 6)}...${asset.creatorAddress.slice(-4)}`}
                       </span>
                     </div>
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -1052,6 +1004,7 @@ export default function MarketPage() {
                       </div>
                       <div className="text-sm text-muted-foreground">{asset.downloads} downloads</div>
                     </div>
+
                     <div className="flex flex-wrap gap-1">
                       {asset.tags.slice(0, 3).map((tag) => (
                         <Badge key={tag} variant="outline" className="text-xs">
@@ -1064,6 +1017,7 @@ export default function MarketPage() {
                         </Badge>
                       )}
                     </div>
+
                     <div className="flex items-center justify-between pt-2 border-t border-border/50">
                       <div className="flex items-center gap-1">
                         <img
@@ -1092,6 +1046,7 @@ export default function MarketPage() {
             )
           })}
         </motion.div>
+
         <motion.div variants={fadeIn()} className="text-center">
           <Button
             variant="outline"
@@ -1138,6 +1093,7 @@ export default function MarketPage() {
                       className="pl-10 border-border focus:border-accent font-varela"
                     />
                   </div>
+
                   <div className="flex flex-wrap gap-2">
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                       <SelectTrigger className="w-full sm:w-48 border-border focus:border-accent">
@@ -1152,22 +1108,21 @@ export default function MarketPage() {
                         ))}
                       </SelectContent>
                     </Select>
+
                     <Select value={selectedType} onValueChange={setSelectedType}>
-                      <SelectTrigger className="w-full sm:w-48 border-border focus:border-accent">
+                      <SelectTrigger className="w-full sm:w-32 border-border focus:border-accent">
                         <SelectValue placeholder="Type" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all-types">All Types</SelectItem>
                         {ASSET_TYPES.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
-                            <div className="flex flex-col items-start">
-                              <span>{type.label}</span>
-                              <span className="text-xs text-muted-foreground">{type.extensions}</span>
-                            </div>
+                            {type.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+
                     <Select value={sortBy} onValueChange={setSortBy}>
                       <SelectTrigger className="w-full sm:w-40 border-border focus:border-accent">
                         <SelectValue placeholder="Sort by" />
@@ -1182,6 +1137,7 @@ export default function MarketPage() {
                         <SelectItem value="name">Name A-Z</SelectItem>
                       </SelectContent>
                     </Select>
+
                     <div className="flex gap-2">
                       <Button
                         variant={viewMode === "grid" ? "default" : "outline"}
@@ -1224,6 +1180,7 @@ export default function MarketPage() {
                     />
                     <span className="text-sm text-muted-foreground">KAS</span>
                   </div>
+
                   {(priceRange.min || priceRange.max) && (
                     <Button
                       variant="ghost"
@@ -1242,9 +1199,8 @@ export default function MarketPage() {
                     <Badge
                       key={tag}
                       variant={selectedTags.includes(tag) ? "default" : "outline"}
-                      className={`cursor-pointer transition-all duration-200 ${
-                        selectedTags.includes(tag) ? "bg-accent text-accent-foreground" : "hover:bg-accent/10"
-                      }`}
+                      className={`cursor-pointer transition-all duration-200 ${selectedTags.includes(tag) ? "bg-accent text-accent-foreground" : "hover:bg-accent/10"
+                        }`}
                       onClick={() => {
                         setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
                       }}
@@ -1285,7 +1241,32 @@ export default function MarketPage() {
                         {viewMode === "grid" ? (
                           <InteractiveCard className="h-full group">
                             <div className="relative overflow-hidden rounded-lg mb-4">
-                              <AssetPreview asset={asset} className="w-full h-40" />
+                              {asset.thumbnailUrl ? (
+                                isImage(asset.mimeType) ? (
+                                  <img
+                                    src={asset.thumbnailUrl}
+                                    alt="Asset"
+                                    className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                ) : isVideo(asset.mimeType) ? (
+                                  <video
+                                    src={asset.thumbnailUrl}
+                                    controls
+                                    className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                    autoPlay
+                                  />
+                                ) : (
+                                  <div className="w-full h-40 flex items-center justify-center bg-gray-200 text-gray-500">
+                                    Unsupported file type
+                                  </div>
+                                )
+                              ) : (
+                                <img
+                                  src="/placeholder.svg"
+                                  alt="Placeholder"
+                                  className="w-full h-40 object-cover"
+                                />
+                              )}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                               <div className="absolute top-2 left-2">
                                 <Badge variant="secondary" className="bg-black/50 text-white border-0 text-xs">
@@ -1302,9 +1283,8 @@ export default function MarketPage() {
                                   disabled={processingStates[asset._id]?.favoriting}
                                 >
                                   <Heart
-                                    className={`h-3 w-3 ${
-                                      favoriteAssets.includes(asset._id) ? "fill-red-500 text-red-500" : "text-white"
-                                    }`}
+                                    className={`h-3 w-3 ${favoriteAssets.includes(asset._id) ? "fill-red-500 text-red-500" : "text-white"
+                                      }`}
                                   />
                                 </Button>
                               </div>
@@ -1331,6 +1311,7 @@ export default function MarketPage() {
                                 </div>
                               </div>
                             </div>
+
                             <div className="space-y-2">
                               <h3 className="font-varien text-sm font-semibold text-foreground line-clamp-1">
                                 {asset.title}
@@ -1338,6 +1319,7 @@ export default function MarketPage() {
                               <p className="text-xs text-muted-foreground line-clamp-2 font-varela">
                                 {asset.description}
                               </p>
+
                               <div className="flex items-center gap-1">
                                 <Avatar className="h-5 w-5">
                                   <AvatarImage
@@ -1352,6 +1334,7 @@ export default function MarketPage() {
                                   {asset.creatorName || `${asset.creatorAddress.slice(0, 6)}...`}
                                 </span>
                               </div>
+
                               <div className="flex items-center justify-between text-xs">
                                 <div className="flex items-center gap-1">
                                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
@@ -1360,6 +1343,7 @@ export default function MarketPage() {
                                 </div>
                                 <span className="text-muted-foreground">{asset.downloads} downloads</span>
                               </div>
+
                               <div className="flex items-center justify-between pt-2 border-t border-border/50">
                                 <div className="flex items-center gap-1">
                                   <img
@@ -1388,7 +1372,11 @@ export default function MarketPage() {
                           <InteractiveCard className="p-4">
                             <div className="flex gap-4">
                               <div className="relative flex-shrink-0">
-                                <AssetPreview asset={asset} className="w-24 h-24 rounded-lg" />
+                                <img
+                                  src={asset.thumbnailUrl || "/placeholder.svg"}
+                                  alt={asset.title}
+                                  className="w-24 h-24 object-cover rounded-lg"
+                                />
                                 <div className="absolute top-1 left-1">
                                   <Badge variant="secondary" className="bg-black/50 text-white border-0 text-xs">
                                     <TypeIcon className="h-3 w-3 mr-1" />
@@ -1396,6 +1384,7 @@ export default function MarketPage() {
                                   </Badge>
                                 </div>
                               </div>
+
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between mb-2">
                                   <h3 className="font-varien text-lg font-semibold text-foreground line-clamp-1">
@@ -1409,17 +1398,18 @@ export default function MarketPage() {
                                     disabled={processingStates[asset._id]?.favoriting}
                                   >
                                     <Heart
-                                      className={`h-4 w-4 ${
-                                        favoriteAssets.includes(asset._id)
+                                      className={`h-4 w-4 ${favoriteAssets.includes(asset._id)
                                           ? "fill-red-500 text-red-500"
                                           : "text-muted-foreground"
-                                      }`}
+                                        }`}
                                     />
                                   </Button>
                                 </div>
+
                                 <p className="text-sm text-muted-foreground line-clamp-2 mb-3 font-varela">
                                   {asset.description}
                                 </p>
+
                                 <div className="flex items-center gap-4 mb-3 text-sm">
                                   <div className="flex items-center gap-2">
                                     <Avatar className="h-6 w-6">
@@ -1436,13 +1426,16 @@ export default function MarketPage() {
                                         `${asset.creatorAddress.slice(0, 6)}...${asset.creatorAddress.slice(-4)}`}
                                     </span>
                                   </div>
+
                                   <div className="flex items-center gap-1">
                                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                                     <span>{asset.rating}</span>
                                     <span className="text-muted-foreground">({asset.reviewCount})</span>
                                   </div>
+
                                   <span className="text-muted-foreground">{asset.downloads} downloads</span>
                                 </div>
+
                                 <div className="flex flex-wrap gap-1 mb-3">
                                   {asset.tags.slice(0, 4).map((tag) => (
                                     <Badge key={tag} variant="outline" className="text-xs">
@@ -1455,6 +1448,7 @@ export default function MarketPage() {
                                     </Badge>
                                   )}
                                 </div>
+
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-1">
                                     <img
@@ -1467,6 +1461,7 @@ export default function MarketPage() {
                                       {asset.price} KAS
                                     </span>
                                   </div>
+
                                   <div className="flex gap-2">
                                     <Button
                                       variant="outline"
@@ -1514,6 +1509,7 @@ export default function MarketPage() {
                     <span className="font-semibold text-accent">{Math.min(endIndex, sortedAssets.length)}</span> of{" "}
                     <span className="font-semibold text-accent">{sortedAssets.length}</span> assets
                   </div>
+
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -1542,11 +1538,10 @@ export default function MarketPage() {
                           variant={currentPage === page ? "default" : "outline"}
                           size="sm"
                           onClick={() => setCurrentPage(page)}
-                          className={`min-w-[2.5rem] ${
-                            currentPage === page
+                          className={`min-w-[2.5rem] ${currentPage === page
                               ? "bg-accent text-accent-foreground"
                               : "border-accent/30 hover:bg-accent/10"
-                          }`}
+                            }`}
                         >
                           {page}
                         </Button>
@@ -1584,9 +1579,9 @@ export default function MarketPage() {
                     <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Assets Found</h3>
                     <p className="text-sm text-muted-foreground font-varela">
                       {searchTerm ||
-                      selectedTags.length > 0 ||
-                      selectedCategory !== "all-categories" ||
-                      selectedType !== "all-types"
+                        selectedTags.length > 0 ||
+                        selectedCategory !== "all-categories" ||
+                        selectedType !== "all-types"
                         ? "Try adjusting your search criteria"
                         : "Be the first to list an asset!"}
                     </p>
@@ -1622,7 +1617,32 @@ export default function MarketPage() {
                         <motion.div key={asset._id} variants={fadeIn(i * 0.1)}>
                           <InteractiveCard className="h-full">
                             <div className="relative overflow-hidden rounded-lg mb-4">
-                              <AssetPreview asset={asset} className="w-full h-40" />
+                              {asset.thumbnailUrl ? (
+                                isImage(asset.mimeType) ? (
+                                  <img
+                                    src={asset.thumbnailUrl}
+                                    alt="Asset"
+                                    className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                ) : isVideo(asset.mimeType) ? (
+                                  <video
+                                    src={asset.thumbnailUrl}
+                                    controls
+                                    className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                    autoPlay
+                                  />
+                                ) : (
+                                  <div className="w-full h-40 flex items-center justify-center bg-gray-200 text-gray-500">
+                                    Unsupported file type
+                                  </div>
+                                )
+                              ) : (
+                                <img
+                                  src="/placeholder.svg"
+                                  alt="Placeholder"
+                                  className="w-full h-40 object-cover"
+                                />
+                              )}
                               <div className="absolute top-2 left-2">
                                 <Badge variant="secondary" className="bg-black/50 text-white border-0 text-xs">
                                   <TypeIcon className="h-3 w-3 mr-1" />
@@ -1646,6 +1666,7 @@ export default function MarketPage() {
                                 </Button>
                               </div>
                             </div>
+
                             <div className="space-y-3">
                               <div>
                                 <h3 className="font-varien text-lg font-semibold text-foreground mb-1 line-clamp-1">
@@ -1655,6 +1676,7 @@ export default function MarketPage() {
                                   {asset.description}
                                 </p>
                               </div>
+
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Status:</span>
@@ -1677,10 +1699,12 @@ export default function MarketPage() {
                                     {asset.status}
                                   </Badge>
                                 </div>
+
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Downloads:</span>
                                   <span className="font-medium text-foreground">{asset.downloads}</span>
                                 </div>
+
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Rating:</span>
                                   <div className="flex items-center gap-1">
@@ -1689,6 +1713,7 @@ export default function MarketPage() {
                                     <span className="text-muted-foreground">({asset.reviewCount})</span>
                                   </div>
                                 </div>
+
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Price:</span>
                                   <div className="flex items-center gap-1">
@@ -1701,6 +1726,7 @@ export default function MarketPage() {
                                     <span className="font-medium text-foreground">{asset.price} KAS</span>
                                   </div>
                                 </div>
+
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Listed:</span>
                                   <span className="font-medium text-foreground">
@@ -1708,6 +1734,7 @@ export default function MarketPage() {
                                   </span>
                                 </div>
                               </div>
+
                               <div className="flex flex-wrap gap-1 mb-4">
                                 {asset.tags.map((tag) => (
                                   <Badge key={tag} variant="secondary" className="text-xs">
@@ -1715,6 +1742,7 @@ export default function MarketPage() {
                                   </Badge>
                                 ))}
                               </div>
+
                               <Button
                                 variant="outline"
                                 className="w-full border-accent/50 text-accent hover:bg-accent/10 bg-transparent font-varien"
@@ -1732,6 +1760,7 @@ export default function MarketPage() {
                       )
                     })}
                   </motion.div>
+
                   {myAssets.length === 0 && (
                     <motion.div variants={fadeIn()} className="flex justify-center">
                       <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
@@ -1755,8 +1784,44 @@ export default function MarketPage() {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="flex gap-4">
                             <div className="relative flex-shrink-0">
-                              <AssetPreview asset={purchase.asset} className="w-16 h-16 rounded-lg" />
+                              {/* <img
+                                src={purchase.asset.thumbnailUrl || "/placeholder.svg"}
+                                alt={purchase.asset.title}
+                                className="w-16 h-16 object-cover rounded-lg"
+                              /> */}
+                              {purchase.asset.thumbnailUrl ? (
+                                isImage(purchase.asset.mimeType) ? (
+                                  <img
+                                    src={purchase.asset.thumbnailUrl}
+                                    alt="Asset"
+                                    className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                ) : isVideo(purchase.asset.mimeType) ? (
+                                  <video
+                                    src={purchase.asset.thumbnailUrl}
+                                    controls
+                                    className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
+                                    autoPlay
+                                  />
+                                ) : (
+                                  // <div className="w-16 h-16 flex items-center justify-center bg-gray-200 text-gray-500 text-xs rounded-lg text-center">
+                                  //   Unsupported file type
+                                  // </div>
+                                  <img
+                                    src="/placeholder.svg"
+                                    alt="Placeholder"
+                                    className="w-16 h-16 object-cover rounded-lg"
+                                  />
+                                )
+                              ) : (
+                                <img
+                                  src="/placeholder.svg"
+                                  alt="Placeholder"
+                                  className="w-16 h-16 object-cover rounded-lg"
+                                />
+                              )}
                             </div>
+
                             <div className="flex-1 min-w-0">
                               <h4 className="font-varien text-lg font-semibold text-foreground mb-1 line-clamp-1">
                                 {purchase.asset.title}
@@ -1789,6 +1854,7 @@ export default function MarketPage() {
                               </div>
                             </div>
                           </div>
+
                           <div className="flex gap-2">
                             <Button
                               size="sm"
@@ -1813,6 +1879,7 @@ export default function MarketPage() {
                         </div>
                       </InteractiveCard>
                     ))}
+
                     {myPurchases.length === 0 && (
                       <motion.div variants={fadeIn()} className="flex justify-center">
                         <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
@@ -1891,18 +1958,16 @@ export default function MarketPage() {
                           <SelectContent>
                             {ASSET_TYPES.map((type) => (
                               <SelectItem key={type.value} value={type.value}>
-                                <div className="flex flex-col items-start">
-                                  <div className="flex items-center gap-2">
-                                    <type.icon className="h-4 w-4" />
-                                    {type.label}
-                                  </div>
-                                  <span className="text-xs text-muted-foreground">{type.extensions}</span>
+                                <div className="flex items-center gap-2">
+                                  <type.icon className="h-4 w-4" />
+                                  {type.label}
                                 </div>
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
+
                       <div className="space-y-2">
                         <Label htmlFor="asset-category" className="text-foreground font-varien">
                           Category
@@ -1953,6 +2018,7 @@ export default function MarketPage() {
                           />
                         </div>
                       </div>
+
                       <div className="space-y-2">
                         <Label htmlFor="asset-license" className="text-foreground font-varien">
                           License Type
@@ -1988,10 +2054,10 @@ export default function MarketPage() {
                         className="border-2 border-dashed border-border rounded-lg p-6 text-center"
                         onDragOver={(e) => e.preventDefault()} // Prevent default to allow drop
                         onDrop={(e) => {
-                          e.preventDefault()
-                          const file = e.dataTransfer.files[0] // Get the first dropped file
+                          e.preventDefault();
+                          const file = e.dataTransfer.files[0]; // Get the first dropped file
                           if (file) {
-                            handleAssetInputChange("file", file) // Update the state with the dropped file
+                            handleAssetInputChange("file", file); // Update the state with the dropped file
                           }
                         }}
                       >
@@ -2001,9 +2067,7 @@ export default function MarketPage() {
                             <div className="text-sm text-muted-foreground font-varela">
                               <span className="font-medium">Click to upload</span> or drag and drop
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              Images, Videos, Audio, 3D Models up to 100MB
-                            </div>
+                            <div className="text-xs text-muted-foreground">PNG, JPG, MP4, MP3, ZIP up to 100MB</div>
                           </div>
                         </label>
                         <Input
@@ -2012,7 +2076,7 @@ export default function MarketPage() {
                           className="hidden"
                           onChange={(e) => handleAssetInputChange("file", e.target.files?.[0] || null)}
                           disabled={isListing}
-                          accept="image/*,video/*,audio/*,.glb,.gltf,.obj,.fbx,.dae,.stl,.3ds"
+                          accept="image/*,video/*,audio/*,.zip,.rar,.7z"
                           required
                         />
                       </div>
@@ -2024,13 +2088,14 @@ export default function MarketPage() {
                             {/* File Icon or Thumbnail */}
                             {assetFormData.file.type.startsWith("image/") ? (
                               <img
-                                src={URL.createObjectURL(assetFormData.file) || "/placeholder.svg"}
+                                src={URL.createObjectURL(assetFormData.file)}
                                 alt="Uploaded file preview"
                                 className="h-16 w-16 object-cover rounded-lg"
                               />
                             ) : (
                               <FileText className="h-16 w-16 text-muted-foreground" />
                             )}
+
                             {/* File Details */}
                             <div className="flex-1">
                               <p className="text-sm font-medium text-foreground">{assetFormData.file.name}</p>
@@ -2038,6 +2103,7 @@ export default function MarketPage() {
                                 {(assetFormData.file.size / 1024 / 1024).toFixed(2)} MB
                               </p>
                             </div>
+
                             {/* Remove File Button */}
                             <Button
                               variant="outline"
@@ -2096,11 +2162,10 @@ export default function MarketPage() {
                       type="submit"
                       size="lg"
                       disabled={isListing || !wallet}
-                      className={`w-full transition-all duration-300 transform hover:scale-105 group font-varien ${
-                        listingState === "success"
+                      className={`w-full transition-all duration-300 transform hover:scale-105 group font-varien ${listingState === "success"
                           ? "bg-green-500 hover:bg-green-600 text-white"
                           : "bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg hover:shadow-accent/40"
-                      }`}
+                        }`}
                     >
                       {getListingButtonContent()}
                     </Button>
@@ -2110,7 +2175,6 @@ export default function MarketPage() {
                         Please connect your wallet to list assets.
                       </div>
                     )}
-
                     {listingState === "success" && (
                       <div className="text-center text-sm text-green-600 dark:text-green-400 font-medium font-varela">
                         Your asset has been listed successfully!
@@ -2135,13 +2199,44 @@ export default function MarketPage() {
               Asset details and preview
             </DialogDescription>
           </DialogHeader>
+
           {selectedAsset && (
             <motion.div variants={fadeIn()} initial="hidden" animate="visible" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Asset Preview */}
                 <div className="space-y-4">
                   <div className="relative overflow-hidden rounded-lg">
-                    <AssetPreview asset={selectedAsset} className="w-full h-64 lg:h-80" />
+                    {/* <img
+                      src={selectedAsset.assetUrl || "/placeholder.svg"}
+                      alt={selectedAsset.title}
+                      className="w-full h-64 lg:h-80 object-cover"
+                    /> */}
+                    {selectedAsset.thumbnailUrl ? (
+                      isImage(selectedAsset.mimeType) ? (
+                        <img
+                          src={selectedAsset.thumbnailUrl}
+                          alt="Asset"
+                          className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : isVideo(selectedAsset.mimeType) ? (
+                        <video
+                          src={selectedAsset.thumbnailUrl}
+                          controls
+                          className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                          autoPlay
+                        />
+                      ) : (
+                        <div className="w-full h-64 flex items-center justify-center bg-gray-200 text-gray-500">
+                          Unsupported file type
+                        </div>
+                      )
+                    ) : (
+                      <img
+                        src="/placeholder.svg"
+                        alt="Placeholder"
+                        className="w-full h-64 object-cover"
+                      />
+                    )}
                     {selectedAsset.type === "video" && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Button
@@ -2154,6 +2249,7 @@ export default function MarketPage() {
                       </div>
                     )}
                   </div>
+
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">File Size:</span>
@@ -2186,6 +2282,7 @@ export default function MarketPage() {
                       {selectedAsset.description}
                     </p>
                   </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Creator</h4>
@@ -2207,6 +2304,7 @@ export default function MarketPage() {
                         </div>
                       </div>
                     </div>
+
                     <div>
                       <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Category</h4>
                       <Badge variant="outline" className="text-sm">
@@ -2214,6 +2312,7 @@ export default function MarketPage() {
                       </Badge>
                     </div>
                   </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Rating</h4>
@@ -2223,11 +2322,13 @@ export default function MarketPage() {
                         <span className="text-sm text-muted-foreground">({selectedAsset.reviewCount} reviews)</span>
                       </div>
                     </div>
+
                     <div>
                       <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Downloads</h4>
                       <span className="text-sm font-medium">{selectedAsset.downloads}</span>
                     </div>
                   </div>
+
                   <div>
                     <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Tags</h4>
                     <div className="flex flex-wrap gap-2">
@@ -2238,12 +2339,14 @@ export default function MarketPage() {
                       ))}
                     </div>
                   </div>
+
                   <div>
                     <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Listed</h4>
                     <p className="text-sm font-medium font-varela">
                       {new Date(selectedAsset.createdAt).toLocaleDateString()}
                     </p>
                   </div>
+
                   <div className="pt-4 border-t border-border/50">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -2264,14 +2367,14 @@ export default function MarketPage() {
                         disabled={processingStates[selectedAsset._id]?.favoriting}
                       >
                         <Heart
-                          className={`h-5 w-5 ${
-                            favoriteAssets.includes(selectedAsset._id)
+                          className={`h-5 w-5 ${favoriteAssets.includes(selectedAsset._id)
                               ? "fill-red-500 text-red-500"
                               : "text-muted-foreground"
-                          }`}
+                            }`}
                         />
                       </Button>
                     </div>
+
                     <Button
                       size="lg"
                       className="w-full bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
@@ -2288,6 +2391,7 @@ export default function MarketPage() {
               </div>
             </motion.div>
           )}
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -2335,6 +2439,7 @@ export default function MarketPage() {
                 }}
               />
             </div>
+
             <DialogHeader>
               <motion.div variants={fadeIn(0.1)}>
                 <DialogTitle className="font-varien text-2xl tracking-wider text-foreground">
@@ -2345,10 +2450,41 @@ export default function MarketPage() {
                 </DialogDescription>
               </motion.div>
             </DialogHeader>
+
             <motion.div variants={fadeIn(0.2)} className="space-y-6 py-4">
               {selectedAsset && (
                 <div className="flex gap-4">
-                  <AssetPreview asset={selectedAsset} className="w-16 h-16 rounded-lg flex-shrink-0" />
+                  {/* <img
+                    src={selectedAsset.thumbnailUrl || "/placeholder.svg"}
+                    alt={selectedAsset.title}
+                    className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                  /> */}
+                  {selectedAsset.thumbnailUrl ? (
+                    isImage(selectedAsset.mimeType) ? (
+                      <img
+                        src={selectedAsset.thumbnailUrl}
+                        alt="Asset"
+                        className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : isVideo(selectedAsset.mimeType) ? (
+                      <video
+                        src={selectedAsset.thumbnailUrl}
+                        controls
+                        className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
+                        autoPlay
+                      />
+                    ) : (
+                      <div className="w-16 h-16 flex items-center justify-center bg-gray-200 text-gray-500">
+                        Unsupported file type
+                      </div>
+                    )
+                  ) : (
+                    <img
+                      src="/placeholder.svg"
+                      alt="Placeholder"
+                      className="w-16 h-16 object-cover"
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <h4 className="font-varien text-lg font-semibold text-foreground line-clamp-1">
                       {selectedAsset.title}
@@ -2359,6 +2495,7 @@ export default function MarketPage() {
                   </div>
                 </div>
               )}
+
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground font-varela">License Type:</span>
@@ -2421,6 +2558,7 @@ export default function MarketPage() {
                     Processing purchase...
                   </motion.div>
                 )}
+
                 {purchaseDialogState === "success" && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -2432,6 +2570,7 @@ export default function MarketPage() {
                     Purchase successful! Check your downloads.
                   </motion.div>
                 )}
+
                 {purchaseDialogState === "error" && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -2445,6 +2584,7 @@ export default function MarketPage() {
                 )}
               </AnimatePresence>
             </motion.div>
+
             <DialogFooter>
               <motion.div variants={fadeIn(0.4)} className="flex gap-2 w-full">
                 <Button
@@ -2459,16 +2599,16 @@ export default function MarketPage() {
                 >
                   Cancel
                 </Button>
+
                 <Button
                   onClick={() => selectedAsset && handlePurchaseAsset(selectedAsset)}
                   disabled={isPurchasing || !selectedAsset}
-                  className={`font-varien flex-1 transition-all duration-300 ${
-                    purchaseDialogState === "success"
+                  className={`font-varien flex-1 transition-all duration-300 ${purchaseDialogState === "success"
                       ? "bg-green-500 hover:bg-green-600 text-white"
                       : purchaseDialogState === "error"
                         ? "bg-red-500 hover:bg-red-600 text-white"
                         : "bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg hover:shadow-accent/40"
-                  }`}
+                    }`}
                 >
                   <motion.div
                     className="flex items-center"
