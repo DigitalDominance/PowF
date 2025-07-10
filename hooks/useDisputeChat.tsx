@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import axios from "axios";
+import { axiosWithAuth } from "@/context/UserContext";
 
 export function useDisputeChat(disputeId: string) {
   const [messages, setMessages] = useState<any[]>([]);
@@ -8,9 +9,13 @@ export function useDisputeChat(disputeId: string) {
 
   useEffect(() => {
     // Load existing messages
-    axios.get(`${process.env.NEXT_PUBLIC_API}/messages/${disputeId}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` }
-    }).then(res => setMessages(res.data));
+    // axios.get(`${process.env.NEXT_PUBLIC_API}/messages/${disputeId}`, {
+    //   headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` }
+    // })
+    axiosWithAuth(`${process.env.NEXT_PUBLIC_API}/messages/${disputeId}`, {
+      method: 'GET'
+    })
+    .then(res => setMessages(res.data));
 
     // Join WS room
     socket.emit("joinRoom", disputeId);

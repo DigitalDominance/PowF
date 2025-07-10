@@ -20,7 +20,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import type React from "react"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import {
   ArrowRight,
   Search,
@@ -145,11 +145,14 @@ export default function JobsPage() {
 
   // Button states
   const [applyState, setApplyState] = useState<"idle" | "processing" | "confirming" | "success">("idle")
-  const [withdrawState, setWithdrawState] = useState<"idle" | "processing" | "confirming" | "success">("idle")
-  const [disputeState, setDisputeState] = useState<"idle" | "processing" | "confirming" | "success">("idle")
+  const [withdrawState, setWithdrawState] = useState<"idle" | "processing" | "confirming" | "success">("idle");
+  const [disputeState, setDisputeState] = useState<"idle" | "processing" | "confirming" | "success">("idle");
+  const [requestState, setRequestState] = useState<"idle" | "processing" | "confirming" | "success">("idle");
 
   const socket = useRef<Socket | null>(null)
   const activeJobSocket = useRef<Socket | null>(null)
+
+  const [paymentRequestStatus, setPaymentRequestStatus] = useState<Record<string, { hasRequested: boolean; requestTime: number, paymentConfirmed: boolean }>>({});
 
   // Filter jobs based on search and filters
   const filteredAndSortedJobs =
@@ -178,6 +181,10 @@ export default function JobsPage() {
         return matchesSearch && matchesPayType && matchesMinPay && matchesOpenPositions && matchesHighRated
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || []
+
+  const myEmployingJobs = useMemo(() => {
+    return allJobs?.filter((job) => job.employerAddress.toLowerCase() === address?.toLowerCase()) || [];
+  }, [allJobs, address]);
 
   // WebSocket setup for Browse Jobs chat
   useEffect(() => {
@@ -548,7 +555,75 @@ export default function JobsPage() {
     }
 
     fetchApplications()
-  }, [contracts?.jobFactory, provider, address, jobAddresses])
+  }, [contracts?.jobFactory, provider, address, jobAddresses]);
+
+  const fetchPaymentRequestStatus = async (jobAddress: string, workerAddress: string) => {
+    if (!provider || !contracts) {
+      toast.error("Please connect your wallet first.");
+      return;
+    }
+  
+    try {
+      const signer = await provider.getSigner();
+      const jobContract = new ethers.Contract(jobAddress, PROOF_OF_WORK_JOB_ABI, signer);
+  
+      const [hasRequested, requestTime] = await jobContract.getPaymentRequestStatus(workerAddress);
+      const paymentConfirmed = await jobContract.hasReceivedAllPayments(workerAddress);
+
+      setPaymentRequestStatus((prev) => ({
+        ...prev,
+        [jobAddress]: { hasRequested, requestTime, paymentConfirmed },
+      }));
+    } catch (error) {
+      console.error("Error fetching payment request status:", error);
+      toast.error("Failed to fetch payment request status.");
+    }
+  };
+
+  useEffect(() => {
+    const fetchPaymentStatuses = async () => {
+      if (!provider || !contracts || !address || !myJobs) return;
+  
+      for (const job of myJobs) {
+        await fetchPaymentRequestStatus(job.id, address);
+      }
+    };
+  
+    fetchPaymentStatuses();
+  }, [provider, contracts, address, myJobs]);
+
+  const fetchPendingRequests = async () => {
+    if (!provider || !contracts || !address || !myEmployingJobs) return;
+    const pendingRequests = [];
+    for (const job of myEmployingJobs) {
+      const signer = await provider.getSigner();
+      const jobContract = new ethers.Contract(job.address, PROOF_OF_WORK_JOB_ABI, signer);
+
+      const workersWithPendingRequests = await jobContract.getPendingPaymentRequests();
+      for (const worker of workersWithPendingRequests) {
+        const [hasRequested, requestTime] = await jobContract.getPaymentRequestStatus(worker);
+        pendingRequests.push({
+          jobId: job.address,
+          jobTitle: job.title,
+          workerAddress: worker,
+          hasRequested,
+          requestTime: Number(requestTime),
+          payType: job.payType,
+        });
+      }
+    }
+    return pendingRequests;
+  };
+
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      const requests = await fetchPendingRequests();
+      setPendingRequests(requests || []);
+    };
+    fetchRequests();
+  }, [contracts, address, myEmployingJobs]);  
 
   const handleWithdrawApplication = async (jobAddress: string) => {
     if (!provider || !contracts) {
@@ -937,6 +1012,108 @@ export default function JobsPage() {
     }
   }
 
+  const getRequestButtonContent = () => {
+    switch (applyState) {
+      case "processing":
+        return (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Requesting Payment...
+          </>
+        )
+      case "confirming":
+        return (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Confirming Request...
+          </>
+        )
+      case "success":
+        return (
+          <>
+            <Check className="mr-2 h-4 w-4" />
+            Payment Requested!
+          </>
+        )
+      default:
+        return "Submit Application"
+    }
+  }  
+
+  const handleRequestPayment = async (jobAddress: string, payType: string) => {
+    if (!jobAddress) {
+      toast.error("Invalid job address.");
+      return;
+    }
+    
+    if (!provider || !contracts) {
+      toast.error("Please connect your wallet first.");
+      return;
+    }
+  
+    try {
+      setRequestState("processing");
+      const signer = await provider.getSigner();
+
+      const jobContract = new ethers.Contract(jobAddress, PROOF_OF_WORK_JOB_ABI, signer);   
+  
+      let tx;
+      if (payType === "WEEKLY") {
+        tx = await jobContract.requestWeeklyPayment();
+      } else if (payType === "ONE_OFF") {
+        tx = await jobContract.requestOneOffPayment();
+      }
+  
+      await tx.wait();
+      setRequestState("success");
+
+      // Update paymentRequestStatus state
+      setPaymentRequestStatus((prev) => ({
+        ...prev,
+        [jobAddress]: { ...prev[jobAddress], hasRequested: true, requestTime: Date.now() / 1000 },
+      }));
+      toast.success("Payment request submitted successfully!");
+    } catch (error) {
+      console.error("Error requesting payment:", error);
+      setRequestState("idle");
+      toast.error("Failed to request payment. Please try again.");
+    }
+  };  
+
+  const handleConfirmPayment = async (jobAddress: string, workerAddress: string, payType: string) => {
+    if (!provider || !contracts) {
+      toast.error("Please connect your wallet first.");
+      return;
+    }
+  
+    try {
+      setApplyState("processing");
+      const signer = await provider.getSigner();
+      const jobContract = new ethers.Contract(jobAddress, PROOF_OF_WORK_JOB_ABI, signer);
+  
+      let tx;
+      if (payType === "WEEKLY") {
+        tx = await jobContract.confirmWeeklyPayment(workerAddress);
+      } else if (payType === "ONE_OFF") {
+        tx = await jobContract.confirmOneOffPayment(workerAddress);
+      }
+
+      await tx.wait();
+
+      // Update pendingRequests
+      setPendingRequests((prev) =>
+        prev.filter((request) => !(request.jobId === jobAddress && request.workerAddress === workerAddress))
+      );
+  
+      setApplyState("success");
+      toast.success("Payment confirmed successfully!");
+    } catch (error) {
+      console.error("Error confirming payment:", error);
+      setApplyState("idle");
+      toast.error("Failed to confirm payment. Please try again.");
+    }
+  };
+
   return (
     <div className="flex flex-col items-center">
       {/* Hero Section */}
@@ -968,19 +1145,26 @@ export default function JobsPage() {
       {/* Main Content – moved up by reducing top padding */}
       <SectionWrapper id="jobs" padding="pt-0 md:pt-2 pb-12 md:pb-12">
         <Tabs defaultValue="browse" className="w-full">
-          <TabsList className="font-varien grid grid-cols-3 mb-8">
+          <TabsList className={`font-varien grid ${role === 'employer' ? 'grid-cols-2' : 'grid-cols-3'} mb-8`}>
             <TabsTrigger value="browse" className="text-sm sm:text-base">
               <Briefcase className="mr-2 h-4 w-4" />
               Browse Jobs
             </TabsTrigger>
-            <TabsTrigger value="active" className="text-sm sm:text-base">
-              <CheckCircle className="mr-2 h-4 w-4" />
-              My Jobs
-            </TabsTrigger>
-            <TabsTrigger value="applications" className="text-sm sm:text-base">
+            { role !== 'employer' &&
+            <>
+              <TabsTrigger value="active" className="text-sm sm:text-base">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                My Jobs
+              </TabsTrigger>
+              <TabsTrigger value="applications" className="text-sm sm:text-base">
+                <Clock3 className="mr-2 h-4 w-4" />
+                Applications
+              </TabsTrigger>
+            </>}
+            { role === 'employer' && <TabsTrigger value="requests" className="text-sm sm:text-base">
               <Clock3 className="mr-2 h-4 w-4" />
-              Applications
-            </TabsTrigger>
+              Payment Requests
+            </TabsTrigger> }
           </TabsList>
 
           {/* Browse Jobs Tab */}
@@ -1359,7 +1543,6 @@ export default function JobsPage() {
               const startIndex = (myJobsCurrentPage - 1) * itemsPerPage
               const endIndex = startIndex + itemsPerPage
               const currentMyJobs = myJobs.slice(startIndex, endIndex)
-
               return (
                 <>
                   <div className="grid grid-cols-1 gap-6">
@@ -1469,12 +1652,59 @@ export default function JobsPage() {
                                   </div>
                                 )}
                                 <div className="flex gap-2">
-                                  {job.payType === "ONE_OFF" && (
-                                    <Button className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien">
-                                      <CheckCircle className="mr-1 h-4 w-4" />
-                                      Complete & Claim
-                                    </Button>
+                                  {job.payType === "WEEKLY" && (
+                                    <>
+                                      {paymentRequestStatus[job.id]?.paymentConfirmed ? (
+                                        <Button
+                                          disabled
+                                          className="bg-green-500 text-white font-varien"
+                                        >
+                                          Payment Confirmed
+                                        </Button>
+                                      ) : paymentRequestStatus[job.id]?.hasRequested ? (
+                                        <Button
+                                          disabled
+                                          className="bg-muted text-muted-foreground font-varien"
+                                        >
+                                          Payment Requested on {new Date(paymentRequestStatus[job.id]?.requestTime * 1000).toLocaleDateString()}
+                                        </Button>
+                                      ) : (
+                                        <Button
+                                          className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
+                                          onClick={() => handleRequestPayment(job.id, "WEEKLY")}
+                                        >
+                                          Request Weekly Payment
+                                        </Button>
+                                      )}
+                                    </>
                                   )}
+
+                                  {job.payType === "ONE_OFF" && (
+                                    <>
+                                      {paymentRequestStatus[job.id]?.paymentConfirmed ? (
+                                        <Button
+                                          disabled
+                                          className="bg-green-500 text-white font-varien"
+                                        >
+                                          Payment Confirmed
+                                        </Button>
+                                      ) : paymentRequestStatus[job.id]?.hasRequested ? (
+                                        <Button
+                                          disabled
+                                          className="bg-muted text-muted-foreground font-varien"
+                                        >
+                                          Payment Requested on {new Date(paymentRequestStatus[job.id]?.requestTime * 1000).toLocaleDateString()}
+                                        </Button>
+                                      ) : (
+                                        <Button
+                                          className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
+                                          onClick={() => handleRequestPayment(job.id, "ONE_OFF")}
+                                        >
+                                          Request One-Off Payment
+                                        </Button>
+                                      )}
+                                    </>
+                                  )}                        
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <Button
@@ -1791,6 +2021,58 @@ export default function JobsPage() {
                 </>
               )
             })()}
+          </TabsContent>
+
+          <TabsContent value="requests" className="space-y-6">
+            <div className="grid grid-cols-1 gap-6">
+              {pendingRequests.length > 0 ? (
+                pendingRequests.map((request, i) => (
+                  <motion.div
+                    key={`${request.jobId}-${request.workerAddress}`}
+                    variants={fadeIn(i * 0.1)}
+                    initial="hidden"
+                    animate="visible"
+                    transition={{ delay: i * 0.1 }}
+                  >
+                    <InteractiveCard>
+                      <div className="flex flex-col md:flex-row justify-between gap-6">
+                        <div className="space-y-3">
+                          <h3 className="font-varien text-lg font-normal tracking-wider text-foreground">
+                            {request.jobTitle}
+                          </h3>
+                          <p className="text-sm text-muted-foreground font-varela">
+                            Worker: {request.workerAddress}
+                          </p>
+                          <p className="text-sm text-muted-foreground font-varela">
+                            Requested on: {new Date(request.requestTime * 1000).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-start md:items-end gap-3">
+                          <Button
+                            className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
+                            onClick={() =>
+                              handleConfirmPayment(request.jobId, request.workerAddress, request.payType)
+                            }
+                          >
+                            Confirm Payment
+                          </Button>
+                        </div>
+                      </div>
+                    </InteractiveCard>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <Clock3 className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium text-foreground mb-2 font-varien">No payment requests</h3>
+                  <p className="text-muted-foreground mb-6 font-varela">
+                    There are no pending payment requests from workers.
+                  </p>
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </SectionWrapper>

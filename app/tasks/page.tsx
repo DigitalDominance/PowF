@@ -52,7 +52,7 @@ import {
   fetchJobsByEmployerFromEvents,
   useUserContext,
   fetchEmployerDisplayName,
-  submitApplication,
+  fetchWithAuth,
 } from "@/context/UserContext"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
@@ -389,7 +389,7 @@ export default function TaskPage() {
     try {
       if (role === "worker") {
         // Fetch offers received by this worker
-        const response = await fetch(`${API_BASE_URL}/offers?workerAddress=${wallet}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/offers?workerAddress=${wallet}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -404,7 +404,7 @@ export default function TaskPage() {
         }
       } else if (role === "employer") {
         // Fetch offers sent by this employer
-        const response = await fetch(`${API_BASE_URL}/offers?employerAddress=${wallet}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/offers?employerAddress=${wallet}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -475,7 +475,7 @@ export default function TaskPage() {
       setSubmitState("submitting")
 
       // Create task in backend with kasAmount
-      const response = await fetch(`${API_BASE_URL}/tasks`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/tasks`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -559,7 +559,7 @@ export default function TaskPage() {
       await tx.wait()
 
       // Create offer in backend
-      const response = await fetch(`${API_BASE_URL}/tasks/${task._id}/offers`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/tasks/${task._id}/offers`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -618,7 +618,7 @@ export default function TaskPage() {
       }))
 
       // Step 1: Accept offer in backend (this will create the job)
-      const acceptResponse = await fetch(`${API_BASE_URL}/offers/${offer._id}/accept`, {
+      const acceptResponse = await fetchWithAuth(`${API_BASE_URL}/offers/${offer._id}/accept`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -697,7 +697,7 @@ export default function TaskPage() {
       }))
 
       // Decline offer via API only (off-chain)
-      const response = await fetch(`${API_BASE_URL}/offers/${offer._id}/decline`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/offers/${offer._id}/decline`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -733,7 +733,7 @@ export default function TaskPage() {
       }))
 
       // Convert declined offer to general job listing
-      const response = await fetch(`${API_BASE_URL}/offers/${offer._id}/job`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/offers/${offer._id}/job`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -787,7 +787,7 @@ export default function TaskPage() {
 
       // Cancel offer and get refund (this would need smart contract interaction)
       // For now, we'll just delete the offer from backend
-      const response = await fetch(`${API_BASE_URL}/offers/${offer._id}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/offers/${offer._id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -815,7 +815,7 @@ export default function TaskPage() {
 
   const handleDeleteTask = async (taskId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+      const response = await fetchWithAuth(`${API_BASE_URL}/tasks/${taskId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,

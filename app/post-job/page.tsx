@@ -52,7 +52,7 @@ const SectionWrapper = ({
 )
 
 export default function PostJobPage() {
-  const { wallet, role, contracts, provider, jobDetails, applicants, setApplicants, setEmployerJobs, setJobDetails } =
+  const { wallet, displayName, role, contracts, provider, jobDetails, applicants, setApplicants, setEmployerJobs, setJobDetails } =
     useUserContext()
 
   const [paymentType, setPaymentType] = useState<"weekly" | "oneoff">("weekly")
@@ -119,6 +119,18 @@ export default function PostJobPage() {
       toast.error("Only employers can create job listings.", { duration: 3000 })
       return
     }
+
+    // Check if the wallet is connected
+    if (!wallet) {
+      toast.error("Please connect your wallet first.", { duration: 3000 });
+      return;
+    }
+
+    // Check if the displayName is valid
+    if (!displayName || displayName.trim() === "") {
+      toast.error("Please set your display name before posting a job.", { duration: 3000 });
+      return;
+    }    
 
     if (!contracts?.jobFactory) {
       toast.error("Please connect your wallet first", { duration: 3000 })

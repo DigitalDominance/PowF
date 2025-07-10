@@ -131,9 +131,11 @@ interface Asset {
   currency: "KAS"
   creatorAddress: string
   creatorName?: string
-  thumbnailUrl: string
+  thumbnailUrl: string,
+  mimeType: string,
   assetUrl: string
-  fileSize: string
+  fileSize: string,
+  fileCid: string,
   dimensions?: string
   duration?: string
   downloads: number
@@ -145,14 +147,25 @@ interface Asset {
   status: "active" | "pending" | "sold"
 }
 
+interface MyAsset {
+  purchaseDate: string;
+  licenseType: string;
+  price: string;
+  asset: Asset;
+}
+
 interface Purchase {
-  _id: string
-  asset: Asset
-  buyerAddress: string
-  price: string
-  purchaseDate: string
-  licenseType: string
-  transactionHash: string
+  // _id: string
+  // asset: Asset
+  // buyerAddress: string
+  // price: string
+  // purchaseDate: string
+  // licenseType: string
+  // transactionHash: string
+  purchaseDate: string;
+  licenseType: string;
+  price: string;
+  asset: Asset;
 }
 
 const ASSET_CATEGORIES = [
@@ -237,153 +250,6 @@ export default function MarketPage() {
   const assetsPerPage = 12
   const API_BASE_URL = process.env.NEXT_PUBLIC_API
 
-  // // Mock data for development
-  // const mockAssets: Asset[] = [
-  //   {
-  //     _id: "1",
-  //     title: "Sunset Mountain Landscape",
-  //     description:
-  //       "Beautiful sunset over mountain peaks with vibrant colors and dramatic lighting. Perfect for websites, presentations, and marketing materials.",
-  //     type: "image",
-  //     category: "Photography",
-  //     tags: ["landscape", "sunset", "mountains", "nature", "dramatic"],
-  //     price: "15.50",
-  //     currency: "KAS",
-  //     creatorAddress: "0x1234567890123456789012345678901234567890",
-  //     creatorName: "NaturePhotoPro",
-  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
-  //     assetUrl: "/placeholder.svg?height=1080&width=1920",
-  //     fileSize: "2.4 MB",
-  //     dimensions: "1920x1080",
-  //     downloads: 234,
-  //     rating: 4.8,
-  //     reviewCount: 45,
-  //     createdAt: "2024-01-15T10:30:00Z",
-  //     featured: true,
-  //     license: "standard",
-  //     status: "active",
-  //   },
-  //   {
-  //     _id: "2",
-  //     title: "Corporate Business Video",
-  //     description:
-  //       "Professional corporate video background with smooth transitions and modern aesthetic. Ideal for business presentations and promotional content.",
-  //     type: "video",
-  //     category: "Videos",
-  //     tags: ["corporate", "business", "professional", "modern", "clean"],
-  //     price: "45.00",
-  //     currency: "KAS",
-  //     creatorAddress: "0x2345678901234567890123456789012345678901",
-  //     creatorName: "VideoCreative",
-  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
-  //     assetUrl: "/placeholder.svg?height=720&width=1280",
-  //     fileSize: "125 MB",
-  //     dimensions: "1920x1080",
-  //     duration: "0:30",
-  //     downloads: 89,
-  //     rating: 4.6,
-  //     reviewCount: 23,
-  //     createdAt: "2024-01-10T14:20:00Z",
-  //     featured: true,
-  //     license: "exclusive",
-  //     status: "active",
-  //   },
-  //   {
-  //     _id: "3",
-  //     title: "Minimalist UI Icons Pack",
-  //     description:
-  //       "Collection of 50 minimalist icons perfect for web and mobile applications. Clean, scalable vector graphics in multiple formats.",
-  //     type: "template",
-  //     category: "Icons",
-  //     tags: ["icons", "minimalist", "ui", "vector", "web", "mobile"],
-  //     price: "25.00",
-  //     currency: "KAS",
-  //     creatorAddress: "0x3456789012345678901234567890123456789012",
-  //     creatorName: "IconMaster",
-  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
-  //     assetUrl: "/placeholder.svg?height=800&width=800",
-  //     fileSize: "5.2 MB",
-  //     downloads: 156,
-  //     rating: 4.9,
-  //     reviewCount: 67,
-  //     createdAt: "2024-01-08T09:15:00Z",
-  //     featured: false,
-  //     license: "standard",
-  //     status: "active",
-  //   },
-  //   {
-  //     _id: "4",
-  //     title: "Ambient Electronic Music",
-  //     description:
-  //       "Atmospheric electronic music track perfect for background use in videos, presentations, or meditation apps. Royalty-free license included.",
-  //     type: "audio",
-  //     category: "Audio",
-  //     tags: ["ambient", "electronic", "background", "meditation", "atmospheric"],
-  //     price: "20.00",
-  //     currency: "KAS",
-  //     creatorAddress: "0x4567890123456789012345678901234567890123",
-  //     creatorName: "SoundScape",
-  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
-  //     assetUrl: "/placeholder.svg?height=200&width=400",
-  //     fileSize: "8.5 MB",
-  //     duration: "3:45",
-  //     downloads: 78,
-  //     rating: 4.7,
-  //     reviewCount: 34,
-  //     createdAt: "2024-01-05T16:45:00Z",
-  //     featured: false,
-  //     license: "exclusive",
-  //     status: "active",
-  //   },
-  //   {
-  //     _id: "5",
-  //     title: "Low Poly Tree 3D Model",
-  //     description:
-  //       "High-quality low poly tree 3D model optimized for games and real-time applications. Includes textures and multiple LOD versions.",
-  //     type: "3d",
-  //     category: "3D Models",
-  //     tags: ["3d", "lowpoly", "tree", "game", "nature", "optimized"],
-  //     price: "35.00",
-  //     currency: "KAS",
-  //     creatorAddress: "0x5678901234567890123456789012345678901234",
-  //     creatorName: "3DForest",
-  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
-  //     assetUrl: "/placeholder.svg?height=400&width=400",
-  //     fileSize: "12.8 MB",
-  //     downloads: 45,
-  //     rating: 4.5,
-  //     reviewCount: 18,
-  //     createdAt: "2024-01-03T11:30:00Z",
-  //     featured: false,
-  //     license: "standard",
-  //     status: "active",
-  //   },
-  //   {
-  //     _id: "6",
-  //     title: "Abstract Digital Art",
-  //     description:
-  //       "Vibrant abstract digital artwork with flowing shapes and gradient colors. Perfect for modern design projects and digital displays.",
-  //     type: "image",
-  //     category: "Illustrations",
-  //     tags: ["abstract", "digital", "art", "colorful", "modern", "gradient"],
-  //     price: "18.00",
-  //     currency: "KAS",
-  //     creatorAddress: "0x6789012345678901234567890123456789012345",
-  //     creatorName: "DigitalArtist",
-  //     thumbnailUrl: "/placeholder.svg?height=300&width=400",
-  //     assetUrl: "/placeholder.svg?height=1080&width=1080",
-  //     fileSize: "3.1 MB",
-  //     dimensions: "2048x2048",
-  //     downloads: 167,
-  //     rating: 4.6,
-  //     reviewCount: 52,
-  //     createdAt: "2024-01-01T08:00:00Z",
-  //     featured: true,
-  //     license: "standard",
-  //     status: "active",
-  //   },
-  // ]
-
   // Fetch assets from the API
   const fetchAssets = async () => {
     try {
@@ -401,12 +267,13 @@ export default function MarketPage() {
           id: asset.tokenId,
           title: asset.title,
           description: asset.description,
-          type: "image", // Default type, update this if you have a way to determine the type
+          type: asset.type || 'file', // Default type, update this if you have a way to determine the type
           category: asset.category,
           tags: asset.tags || [],
           price: asset.price,
           currency: "KAS", // Default currency
           creatorAddress: asset.creatorAddress,
+          mimeType: asset.mimeType,
           creatorName: await fetchEmployerDisplayName(asset.creatorAddress), // Fetch display name asynchronously
           thumbnailUrl: `https://gateway.pinata.cloud/ipfs/${asset.fileCid}?height=300&width=400`, // Generate thumbnail URL
           assetUrl: `https://gateway.pinata.cloud/ipfs/${asset.fileCid}`, // Generate asset URL
@@ -425,9 +292,12 @@ export default function MarketPage() {
 
       console.log('Transformed Assets', transformedAssets)
       setAssets(transformedAssets);
-      setFeaturedAssets(transformedAssets.filter((asset: Asset) => asset.featured));
-      if(wallet) {
-        setMyAssets(transformedAssets.filter((asset: Asset) => asset.creatorAddress === wallet))
+      // setFeaturedAssets(transformedAssets.filter((asset: Asset) => asset.featured));
+      const featuredAssets = transformedAssets;
+      setFeaturedAssets(featuredAssets.sort((a: Asset, b: Asset) =>  b.downloads - a.downloads).slice(0, 3));
+      if (wallet) {
+        setMyAssets(transformedAssets.filter((asset: Asset) => asset.creatorAddress === wallet));
+        await fetchPurchases();
       }
     } catch (err) {
       console.error("Error fetching assets:", err);
@@ -436,35 +306,60 @@ export default function MarketPage() {
     }
   };
 
+  const fetchPurchases = async () => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/purchases`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Failed to fetch purchases");
+    }
+
+    const data = await response.json();
+
+    // Transform the data to match the Asset interface
+    const transformedPurchases: Purchase[] = await Promise.all(
+      data.assets.map(async (asset_: any) => ({
+        purchaseDate: asset_.purchaseDate,
+        licenseType: asset_.licenseType,
+        price: asset_.price,
+        asset: {
+          _id: asset_.asset._id,
+          id: asset_.asset.tokenId,
+          title: asset_.asset.title,
+          description: asset_.asset.description,
+          type: "image", // Default type, update this if you have a way to determine the type
+          category: asset_.asset.category,
+          tags: asset_.asset.tags || [],
+          price: asset_.asset.price,
+          currency: "KAS", // Default currency
+          creatorAddress: asset_.asset.creatorAddress,
+          mimeType: asset_.asset.mimeType,
+          creatorName: await fetchEmployerDisplayName(asset_.asset.creatorAddress), // Fetch display name asynchronously
+          thumbnailUrl: `https://gateway.pinata.cloud/ipfs/${asset_.asset.fileCid}?height=300&width=400`, // Generate thumbnail URL
+          assetUrl: `https://gateway.pinata.cloud/ipfs/${asset_.asset.fileCid}`, // Generate asset_.asset URL
+          fileSize: asset_.asset.fileSize || "Unknown", // Default file size, update this if you have a way to determine it
+          dimensions: undefined, // Default dimensions, update this if you have a way to determine it
+          duration: undefined, // Default duration, update this if you have a way to determine it
+          downloads: asset_.asset.downloads || 0,
+          rating: asset_.asset.rating || 0,
+          reviewCount: asset_.asset.reviewCount || 0,
+          createdAt: asset_.asset.createdAt,
+          featured: false, // Default featured status, update this if you have a way to determine it
+          license: asset_.asset.license,
+          status: asset_.asset.status,
+        }
+      }))
+    );
+
+    setMyPurchases(transformedPurchases);
+  }
+
   useEffect(() => {
     fetchAssets();
   }, [wallet]);
-
-  // // Initialize with mock data
-  // useEffect(() => {
-  //   setAssets(mockAssets)
-  //   setFeaturedAssets(mockAssets.filter((asset) => asset.featured))
-  //   setLoading(false)
-
-  //   if (wallet) {
-  //     setMyAssets(mockAssets.filter((asset) => asset.creatorAddress === wallet))
-  //   }
-  // }, [wallet])
-
-  // Fetch user display names
-  // const getUserDisplayName = async (address: string) => {
-  //   if (userDisplayNames[address]) {
-  //     return userDisplayNames[address]
-  //   }
-  //   try {
-  //     const name = await fetchEmployerDisplayName(address)
-  //     setUserDisplayNames((prev) => ({ ...prev, [address]: name }))
-  //     return name
-  //   } catch (error) {
-  //     console.error("Error fetching display name:", error)
-  //     return `${address.slice(0, 6)}...${address.slice(-4)}`
-  //   }
-  // }
 
   // Handle form inputs
   const handleAssetInputChange = (field: string, value: string | string[] | File | null) => {
@@ -531,8 +426,8 @@ export default function MarketPage() {
       if (!uploadResponse.ok) {
         throw new Error("File upload failed");
       }
-  
-      const { cid: fileCid, url: fileUrl, size: fileSize } = await uploadResponse.json();      
+
+      const { cid: fileCid, url: fileUrl, size: fileSize, mimeType } = await uploadResponse.json();
 
       setListingState("processing")
 
@@ -551,8 +446,9 @@ export default function MarketPage() {
         fileUrl,
         fileSize,
         creatorAddress: wallet,
+        mimeType
       };
-  
+
       const metadataResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/metadata`, {
         method: "POST",
         headers: {
@@ -561,10 +457,10 @@ export default function MarketPage() {
         },
         body: JSON.stringify(metadata),
       });
-  
+
       if (!metadataResponse.ok) {
         throw new Error("Metadata upload failed");
-      }      
+      }
 
       const { metadataUri, metadataCid } = await metadataResponse.json();
 
@@ -577,7 +473,7 @@ export default function MarketPage() {
           STANDARD_LICENSE_1155,
           signer
         );
-  
+
         tx = await standardContract.registerStandardAsset(metadataUri, ethers.parseEther(assetFormData.price));
       } else if (assetFormData.license === "exclusive") {
         const exclusiveContract = new ethers.Contract(
@@ -585,12 +481,12 @@ export default function MarketPage() {
           EXCLUSIVE_LICENSE_721,
           signer
         );
-  
+
         tx = await exclusiveContract.registerExclusiveAsset(metadataUri, ethers.parseEther(assetFormData.price));
       }
 
       // Wait for the transaction to be mined
-      const receipt = await tx.wait();      
+      const receipt = await tx.wait();
 
       console.log('Receipt', receipt);
 
@@ -611,7 +507,7 @@ export default function MarketPage() {
 
       if (!saveResponse.ok) {
         throw new Error("Failed to save asset in the database");
-      }      
+      }
 
       setListingState("success")
       toast.success("Asset listed successfully!")
@@ -621,6 +517,7 @@ export default function MarketPage() {
         resetAssetForm()
         setListingState("idle")
         setShowListDialog(false)
+        fetchAssets();
       }, 2000)
     } catch (err: any) {
       console.error("Error listing asset:", err)
@@ -652,7 +549,7 @@ export default function MarketPage() {
           STANDARD_LICENSE_1155,
           signer
         );
-  
+
         tx = await standardContract.purchaseStandard(asset.id, 1, {
           value: ethers.parseEther(asset.price), // Ensure price is in ETH
         });
@@ -663,7 +560,7 @@ export default function MarketPage() {
           EXCLUSIVE_LICENSE_721,
           signer
         );
-  
+
         tx = await exclusiveContract.purchaseExclusive(asset.id, {
           value: ethers.parseEther(asset.price), // Ensure price is in ETH
         });
@@ -698,16 +595,18 @@ export default function MarketPage() {
       }
 
       const data = await response.json();
-      console.log("Purchase confirmed:", data);      
+      console.log("Purchase confirmed:", data);
 
       setPurchaseDialogState("success")
       toast.success("Asset purchased successfully!")
+
 
       // Close dialog after delay
       setTimeout(() => {
         setShowPurchaseDialog(false)
         setSelectedAsset(null)
         setPurchaseDialogState("idle")
+        fetchPurchases();
       }, 2000)
     } catch (err: any) {
       console.error("Error purchasing asset:", err)
@@ -805,6 +704,11 @@ export default function MarketPage() {
     return typeConfig ? typeConfig.icon : FileImage
   }
 
+  const getAssetTypeText = (type: Asset["type"]) => {
+    const typeConfig = ASSET_TYPES.find((t) => t.value === type)
+    return typeConfig ? typeConfig.label : 'File'
+  }  
+
   // Format file size
   const formatFileSize = (size: string) => {
     return size
@@ -882,11 +786,48 @@ export default function MarketPage() {
     }
   }
 
-  const isImage = (url: string) =>
-    /\.(jpe?g|png|gif|bmp|webp|svg)$/i.test(url);
-  
-  const isVideo = (url: string) =>
-    /\.(mp4|webm|ogg|mov)$/i.test(url);  
+  // Helper function to check if mimeType is an image
+  const isImage = (mimeType: string) => {
+    if (!mimeType) return false;
+    return mimeType.startsWith('image/');
+  };
+
+  // Helper function to check if mimeType is a video
+  const isVideo = (mimeType: string) => {
+    if (!mimeType) return false;
+    return mimeType.startsWith('video/');
+  };
+
+  // Alternative version with more specific checks (if you want to be more restrictive)
+  const isImageSpecific = (mimeType: string) => {
+    if (!mimeType) return false;
+    const imageTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/svg+xml',
+      'image/bmp',
+      'image/tiff'
+    ];
+    return imageTypes.includes(mimeType.toLowerCase());
+  };
+
+  const isVideoSpecific = (mimeType: string) => {
+    if (!mimeType) return false;
+    const videoTypes = [
+      'video/mp4',
+      'video/avi',
+      'video/mov',
+      'video/wmv',
+      'video/flv',
+      'video/webm',
+      'video/mkv',
+      'video/quicktime'
+    ];
+    return videoTypes.includes(mimeType.toLowerCase());
+  };
 
   const isListing = listingState !== "idle"
   const isPurchasing = purchaseDialogState !== "idle"
@@ -956,22 +897,24 @@ export default function MarketPage() {
         >
           {featuredAssets.slice(0, 6).map((asset, i) => {
             const TypeIcon = getAssetTypeIcon(asset.type)
+            const TypeText = getAssetTypeText(asset.type)
             return (
               <motion.div key={asset._id} variants={fadeIn(i * 0.1)}>
                 <InteractiveCard className="h-full group">
                   <div className="relative overflow-hidden rounded-lg mb-4">
                     {asset.thumbnailUrl ? (
-                      isImage(asset.thumbnailUrl) ? (
+                      isImage(asset.mimeType) ? (
                         <img
                           src={asset.thumbnailUrl}
                           alt="Asset"
                           className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
-                      ) : isVideo(asset.thumbnailUrl) ? (
+                      ) : isVideo(asset.mimeType) ? (
                         <video
                           src={asset.thumbnailUrl}
                           controls
                           className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                          autoPlay
                         />
                       ) : (
                         <div className="w-full h-48 flex items-center justify-center bg-gray-200 text-gray-500">
@@ -989,7 +932,7 @@ export default function MarketPage() {
                     <div className="absolute top-3 left-3">
                       <Badge variant="secondary" className="bg-black/50 text-white border-0">
                         <TypeIcon className="h-3 w-3 mr-1" />
-                        {asset.type}
+                        {TypeText}
                       </Badge>
                     </div>
                     <div className="absolute top-3 right-3">
@@ -1001,9 +944,8 @@ export default function MarketPage() {
                         disabled={processingStates[asset._id]?.favoriting}
                       >
                         <Heart
-                          className={`h-4 w-4 ${
-                            favoriteAssets.includes(asset._id) ? "fill-red-500 text-red-500" : "text-white"
-                          }`}
+                          className={`h-4 w-4 ${favoriteAssets.includes(asset._id) ? "fill-red-500 text-red-500" : "text-white"
+                            }`}
                         />
                       </Button>
                     </div>
@@ -1257,9 +1199,8 @@ export default function MarketPage() {
                     <Badge
                       key={tag}
                       variant={selectedTags.includes(tag) ? "default" : "outline"}
-                      className={`cursor-pointer transition-all duration-200 ${
-                        selectedTags.includes(tag) ? "bg-accent text-accent-foreground" : "hover:bg-accent/10"
-                      }`}
+                      className={`cursor-pointer transition-all duration-200 ${selectedTags.includes(tag) ? "bg-accent text-accent-foreground" : "hover:bg-accent/10"
+                        }`}
                       onClick={() => {
                         setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
                       }}
@@ -1287,6 +1228,7 @@ export default function MarketPage() {
                 <AnimatePresence>
                   {currentAssets.map((asset, i) => {
                     const TypeIcon = getAssetTypeIcon(asset.type)
+                    const TypeText = getAssetTypeText(asset.type)
                     return (
                       <motion.div
                         key={asset._id}
@@ -1299,16 +1241,37 @@ export default function MarketPage() {
                         {viewMode === "grid" ? (
                           <InteractiveCard className="h-full group">
                             <div className="relative overflow-hidden rounded-lg mb-4">
-                              <img
-                                src={asset.thumbnailUrl || "/placeholder.svg"}
-                                alt={asset.title}
-                                className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
-                              />
+                              {asset.thumbnailUrl ? (
+                                isImage(asset.mimeType) ? (
+                                  <img
+                                    src={asset.thumbnailUrl}
+                                    alt="Asset"
+                                    className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                ) : isVideo(asset.mimeType) ? (
+                                  <video
+                                    src={asset.thumbnailUrl}
+                                    controls
+                                    className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                    autoPlay
+                                  />
+                                ) : (
+                                  <div className="w-full h-40 flex items-center justify-center bg-gray-200 text-gray-500">
+                                    Unsupported file type
+                                  </div>
+                                )
+                              ) : (
+                                <img
+                                  src="/placeholder.svg"
+                                  alt="Placeholder"
+                                  className="w-full h-40 object-cover"
+                                />
+                              )}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                               <div className="absolute top-2 left-2">
                                 <Badge variant="secondary" className="bg-black/50 text-white border-0 text-xs">
                                   <TypeIcon className="h-3 w-3 mr-1" />
-                                  {asset.type}
+                                  {TypeText}
                                 </Badge>
                               </div>
                               <div className="absolute top-2 right-2">
@@ -1320,9 +1283,8 @@ export default function MarketPage() {
                                   disabled={processingStates[asset._id]?.favoriting}
                                 >
                                   <Heart
-                                    className={`h-3 w-3 ${
-                                      favoriteAssets.includes(asset._id) ? "fill-red-500 text-red-500" : "text-white"
-                                    }`}
+                                    className={`h-3 w-3 ${favoriteAssets.includes(asset._id) ? "fill-red-500 text-red-500" : "text-white"
+                                      }`}
                                   />
                                 </Button>
                               </div>
@@ -1418,7 +1380,7 @@ export default function MarketPage() {
                                 <div className="absolute top-1 left-1">
                                   <Badge variant="secondary" className="bg-black/50 text-white border-0 text-xs">
                                     <TypeIcon className="h-3 w-3 mr-1" />
-                                    {asset.type}
+                                    {TypeText}
                                   </Badge>
                                 </div>
                               </div>
@@ -1436,11 +1398,10 @@ export default function MarketPage() {
                                     disabled={processingStates[asset._id]?.favoriting}
                                   >
                                     <Heart
-                                      className={`h-4 w-4 ${
-                                        favoriteAssets.includes(asset._id)
+                                      className={`h-4 w-4 ${favoriteAssets.includes(asset._id)
                                           ? "fill-red-500 text-red-500"
                                           : "text-muted-foreground"
-                                      }`}
+                                        }`}
                                     />
                                   </Button>
                                 </div>
@@ -1577,11 +1538,10 @@ export default function MarketPage() {
                           variant={currentPage === page ? "default" : "outline"}
                           size="sm"
                           onClick={() => setCurrentPage(page)}
-                          className={`min-w-[2.5rem] ${
-                            currentPage === page
+                          className={`min-w-[2.5rem] ${currentPage === page
                               ? "bg-accent text-accent-foreground"
                               : "border-accent/30 hover:bg-accent/10"
-                          }`}
+                            }`}
                         >
                           {page}
                         </Button>
@@ -1619,9 +1579,9 @@ export default function MarketPage() {
                     <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Assets Found</h3>
                     <p className="text-sm text-muted-foreground font-varela">
                       {searchTerm ||
-                      selectedTags.length > 0 ||
-                      selectedCategory !== "all-categories" ||
-                      selectedType !== "all-types"
+                        selectedTags.length > 0 ||
+                        selectedCategory !== "all-categories" ||
+                        selectedType !== "all-types"
                         ? "Try adjusting your search criteria"
                         : "Be the first to list an asset!"}
                     </p>
@@ -1652,19 +1612,41 @@ export default function MarketPage() {
                   >
                     {myAssets.map((asset, i) => {
                       const TypeIcon = getAssetTypeIcon(asset.type)
+                      const TypeText = getAssetTypeText(asset.type)
                       return (
                         <motion.div key={asset._id} variants={fadeIn(i * 0.1)}>
                           <InteractiveCard className="h-full">
                             <div className="relative overflow-hidden rounded-lg mb-4">
-                              <img
-                                src={asset.thumbnailUrl || "/placeholder.svg"}
-                                alt={asset.title}
-                                className="w-full h-40 object-cover"
-                              />
+                              {asset.thumbnailUrl ? (
+                                isImage(asset.mimeType) ? (
+                                  <img
+                                    src={asset.thumbnailUrl}
+                                    alt="Asset"
+                                    className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                ) : isVideo(asset.mimeType) ? (
+                                  <video
+                                    src={asset.thumbnailUrl}
+                                    controls
+                                    className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                    autoPlay
+                                  />
+                                ) : (
+                                  <div className="w-full h-40 flex items-center justify-center bg-gray-200 text-gray-500">
+                                    Unsupported file type
+                                  </div>
+                                )
+                              ) : (
+                                <img
+                                  src="/placeholder.svg"
+                                  alt="Placeholder"
+                                  className="w-full h-40 object-cover"
+                                />
+                              )}
                               <div className="absolute top-2 left-2">
                                 <Badge variant="secondary" className="bg-black/50 text-white border-0 text-xs">
                                   <TypeIcon className="h-3 w-3 mr-1" />
-                                  {asset.type}
+                                  {TypeText}
                                 </Badge>
                               </div>
                               <div className="absolute top-2 right-2 flex gap-1">
@@ -1798,15 +1780,46 @@ export default function MarketPage() {
                 <TabsContent value="purchased" className="space-y-6">
                   <div className="space-y-4">
                     {myPurchases.map((purchase) => (
-                      <InteractiveCard key={purchase._id}>
+                      <InteractiveCard key={purchase.asset._id}>
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="flex gap-4">
                             <div className="relative flex-shrink-0">
-                              <img
+                              {/* <img
                                 src={purchase.asset.thumbnailUrl || "/placeholder.svg"}
                                 alt={purchase.asset.title}
                                 className="w-16 h-16 object-cover rounded-lg"
-                              />
+                              /> */}
+                              {purchase.asset.thumbnailUrl ? (
+                                isImage(purchase.asset.mimeType) ? (
+                                  <img
+                                    src={purchase.asset.thumbnailUrl}
+                                    alt="Asset"
+                                    className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                ) : isVideo(purchase.asset.mimeType) ? (
+                                  <video
+                                    src={purchase.asset.thumbnailUrl}
+                                    controls
+                                    className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
+                                    autoPlay
+                                  />
+                                ) : (
+                                  // <div className="w-16 h-16 flex items-center justify-center bg-gray-200 text-gray-500 text-xs rounded-lg text-center">
+                                  //   Unsupported file type
+                                  // </div>
+                                  <img
+                                    src="/placeholder.svg"
+                                    alt="Placeholder"
+                                    className="w-16 h-16 object-cover rounded-lg"
+                                  />
+                                )
+                              ) : (
+                                <img
+                                  src="/placeholder.svg"
+                                  alt="Placeholder"
+                                  className="w-16 h-16 object-cover rounded-lg"
+                                />
+                              )}
                             </div>
 
                             <div className="flex-1 min-w-0">
@@ -2102,7 +2115,7 @@ export default function MarketPage() {
                             </Button>
                           </div>
                         </div>
-                      )}                      
+                      )}
                     </div>
 
                     {/* Tags */}
@@ -2149,11 +2162,10 @@ export default function MarketPage() {
                       type="submit"
                       size="lg"
                       disabled={isListing || !wallet}
-                      className={`w-full transition-all duration-300 transform hover:scale-105 group font-varien ${
-                        listingState === "success"
+                      className={`w-full transition-all duration-300 transform hover:scale-105 group font-varien ${listingState === "success"
                           ? "bg-green-500 hover:bg-green-600 text-white"
                           : "bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg hover:shadow-accent/40"
-                      }`}
+                        }`}
                     >
                       {getListingButtonContent()}
                     </Button>
@@ -2194,11 +2206,37 @@ export default function MarketPage() {
                 {/* Asset Preview */}
                 <div className="space-y-4">
                   <div className="relative overflow-hidden rounded-lg">
-                    <img
+                    {/* <img
                       src={selectedAsset.assetUrl || "/placeholder.svg"}
                       alt={selectedAsset.title}
                       className="w-full h-64 lg:h-80 object-cover"
-                    />
+                    /> */}
+                    {selectedAsset.thumbnailUrl ? (
+                      isImage(selectedAsset.mimeType) ? (
+                        <img
+                          src={selectedAsset.thumbnailUrl}
+                          alt="Asset"
+                          className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : isVideo(selectedAsset.mimeType) ? (
+                        <video
+                          src={selectedAsset.thumbnailUrl}
+                          controls
+                          className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                          autoPlay
+                        />
+                      ) : (
+                        <div className="w-full h-64 flex items-center justify-center bg-gray-200 text-gray-500">
+                          Unsupported file type
+                        </div>
+                      )
+                    ) : (
+                      <img
+                        src="/placeholder.svg"
+                        alt="Placeholder"
+                        className="w-full h-64 object-cover"
+                      />
+                    )}
                     {selectedAsset.type === "video" && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Button
@@ -2329,11 +2367,10 @@ export default function MarketPage() {
                         disabled={processingStates[selectedAsset._id]?.favoriting}
                       >
                         <Heart
-                          className={`h-5 w-5 ${
-                            favoriteAssets.includes(selectedAsset._id)
+                          className={`h-5 w-5 ${favoriteAssets.includes(selectedAsset._id)
                               ? "fill-red-500 text-red-500"
                               : "text-muted-foreground"
-                          }`}
+                            }`}
                         />
                       </Button>
                     </div>
@@ -2417,11 +2454,37 @@ export default function MarketPage() {
             <motion.div variants={fadeIn(0.2)} className="space-y-6 py-4">
               {selectedAsset && (
                 <div className="flex gap-4">
-                  <img
+                  {/* <img
                     src={selectedAsset.thumbnailUrl || "/placeholder.svg"}
                     alt={selectedAsset.title}
                     className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
-                  />
+                  /> */}
+                  {selectedAsset.thumbnailUrl ? (
+                    isImage(selectedAsset.mimeType) ? (
+                      <img
+                        src={selectedAsset.thumbnailUrl}
+                        alt="Asset"
+                        className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : isVideo(selectedAsset.mimeType) ? (
+                      <video
+                        src={selectedAsset.thumbnailUrl}
+                        controls
+                        className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
+                        autoPlay
+                      />
+                    ) : (
+                      <div className="w-16 h-16 flex items-center justify-center bg-gray-200 text-gray-500">
+                        Unsupported file type
+                      </div>
+                    )
+                  ) : (
+                    <img
+                      src="/placeholder.svg"
+                      alt="Placeholder"
+                      className="w-16 h-16 object-cover"
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <h4 className="font-varien text-lg font-semibold text-foreground line-clamp-1">
                       {selectedAsset.title}
@@ -2540,13 +2603,12 @@ export default function MarketPage() {
                 <Button
                   onClick={() => selectedAsset && handlePurchaseAsset(selectedAsset)}
                   disabled={isPurchasing || !selectedAsset}
-                  className={`font-varien flex-1 transition-all duration-300 ${
-                    purchaseDialogState === "success"
+                  className={`font-varien flex-1 transition-all duration-300 ${purchaseDialogState === "success"
                       ? "bg-green-500 hover:bg-green-600 text-white"
                       : purchaseDialogState === "error"
                         ? "bg-red-500 hover:bg-red-600 text-white"
                         : "bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg hover:shadow-accent/40"
-                  }`}
+                    }`}
                 >
                   <motion.div
                     className="flex items-center"
