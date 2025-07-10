@@ -9,6 +9,16 @@ export default function MarketLoading() {
           <Skeleton className="h-16 w-96 mx-auto mb-6" />
           <Skeleton className="h-6 w-full max-w-3xl mx-auto mb-4" />
           <Skeleton className="h-6 w-2/3 max-w-2xl mx-auto" />
+
+          {/* Stats Skeleton */}
+          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl mx-auto">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="text-center">
+                <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                <Skeleton className="h-4 w-12 mx-auto" />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -19,6 +29,7 @@ export default function MarketLoading() {
             <Skeleton className="h-10 w-64 mx-auto mb-4" />
             <Skeleton className="h-6 w-96 mx-auto" />
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="space-y-4">
@@ -35,6 +46,7 @@ export default function MarketLoading() {
               </div>
             ))}
           </div>
+
           <div className="text-center">
             <Skeleton className="h-12 w-48 mx-auto" />
           </div>
@@ -49,6 +61,7 @@ export default function MarketLoading() {
             <div className="mb-8">
               <Skeleton className="h-12 w-full" />
             </div>
+
             {/* Filters Skeleton */}
             <div className="space-y-4 mb-6">
               <div className="flex flex-col lg:flex-row gap-4">
@@ -64,6 +77,7 @@ export default function MarketLoading() {
                 </div>
               </div>
             </div>
+
             {/* Assets Grid Skeleton */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {Array.from({ length: 12 }).map((_, i) => (

@@ -1859,6 +1859,25 @@ export default function MarketPage() {
                             <Button
                               size="sm"
                               className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(purchase.asset.assetUrl);
+                                  if (!response.ok) {
+                                    throw new Error("Failed to fetch the file.");
+                                  }
+                            
+                                  const blob = await response.blob();
+                                  const link = document.createElement("a");
+                                  link.href = URL.createObjectURL(blob); // Create a blob URL for the file
+                                  link.download = purchase.asset.title || "download"; // Suggested file name
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                } catch (error) {
+                                  console.error("Error downloading file:", error);
+                                  toast.error("Failed to download the file. Please try again.");
+                                }
+                              }}
                             >
                               <Download className="mr-1 h-4 w-4" />
                               Download
