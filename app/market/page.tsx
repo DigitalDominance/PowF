@@ -1,5 +1,7 @@
 "use client"
 
+import { DialogTrigger } from "@/components/ui/dialog"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -43,8 +45,6 @@ import {
   Heart,
   Share2,
   AlertCircle,
-  Play,
-  Palette,
   Music,
   FileImage,
 } from "lucide-react"
@@ -184,7 +184,6 @@ const ASSET_TYPES = [
   { value: "image", label: "Images", icon: ImageIcon },
   { value: "video", label: "Videos", icon: Video },
   { value: "audio", label: "Audio", icon: Music },
-  { value: "3d", label: "3D Models", icon: Palette },
   { value: "template", label: "Templates", icon: FileText },
 ]
 
@@ -280,31 +279,32 @@ export default function MarketPage() {
       }
       const data = await response.json()
 
-      // Transform the data to match the Asset interface
+      // Transform the data to match the Asset interface exactly as in original
       const transformedAssets: Asset[] = await Promise.all(
         data.map(async (asset: any) => ({
           _id: asset._id,
           id: asset.tokenId,
           title: asset.title,
           description: asset.description,
-          type: asset.type || "file", // Default type, update this if you have a way to determine the type
+          type: asset.type || "image", // Use actual type from data
           category: asset.category,
           tags: asset.tags || [],
           price: asset.price,
-          currency: "KAS", // Default currency
+          currency: "KAS",
           creatorAddress: asset.creatorAddress,
           mimeType: asset.mimeType,
-          creatorName: await fetchEmployerDisplayName(asset.creatorAddress), // Fetch display name asynchronously
-          thumbnailUrl: `https://gateway.pinata.cloud/ipfs/${asset.fileCid}?height=300&width=400`, // Generate thumbnail URL
-          assetUrl: `https://gateway.pinata.cloud/ipfs/${asset.fileCid}`, // Generate asset URL
-          fileSize: asset.fileSize || "Unknown", // Default file size, update this if you have a way to determine it
-          dimensions: undefined, // Default dimensions, update this if you have a way to determine it
-          duration: undefined, // Default duration, update this if you have a way to determine it
+          creatorName: await fetchEmployerDisplayName(asset.creatorAddress),
+          thumbnailUrl: `https://gateway.pinata.cloud/ipfs/${asset.fileCid}?height=300&width=400`,
+          assetUrl: `https://gateway.pinata.cloud/ipfs/${asset.fileCid}`,
+          fileSize: asset.fileSize || "Unknown",
+          fileCid: asset.fileCid,
+          dimensions: undefined,
+          duration: undefined,
           downloads: asset.downloads || 0,
           rating: asset.rating || 0,
           reviewCount: asset.reviewCount || 0,
           createdAt: asset.createdAt,
-          featured: false, // Default featured status, update this if you have a way to determine it
+          featured: false,
           license: asset.license,
           status: asset.status,
         })),
@@ -312,69 +312,78 @@ export default function MarketPage() {
 
       console.log("Transformed Assets", transformedAssets)
       setAssets(transformedAssets)
-      // setFeaturedAssets(transformedAssets.filter((asset: Asset) => asset.featured));
+
+      // Set featured assets (top 3 by downloads)
       const featuredAssets = transformedAssets
       setFeaturedAssets(featuredAssets.sort((a: Asset, b: Asset) => b.downloads - a.downloads).slice(0, 3))
+
+      // Filter user's assets if wallet is connected
       if (wallet) {
         setMyAssets(transformedAssets.filter((asset: Asset) => asset.creatorAddress === wallet))
         await fetchPurchases()
       }
     } catch (err) {
       console.error("Error fetching assets:", err)
+      toast.error("Failed to fetch assets")
     } finally {
       setLoading(false)
     }
   }
 
   const fetchPurchases = async () => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/purchases`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
-    })
-    if (!response.ok) {
-      throw new Error("Failed to fetch purchases")
-    }
-
-    const data = await response.json()
-
-    // Transform the data to match the Asset interface
-    const transformedPurchases: Purchase[] = await Promise.all(
-      data.assets.map(async (asset_: any) => ({
-        purchaseDate: asset_.purchaseDate,
-        licenseType: asset_.licenseType,
-        price: asset_.price,
-        asset: {
-          _id: asset_.asset._id,
-          id: asset_.asset.tokenId,
-          title: asset_.asset.title,
-          description: asset_.asset.description,
-          type: "image", // Default type, update this if you have a way to determine the type
-          category: asset_.asset.category,
-          tags: asset_.asset.tags || [],
-          price: asset_.asset.price,
-          currency: "KAS", // Default currency
-          creatorAddress: asset_.asset.creatorAddress,
-          mimeType: asset_.asset.mimeType,
-          creatorName: await fetchEmployerDisplayName(asset_.asset.creatorAddress), // Fetch display name asynchronously
-          thumbnailUrl: `https://gateway.pinata.cloud/ipfs/${asset_.asset.fileCid}?height=300&width=400`, // Generate thumbnail URL
-          assetUrl: `https://gateway.pinata.cloud/ipfs/${asset_.asset.fileCid}`, // Generate asset_.asset URL
-          fileSize: asset_.asset.fileSize || "Unknown", // Default file size, update this if you have a way to determine it
-          dimensions: undefined, // Default dimensions, update this if you have a way to determine it
-          duration: undefined, // Default duration, update this if you have a way to determine it
-          downloads: asset_.asset.downloads || 0,
-          rating: asset_.asset.rating || 0,
-          reviewCount: asset_.asset.reviewCount || 0,
-          createdAt: asset_.asset.createdAt,
-          featured: false, // Default featured status, update this if you have a way to determine it
-          license: asset_.asset.license,
-          status: asset_.asset.status,
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/purchases`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
-      })),
-    )
+      })
+      if (!response.ok) {
+        throw new Error("Failed to fetch purchases")
+      }
 
-    setMyPurchases(transformedPurchases)
+      const data = await response.json()
+
+      // Transform the data to match the Purchase interface exactly as in original
+      const transformedPurchases: Purchase[] = await Promise.all(
+        data.assets.map(async (asset_: any) => ({
+          purchaseDate: asset_.purchaseDate,
+          licenseType: asset_.licenseType,
+          price: asset_.price,
+          asset: {
+            _id: asset_.asset._id,
+            id: asset_.asset.tokenId,
+            title: asset_.asset.title,
+            description: asset_.asset.description,
+            type: asset_.asset.type || "image", // Use the actual type from data
+            category: asset_.asset.category,
+            tags: asset_.asset.tags || [],
+            price: asset_.asset.price,
+            currency: "KAS",
+            creatorAddress: asset_.asset.creatorAddress,
+            mimeType: asset_.asset.mimeType,
+            creatorName: await fetchEmployerDisplayName(asset_.asset.creatorAddress),
+            thumbnailUrl: `https://gateway.pinata.cloud/ipfs/${asset_.asset.fileCid}?height=300&width=400`,
+            assetUrl: `https://gateway.pinata.cloud/ipfs/${asset_.asset.fileCid}`,
+            fileSize: asset_.asset.fileSize || "Unknown",
+            fileCid: asset_.asset.fileCid,
+            dimensions: undefined,
+            duration: undefined,
+            downloads: asset_.asset.downloads || 0,
+            rating: asset_.asset.rating || 0,
+            reviewCount: asset_.asset.reviewCount || 0,
+            createdAt: asset_.asset.createdAt,
+            featured: false,
+            license: asset_.asset.license,
+            status: asset_.asset.status,
+          },
+        })),
+      )
+
+      setMyPurchases(transformedPurchases)
+    } catch (err) {
+      console.error("Error fetching purchases:", err)
+    }
   }
 
   useEffect(() => {
@@ -1100,6 +1109,16 @@ export default function MarketPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={showFavoritesOnly ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                      className={`border-accent/30 ${showFavoritesOnly ? "bg-accent text-accent-foreground" : "hover:bg-accent/10"}`}
+                    >
+                      <Heart className={`h-4 w-4 mr-2 ${showFavoritesOnly ? "fill-current" : ""}`} />
+                      Favorites
+                    </Button>
+
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                       <SelectTrigger className="w-full sm:w-48 border-border focus:border-accent">
                         <SelectValue placeholder="Category" />
@@ -1113,16 +1132,6 @@ export default function MarketPage() {
                         ))}
                       </SelectContent>
                     </Select>
-
-                    <Button
-                      variant={showFavoritesOnly ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                      className={`border-accent/30 ${showFavoritesOnly ? "bg-accent text-accent-foreground" : "hover:bg-accent/10"}`}
-                    >
-                      <Heart className={`h-4 w-4 mr-2 ${showFavoritesOnly ? "fill-current" : ""}`} />
-                      Favorites
-                    </Button>
 
                     <Select value={sortBy} onValueChange={setSortBy}>
                       <SelectTrigger className="w-full sm:w-40 border-border focus:border-accent">
@@ -1704,274 +1713,203 @@ export default function MarketPage() {
 
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Listed:</span>
-                                  <span className="font-medium text-foreground">
-                                    {new Date(asset.createdAt).toLocaleDateString()}
-                                  </span>
+                                  <span>{new Date(asset.createdAt).toLocaleDateString()}</span>
                                 </div>
                               </div>
-
-                              <div className="flex flex-wrap gap-1 mb-4">
-                                {asset.tags.map((tag) => (
-                                  <Badge key={tag} variant="secondary" className="text-xs">
-                                    {tag}
-                                  </Badge>
-                                ))}
-                              </div>
-
-                              <Button
-                                variant="outline"
-                                className="w-full border-accent/50 text-accent hover:bg-accent/10 bg-transparent font-varien"
-                                onClick={() => {
-                                  setSelectedAsset(asset)
-                                  setShowAssetDialog(true)
-                                }}
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </Button>
                             </div>
                           </InteractiveCard>
                         </motion.div>
                       )
                     })}
-                  </motion.div>
 
-                  {myAssets.length === 0 && (
-                    <motion.div variants={fadeIn()} className="flex justify-center">
-                      <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
-                        <div className="flex justify-center mb-4">
-                          <Upload className="h-12 w-12 text-accent" />
-                        </div>
-                        <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Assets Listed</h3>
-                        <p className="text-sm text-muted-foreground font-varela">
-                          List your first asset to get started!
-                        </p>
-                      </InteractiveCard>
-                    </motion.div>
-                  )}
+                    {myAssets.length === 0 && (
+                      <motion.div variants={fadeIn()} className="flex justify-center">
+                        <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
+                          <div className="flex justify-center mb-4">
+                            <FileText className="h-12 w-12 text-accent" />
+                          </div>
+                          <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Assets Listed</h3>
+                          <p className="text-sm text-muted-foreground font-varela">
+                            List your first asset to start selling!
+                          </p>
+                        </InteractiveCard>
+                      </motion.div>
+                    )}
+                  </motion.div>
                 </TabsContent>
 
-                {/* My Purchases */}
+                {/* My Purchased Assets */}
                 <TabsContent value="purchased" className="space-y-6">
-                  <div className="space-y-4">
-                    {myPurchases.map((purchase) => (
-                      <InteractiveCard key={purchase.asset._id}>
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex gap-4">
-                            <div className="relative flex-shrink-0">
-                              {/* <img
-                                src={purchase.asset.thumbnailUrl || "/placeholder.svg"}
-                                alt={purchase.asset.title}
-                                className="w-16 h-16 object-cover rounded-lg"
-                              /> */}
-                              {purchase.asset.thumbnailUrl ? (
-                                isImage(purchase.asset.mimeType) ? (
-                                  <img
-                                    src={purchase.asset.thumbnailUrl || "/placeholder.svg"}
-                                    alt="Asset"
-                                    className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
-                                  />
-                                ) : isVideo(purchase.asset.mimeType) ? (
-                                  <video
-                                    src={purchase.asset.thumbnailUrl}
-                                    controls
-                                    className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
-                                    autoPlay
-                                  />
-                                ) : (
-                                  // <div className="w-16 h-16 flex items-center justify-center bg-gray-200 text-gray-500 text-xs rounded-lg text-center">
-                                  //   Unsupported file type
-                                  // </div>
-                                  <img
-                                    src="/placeholder.svg"
-                                    alt="Placeholder"
-                                    className="w-16 h-16 object-cover rounded-lg"
-                                  />
-                                )
-                              ) : (
+                  <motion.div
+                    variants={staggerContainer(0.1)}
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  >
+                    {myPurchases.map((purchase, i) => (
+                      <motion.div key={purchase.asset._id} variants={fadeIn(i * 0.1)}>
+                        <InteractiveCard className="h-full">
+                          <div className="relative overflow-hidden rounded-lg mb-4">
+                            {purchase.asset.thumbnailUrl ? (
+                              isImage(purchase.asset.mimeType) ? (
                                 <img
-                                  src="/placeholder.svg"
-                                  alt="Placeholder"
-                                  className="w-16 h-16 object-cover rounded-lg"
+                                  src={purchase.asset.thumbnailUrl || "/placeholder.svg"}
+                                  alt="Asset"
+                                  className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                                 />
-                              )}
+                              ) : isVideo(purchase.asset.mimeType) ? (
+                                <video
+                                  src={purchase.asset.thumbnailUrl}
+                                  controls
+                                  className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  autoPlay
+                                />
+                              ) : (
+                                <div className="w-full h-40 flex items-center justify-center bg-gray-200 text-gray-500">
+                                  Unsupported file type
+                                </div>
+                              )
+                            ) : (
+                              <img src="/placeholder.svg" alt="Placeholder" className="w-full h-40 object-cover" />
+                            )}
+                          </div>
+
+                          <div className="space-y-3">
+                            <div>
+                              <h3 className="font-varien text-lg font-semibold text-foreground mb-1 line-clamp-1">
+                                {purchase.asset.title}
+                              </h3>
+                              <p className="text-sm text-muted-foreground line-clamp-2 font-varela">
+                                {purchase.asset.description}
+                              </p>
                             </div>
 
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-varien text-lg font-semibold text-foreground mb-1 line-clamp-1">
-                                {purchase.asset.title}
-                              </h4>
-                              <div className="space-y-1 text-sm">
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Purchased:</span>
-                                  <span className="font-medium">
-                                    {new Date(purchase.purchaseDate).toLocaleDateString()}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Price Paid:</span>
-                                  <div className="flex items-center gap-1">
-                                    <img
-                                      src="/kaslogo.webp"
-                                      alt="KAS"
-                                      className="h-3 w-3 filter-none"
-                                      style={{ filter: "none", imageRendering: "crisp-edges" }}
-                                    />
-                                    <span className="font-medium text-foreground">{purchase.price} KAS</span>
-                                  </div>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">License:</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    {purchase.licenseType}
-                                  </Badge>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">License Type:</span>
+                                <span className="font-medium text-foreground">{purchase.licenseType}</span>
+                              </div>
+
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Purchase Date:</span>
+                                <span className="font-medium text-foreground">
+                                  {new Date(purchase.purchaseDate).toLocaleDateString()}
+                                </span>
+                              </div>
+
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Price:</span>
+                                <div className="flex items-center gap-1">
+                                  <img
+                                    src="/kaslogo.webp"
+                                    alt="KAS"
+                                    className="h-3 w-3 filter-none"
+                                    style={{ filter: "none", imageRendering: "crisp-edges" }}
+                                  />
+                                  <span className="font-medium text-foreground">{purchase.price} KAS</span>
                                 </div>
                               </div>
                             </div>
                           </div>
-
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
-                              onClick={async () => {
-                                try {
-                                  const response = await fetch(purchase.asset.assetUrl)
-                                  if (!response.ok) {
-                                    throw new Error("Failed to fetch the file.")
-                                  }
-
-                                  const blob = await response.blob()
-                                  const link = document.createElement("a")
-                                  link.href = URL.createObjectURL(blob) // Create a blob URL for the file
-                                  link.download = purchase.asset.title || "download" // Suggested file name
-                                  document.body.appendChild(link)
-                                  link.click()
-                                  document.body.removeChild(link)
-                                } catch (error) {
-                                  console.error("Error downloading file:", error)
-                                  toast.error("Failed to download the file. Please try again.")
-                                }
-                              }}
-                            >
-                              <Download className="mr-1 h-4 w-4" />
-                              Download
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-accent/50 text-accent hover:bg-accent/10 bg-transparent font-varien"
-                              onClick={() => {
-                                setSelectedAsset(purchase.asset)
-                                setShowAssetDialog(true)
-                              }}
-                            >
-                              <Eye className="mr-1 h-4 w-4" />
-                              View
-                            </Button>
-                          </div>
-                        </div>
-                      </InteractiveCard>
+                        </InteractiveCard>
+                      </motion.div>
                     ))}
 
                     {myPurchases.length === 0 && (
                       <motion.div variants={fadeIn()} className="flex justify-center">
                         <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
                           <div className="flex justify-center mb-4">
-                            <Download className="h-12 w-12 text-accent" />
+                            <ShoppingCart className="h-12 w-12 text-accent" />
                           </div>
                           <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Purchases Yet</h3>
                           <p className="text-sm text-muted-foreground font-varela">
-                            Browse assets to make your first purchase!
+                            Browse the marketplace and discover amazing assets!
                           </p>
                         </InteractiveCard>
                       </motion.div>
                     )}
-                  </div>
+                  </motion.div>
                 </TabsContent>
               </Tabs>
             </TabsContent>
 
             {/* List Asset Tab */}
             <TabsContent value="list" className="space-y-6">
-              <motion.div variants={fadeIn()} className="max-w-2xl mx-auto">
-                <InteractiveCard>
-                  <form onSubmit={handleListAsset} className="space-y-6">
-                    <div className="text-center mb-6">
-                      <h2 className="font-varien text-2xl font-bold text-foreground mb-2">List New Asset</h2>
-                      <p className="text-muted-foreground font-varela">Share your creative work with the community</p>
-                    </div>
+              <motion.div variants={fadeIn()} className="max-w-3xl mx-auto">
+                <Dialog open={showListDialog} onOpenChange={setShowListDialog}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="w-full border-accent/50 text-accent hover:bg-accent/10 bg-transparent font-varien group"
+                    >
+                      {getListingButtonContent()}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle className="font-varien">List a New Asset</DialogTitle>
+                      <DialogDescription className="font-varela">
+                        Fill in the details below to list your asset on the marketplace.
+                      </DialogDescription>
+                    </DialogHeader>
 
-                    {/* Asset Title */}
-                    <div className="space-y-2">
-                      <Label htmlFor="asset-title" className="text-foreground font-varien">
-                        Asset Title
-                      </Label>
-                      <Input
-                        id="asset-title"
-                        type="text"
-                        placeholder="e.g., Sunset Mountain Landscape"
-                        value={assetFormData.title}
-                        onChange={(e) => handleAssetInputChange("title", e.target.value)}
-                        className="border-border focus:border-accent font-varela"
-                        disabled={isListing}
-                        required
-                      />
-                    </div>
+                    <form onSubmit={handleListAsset} className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="title" className="text-right font-varien">
+                          Title
+                        </Label>
+                        <Input
+                          type="text"
+                          id="title"
+                          value={assetFormData.title}
+                          onChange={(e) => handleAssetInputChange("title", e.target.value)}
+                          className="col-span-3 font-varela"
+                          required
+                        />
+                      </div>
 
-                    {/* Description */}
-                    <div className="space-y-2">
-                      <Label htmlFor="asset-description" className="text-foreground font-varien">
-                        Description
-                      </Label>
-                      <Textarea
-                        id="asset-description"
-                        placeholder="Describe your asset, its features, and potential use cases..."
-                        value={assetFormData.description}
-                        onChange={(e) => handleAssetInputChange("description", e.target.value)}
-                        className="min-h-[120px] border-border focus:border-accent resize-none font-varela"
-                        disabled={isListing}
-                        required
-                      />
-                    </div>
+                      <div className="grid grid-cols-4 items-start gap-4">
+                        <Label htmlFor="description" className="text-right font-varien">
+                          Description
+                        </Label>
+                        <Textarea
+                          id="description"
+                          value={assetFormData.description}
+                          onChange={(e) => handleAssetInputChange("description", e.target.value)}
+                          className="col-span-3 font-varela"
+                          required
+                        />
+                      </div>
 
-                    {/* Asset Type and Category */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="asset-type" className="text-foreground font-varien">
-                          Asset Type
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="type" className="text-right font-varien">
+                          Type
                         </Label>
                         <Select
                           value={assetFormData.type}
                           onValueChange={(value) => handleAssetInputChange("type", value)}
-                          disabled={isListing}
                         >
-                          <SelectTrigger className="border-border focus:border-accent">
-                            <SelectValue placeholder="Select type" />
+                          <SelectTrigger className="col-span-3 w-full border-border focus:border-accent">
+                            <SelectValue placeholder="Select asset type" />
                           </SelectTrigger>
                           <SelectContent>
                             {ASSET_TYPES.map((type) => (
                               <SelectItem key={type.value} value={type.value}>
-                                <div className="flex items-center gap-2">
-                                  <type.icon className="h-4 w-4" />
-                                  {type.label}
-                                </div>
+                                {type.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="asset-category" className="text-foreground font-varien">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="category" className="text-right font-varien">
                           Category
                         </Label>
                         <Select
                           value={assetFormData.category}
                           onValueChange={(value) => handleAssetInputChange("category", value)}
-                          disabled={isListing}
                         >
-                          <SelectTrigger className="border-border focus:border-accent">
+                          <SelectTrigger className="col-span-3 w-full border-border focus:border-accent">
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1983,633 +1921,293 @@ export default function MarketPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                    </div>
 
-                    {/* Price and License */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="asset-price" className="text-foreground font-varien">
-                          Price (KAS) - Minimum 1 KAS
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="tags" className="text-right font-varien">
+                          Tags
                         </Label>
-                        <div className="relative">
-                          <img
-                            src="/kaslogo.webp"
-                            alt="KAS"
-                            className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 filter-none"
-                            style={{ filter: "none", imageRendering: "crisp-edges" }}
-                          />
+                        <div className="col-span-3 flex items-center gap-2">
                           <Input
-                            id="asset-price"
-                            type="number"
-                            step="0.01"
-                            min="1"
-                            placeholder="1.00"
-                            value={assetFormData.price}
-                            onChange={(e) => handleAssetInputChange("price", e.target.value)}
-                            className="pl-10 border-border focus:border-accent font-varela"
-                            disabled={isListing}
-                            required
+                            type="text"
+                            id="tags"
+                            placeholder="Add tags..."
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault()
+                                handleAddTag(e.target.value)
+                                e.currentTarget.value = "" // Clear the input after adding the tag
+                              }
+                            }}
+                            className="font-varela"
                           />
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="asset-license" className="text-foreground font-varien">
-                          License Type
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right font-varien">Selected Tags</Label>
+                        <div className="col-span-3 flex flex-wrap gap-2">
+                          {assetFormData.tags.map((tag) => (
+                            <Badge
+                              key={tag}
+                              variant="secondary"
+                              className="cursor-pointer"
+                              onClick={() => handleRemoveTag(tag)}
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="price" className="text-right font-varien">
+                          Price (KAS)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="price"
+                          value={assetFormData.price}
+                          onChange={(e) => handleAssetInputChange("price", e.target.value)}
+                          className="col-span-3 font-varela"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="license" className="text-right font-varien">
+                          License
                         </Label>
                         <Select
                           value={assetFormData.license}
                           onValueChange={(value) => handleAssetInputChange("license", value)}
-                          disabled={isListing}
                         >
-                          <SelectTrigger className="border-border focus:border-accent">
-                            <SelectValue placeholder="Select license" />
+                          <SelectTrigger className="col-span-3 w-full border-border focus:border-accent">
+                            <SelectValue placeholder="Select license type" />
                           </SelectTrigger>
                           <SelectContent>
                             {LICENSE_TYPES.map((license) => (
                               <SelectItem key={license.value} value={license.value}>
-                                <div className="flex flex-col">
-                                  <span>{license.label}</span>
-                                  <span className="text-xs text-muted-foreground">{license.description}</span>
-                                </div>
+                                {license.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
-                    </div>
 
-                    {/* File Upload */}
-                    <div className="space-y-2">
-                      <Label htmlFor="asset-file" className="text-foreground font-varien">
-                        Asset File
-                      </Label>
-                      <div
-                        className="border-2 border-dashed border-border rounded-lg p-6 text-center"
-                        onDragOver={(e) => e.preventDefault()} // Prevent default to allow drop
-                        onDrop={(e) => {
-                          e.preventDefault()
-                          const file = e.dataTransfer.files[0] // Get the first dropped file
-                          if (file) {
-                            handleAssetInputChange("file", file) // Update the state with the dropped file
-                          }
-                        }}
-                      >
-                        <label htmlFor="asset-file" className="cursor-pointer">
-                          <div className="flex flex-col items-center gap-2">
-                            <Upload className="h-8 w-8 text-muted-foreground" />
-                            <div className="text-sm text-muted-foreground font-varela">
-                              <span className="font-medium">Click to upload</span> or drag and drop
-                            </div>
-                            <div className="text-xs text-muted-foreground">PNG, JPG, MP4, MP3, ZIP up to 100MB</div>
-                          </div>
-                        </label>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="file" className="text-right font-varien">
+                          File
+                        </Label>
                         <Input
-                          id="asset-file"
                           type="file"
-                          className="hidden"
-                          onChange={(e) => handleAssetInputChange("file", e.target.files?.[0] || null)}
-                          disabled={isListing}
-                          accept="image/*,video/*,audio/*,.zip,.rar,.7z"
+                          id="file"
+                          onChange={(e) => handleAssetInputChange("file", e.target.files ? e.target.files[0] : null)}
+                          className="col-span-3 font-varela"
                           required
                         />
                       </div>
 
-                      {/* File Preview */}
-                      {assetFormData.file && (
-                        <div className="mt-4 p-4 border border-border rounded-lg bg-background/50">
-                          <div className="flex items-center gap-4">
-                            {/* File Icon or Thumbnail */}
-                            {assetFormData.file.type.startsWith("image/") ? (
-                              <img
-                                src={URL.createObjectURL(assetFormData.file) || "/placeholder.svg"}
-                                alt="Uploaded file preview"
-                                className="h-16 w-16 object-cover rounded-lg"
-                              />
-                            ) : (
-                              <FileText className="h-16 w-16 text-muted-foreground" />
-                            )}
-
-                            {/* File Details */}
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-foreground">{assetFormData.file.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {(assetFormData.file.size / 1024 / 1024).toFixed(2)} MB
-                              </p>
-                            </div>
-
-                            {/* Remove File Button */}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAssetInputChange("file", null)}
-                              className="text-red-500 border-red-500 hover:bg-red-500/10"
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Tags */}
-                    <div className="space-y-2">
-                      <Label htmlFor="asset-tags" className="text-foreground font-varien">
-                        Tags
-                      </Label>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {assetFormData.tags.map((tag, i) => (
-                          <Badge
-                            key={i}
-                            variant="secondary"
-                            className="flex items-center gap-2 text-xs cursor-pointer font-semibold"
-                          >
-                            {tag}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveTag(tag)}
-                              className="text-red-500 hover:text-red-600"
-                              disabled={isListing}
-                            >
-                              ✕
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                      <Input
-                        id="asset-tags"
-                        type="text"
-                        placeholder="Type a tag and press Enter"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault()
-                            handleAddTag(e.currentTarget.value.trim())
-                            e.currentTarget.value = ""
-                          }
-                        }}
-                        className="border-border focus:border-accent font-varela"
-                        disabled={isListing}
-                      />
-                    </div>
-
-                    <Button
-                      type="submit"
-                      size="lg"
-                      disabled={isListing || !wallet}
-                      className={`w-full transition-all duration-300 transform hover:scale-105 group font-varien ${
-                        listingState === "success"
-                          ? "bg-green-500 hover:bg-green-600 text-white"
-                          : "bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg hover:shadow-accent/40"
-                      }`}
-                    >
-                      {getListingButtonContent()}
-                    </Button>
-
-                    {!wallet && (
-                      <div className="text-center text-sm text-red-600 dark:text-red-400 font-medium font-varela">
-                        Please connect your wallet to list assets.
-                      </div>
-                    )}
-                    {listingState === "success" && (
-                      <div className="text-center text-sm text-green-600 dark:text-green-400 font-medium font-varela">
-                        Your asset has been listed successfully!
-                      </div>
-                    )}
-                  </form>
-                </InteractiveCard>
+                      <DialogFooter>
+                        <Button type="submit" disabled={isListing}>
+                          {getListingButtonContent()}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
               </motion.div>
             </TabsContent>
           </Tabs>
         </motion.div>
       </SectionWrapper>
 
-      {/* Asset Details Dialog */}
+      {/* Asset Dialog */}
       <Dialog open={showAssetDialog} onOpenChange={setShowAssetDialog}>
-        <DialogContent className="sm:max-w-4xl bg-gradient-to-br from-background via-background/95 to-accent/5 border border-accent/20 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
-            <DialogTitle className="font-varien text-2xl tracking-wider text-foreground">
-              {selectedAsset?.title}
-            </DialogTitle>
-            <DialogDescription className="font-varela text-muted-foreground">
-              Asset details and preview
+            <DialogTitle className="font-varien">Asset Details</DialogTitle>
+            <DialogDescription className="font-varela">
+              Learn more about this asset before making a purchase.
             </DialogDescription>
           </DialogHeader>
 
           {selectedAsset && (
-            <motion.div variants={fadeIn()} initial="hidden" animate="visible" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Asset Preview */}
-                <div className="space-y-4">
-                  <div className="relative overflow-hidden rounded-lg">
-                    {/* <img
-                      src={selectedAsset.assetUrl || "/placeholder.svg"}
-                      alt={selectedAsset.title}
-                      className="w-full h-64 lg:h-80 object-cover"
-                    /> */}
-                    {selectedAsset.thumbnailUrl ? (
-                      isImage(selectedAsset.mimeType) ? (
-                        <img
-                          src={selectedAsset.thumbnailUrl || "/placeholder.svg"}
-                          alt="Asset"
-                          className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                      ) : isVideo(selectedAsset.mimeType) ? (
-                        <video
-                          src={selectedAsset.thumbnailUrl}
-                          controls
-                          className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                          autoPlay
-                        />
-                      ) : (
-                        <div className="w-full h-64 flex items-center justify-center bg-gray-200 text-gray-500">
-                          Unsupported file type
-                        </div>
-                      )
-                    ) : (
-                      <img src="/placeholder.svg" alt="Placeholder" className="w-full h-64 object-cover" />
-                    )}
-                    {selectedAsset.type === "video" && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-16 w-16 bg-black/50 hover:bg-black/70 text-white border-0 rounded-full"
-                        >
-                          <Play className="h-8 w-8" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+            <div className="space-y-4 py-4">
+              <div className="relative overflow-hidden rounded-lg">
+                {selectedAsset.thumbnailUrl ? (
+                  isImage(selectedAsset.mimeType) ? (
+                    <img
+                      src={selectedAsset.thumbnailUrl || "/placeholder.svg"}
+                      alt="Asset"
+                      className="w-full h-64 object-cover"
+                    />
+                  ) : isVideo(selectedAsset.mimeType) ? (
+                    <video src={selectedAsset.thumbnailUrl} controls className="w-full h-64 object-cover" autoPlay />
+                  ) : (
+                    <div className="w-full h-64 flex items-center justify-center bg-gray-200 text-gray-500">
+                      Unsupported file type
+                    </div>
+                  )
+                ) : (
+                  <img src="/placeholder.svg" alt="Placeholder" className="w-full h-64 object-cover" />
+                )}
+              </div>
 
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">File Size:</span>
-                      <div className="font-medium">{selectedAsset.fileSize}</div>
-                    </div>
-                    {selectedAsset.dimensions && (
-                      <div>
-                        <span className="text-muted-foreground">Dimensions:</span>
-                        <div className="font-medium">{selectedAsset.dimensions}</div>
-                      </div>
-                    )}
-                    {selectedAsset.duration && (
-                      <div>
-                        <span className="text-muted-foreground">Duration:</span>
-                        <div className="font-medium">{selectedAsset.duration}</div>
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-muted-foreground">License:</span>
-                      <div className="font-medium capitalize">{selectedAsset.license}</div>
-                    </div>
+              <div className="space-y-2">
+                <h3 className="font-varien text-2xl font-semibold text-foreground">{selectedAsset.title}</h3>
+                <p className="text-muted-foreground font-varela">{selectedAsset.description}</p>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage
+                    src={`https://effigy.im/a/${selectedAsset.creatorAddress}.svg`}
+                    alt={selectedAsset.creatorName || selectedAsset.creatorAddress}
+                  />
+                  <AvatarFallback className="bg-accent/10 text-accent text-xs">
+                    {selectedAsset.creatorAddress.charAt(2)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm text-muted-foreground font-varela">
+                  {selectedAsset.creatorName ||
+                    `${selectedAsset.creatorAddress.slice(0, 6)}...${selectedAsset.creatorAddress.slice(-4)}`}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Type:</span>
+                  <span className="font-medium text-foreground"> {getAssetTypeText(selectedAsset.type)}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Category:</span>
+                  <span className="font-medium text-foreground"> {selectedAsset.category}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">File Size:</span>
+                  <span className="font-medium text-foreground"> {formatFileSize(selectedAsset.fileSize)}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Downloads:</span>
+                  <span className="font-medium text-foreground"> {selectedAsset.downloads}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Rating:</span>
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span className="font-medium text-foreground">{selectedAsset.rating}</span>
+                    <span className="text-muted-foreground">({selectedAsset.reviewCount})</span>
                   </div>
                 </div>
-
-                {/* Asset Info */}
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-varien text-lg font-semibold text-foreground mb-2">Description</h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed font-varela">
-                      {selectedAsset.description}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Creator</h4>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={`https://effigy.im/a/${selectedAsset.creatorAddress}.svg`}
-                            alt={selectedAsset.creatorName || selectedAsset.creatorAddress}
-                          />
-                          <AvatarFallback className="bg-accent/10 text-accent text-xs">
-                            {selectedAsset.creatorAddress.charAt(2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium font-varela">
-                            {selectedAsset.creatorName ||
-                              `${selectedAsset.creatorAddress.slice(0, 6)}...${selectedAsset.creatorAddress.slice(-4)}`}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Category</h4>
-                      <Badge variant="outline" className="text-sm">
-                        {selectedAsset.category}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Rating</h4>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-medium">{selectedAsset.rating}</span>
-                        <span className="text-sm text-muted-foreground">({selectedAsset.reviewCount} reviews)</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Downloads</h4>
-                      <span className="text-sm font-medium">{selectedAsset.downloads}</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Tags</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedAsset.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Listed</h4>
-                    <p className="text-sm font-medium font-varela">
-                      {new Date(selectedAsset.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-
-                  <div className="pt-4 border-t border-border/50">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src="/kaslogo.webp"
-                          alt="KAS"
-                          className="h-6 w-6 filter-none"
-                          style={{ filter: "none", imageRendering: "crisp-edges" }}
-                        />
-                        <span className="font-varien text-2xl font-bold text-foreground">
-                          {selectedAsset.price} KAS
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleToggleFavorite(selectedAsset._id)}
-                        disabled={processingStates[selectedAsset._id]?.favoriting}
-                      >
-                        <Heart
-                          className={`h-5 w-5 ${
-                            favoriteAssets.includes(selectedAsset._id)
-                              ? "fill-red-500 text-red-500"
-                              : "text-muted-foreground"
-                          }`}
-                        />
-                      </Button>
-                    </div>
-
-                    <Button
-                      size="lg"
-                      className="w-full bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
-                      onClick={() => {
-                        setShowAssetDialog(false)
-                        setShowPurchaseDialog(true)
-                      }}
-                    >
-                      <ShoppingCart className="mr-2 h-5 w-5" />
-                      Purchase License
-                    </Button>
-                  </div>
+                <div>
+                  <span className="text-muted-foreground">License:</span>
+                  <span className="font-medium text-foreground"> {selectedAsset.license}</span>
                 </div>
               </div>
-            </motion.div>
+
+              <div className="flex flex-wrap gap-2">
+                {selectedAsset.tags.map((tag) => (
+                  <Badge key={tag} variant="outline">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <img
+                    src="/kaslogo.webp"
+                    alt="KAS"
+                    className="h-5 w-5 filter-none"
+                    style={{ filter: "none", imageRendering: "crisp-edges" }}
+                  />
+                  <span className="font-varien text-3xl font-bold text-foreground">{selectedAsset.price} KAS</span>
+                </div>
+                <Button
+                  size="lg"
+                  className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
+                  onClick={() => {
+                    setShowAssetDialog(false)
+                    setShowPurchaseDialog(true)
+                  }}
+                >
+                  <ShoppingCart className="mr-2 h-5 w-5" />
+                  Buy Now
+                </Button>
+              </div>
+            </div>
           )}
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAssetDialog(false)
-                setSelectedAsset(null)
-              }}
-              className="font-varien border-accent/30 hover:bg-accent/10"
-            >
+            <Button type="button" variant="secondary" onClick={() => setShowAssetDialog(false)}>
               Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Purchase Dialog */}
+      {/* Purchase Confirmation Dialog */}
       <Dialog open={showPurchaseDialog} onOpenChange={setShowPurchaseDialog}>
-        <DialogContent className="sm:max-w-md bg-gradient-to-br from-background via-background/95 to-accent/5 border border-accent/20 overflow-hidden">
-          <motion.div variants={scaleIn()} initial="hidden" animate="visible" className="relative">
-            {/* Animated background elements */}
-            <div className="absolute inset-0 -z-10">
-              <motion.div
-                className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-3xl"
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.3, 0.6, 0.3],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Number.POSITIVE_INFINITY,
-                  ease: "easeInOut",
-                }}
-              />
-              <motion.div
-                className="absolute bottom-0 left-0 w-24 h-24 bg-accent/5 rounded-full blur-2xl"
-                animate={{
-                  scale: [1.2, 1, 1.2],
-                  opacity: [0.2, 0.4, 0.2],
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Number.POSITIVE_INFINITY,
-                  ease: "easeInOut",
-                  delay: 1,
-                }}
-              />
-            </div>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="font-varien">Confirm Purchase</DialogTitle>
+            <DialogDescription className="font-varela">Are you sure you want to purchase this asset?</DialogDescription>
+          </DialogHeader>
 
-            <DialogHeader>
-              <motion.div variants={fadeIn(0.1)}>
-                <DialogTitle className="font-varien text-2xl tracking-wider text-foreground">
-                  Purchase License
-                </DialogTitle>
-                <DialogDescription className="font-varela text-muted-foreground">
-                  Purchase a license for "{selectedAsset?.title}"
-                </DialogDescription>
-              </motion.div>
-            </DialogHeader>
-
-            <motion.div variants={fadeIn(0.2)} className="space-y-6 py-4">
-              {selectedAsset && (
-                <div className="flex gap-4">
-                  {/* <img
-                    src={selectedAsset.thumbnailUrl || "/placeholder.svg"}
-                    alt={selectedAsset.title}
-                    className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
-                  /> */}
-                  {selectedAsset.thumbnailUrl ? (
-                    isImage(selectedAsset.mimeType) ? (
-                      <img
-                        src={selectedAsset.thumbnailUrl || "/placeholder.svg"}
-                        alt="Asset"
-                        className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : isVideo(selectedAsset.mimeType) ? (
-                      <video
-                        src={selectedAsset.thumbnailUrl}
-                        controls
-                        className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
-                        autoPlay
-                      />
-                    ) : (
-                      <div className="w-16 h-16 flex items-center justify-center bg-gray-200 text-gray-500">
-                        Unsupported file type
-                      </div>
-                    )
+          {selectedAsset && (
+            <div className="space-y-4 py-4">
+              <div className="relative overflow-hidden rounded-lg">
+                {selectedAsset.thumbnailUrl ? (
+                  isImage(selectedAsset.mimeType) ? (
+                    <img
+                      src={selectedAsset.thumbnailUrl || "/placeholder.svg"}
+                      alt="Asset"
+                      className="w-full h-40 object-cover"
+                    />
+                  ) : isVideo(selectedAsset.mimeType) ? (
+                    <video src={selectedAsset.thumbnailUrl} controls className="w-full h-40 object-cover" autoPlay />
                   ) : (
-                    <img src="/placeholder.svg" alt="Placeholder" className="w-16 h-16 object-cover" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-varien text-lg font-semibold text-foreground line-clamp-1">
-                      {selectedAsset.title}
-                    </h4>
-                    <p className="text-sm text-muted-foreground line-clamp-2 font-varela">
-                      {selectedAsset.description}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground font-varela">License Type:</span>
-                  <Badge variant="outline" className="capitalize">
-                    {selectedAsset?.license}
-                  </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground font-varela">Price:</span>
-                  <div className="flex items-center gap-1">
-                    <img
-                      src="/kaslogo.webp"
-                      alt="KAS"
-                      className="h-4 w-4 filter-none"
-                      style={{ filter: "none", imageRendering: "crisp-edges" }}
-                    />
-                    <span className="font-varien text-lg font-bold text-foreground">{selectedAsset?.price} KAS</span>
-                  </div>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground font-varela">Platform Fee (2.5%):</span>
-                  <div className="flex items-center gap-1">
-                    <img
-                      src="/kaslogo.webp"
-                      alt="KAS"
-                      className="h-4 w-4 filter-none"
-                      style={{ filter: "none", imageRendering: "crisp-edges" }}
-                    />
-                    <span className="font-medium text-foreground">
-                      {selectedAsset ? (Number.parseFloat(selectedAsset.price) * 0.025).toFixed(2) : "0.00"} KAS
-                    </span>
-                  </div>
-                </div>
-                <div className="flex justify-between pt-2 border-t border-border/50">
-                  <span className="font-varien font-semibold text-foreground">Total:</span>
-                  <div className="flex items-center gap-1">
-                    <img
-                      src="/kaslogo.webp"
-                      alt="KAS"
-                      className="h-5 w-5 filter-none"
-                      style={{ filter: "none", imageRendering: "crisp-edges" }}
-                    />
-                    <span className="font-varien text-xl font-bold text-foreground">
-                      {selectedAsset ? (Number.parseFloat(selectedAsset.price) * 1.025).toFixed(2) : "0.00"} KAS
-                    </span>
-                  </div>
-                </div>
+                    <div className="w-full h-40 flex items-center justify-center bg-gray-200 text-gray-500">
+                      Unsupported file type
+                    </div>
+                  )
+                ) : (
+                  <img src="/placeholder.svg" alt="Placeholder" className="w-full h-40 object-cover" />
+                )}
               </div>
 
-              {/* Status Messages */}
-              <AnimatePresence>
-                {purchaseDialogState === "processing" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="flex items-center gap-2 text-sm text-accent font-varien"
-                  >
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Processing purchase...
-                  </motion.div>
-                )}
+              <div className="space-y-2">
+                <h3 className="font-varien text-xl font-semibold text-foreground">{selectedAsset.title}</h3>
+                <p className="text-muted-foreground font-varela">{selectedAsset.description}</p>
+              </div>
 
-                {purchaseDialogState === "success" && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="flex items-center gap-2 text-sm text-green-600 font-varien"
-                  >
-                    <Check className="h-4 w-4" />
-                    Purchase successful! Check your downloads.
-                  </motion.div>
-                )}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <img
+                    src="/kaslogo.webp"
+                    alt="KAS"
+                    className="h-4 w-4 filter-none"
+                    style={{ filter: "none", imageRendering: "crisp-edges" }}
+                  />
+                  <span className="font-varien text-2xl font-bold text-foreground">{selectedAsset.price} KAS</span>
+                </div>
+                <Badge variant="secondary">{selectedAsset.license} License</Badge>
+              </div>
+            </div>
+          )}
 
-                {purchaseDialogState === "error" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="flex items-center gap-2 text-sm text-red-600 font-varien"
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    Purchase failed. Please try again.
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            <DialogFooter>
-              <motion.div variants={fadeIn(0.4)} className="flex gap-2 w-full">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowPurchaseDialog(false)
-                    setSelectedAsset(null)
-                    setPurchaseDialogState("idle")
-                  }}
-                  disabled={isPurchasing}
-                  className="font-varien border-accent/30 hover:bg-accent/10"
-                >
-                  Cancel
-                </Button>
-
-                <Button
-                  onClick={() => selectedAsset && handlePurchaseAsset(selectedAsset)}
-                  disabled={isPurchasing || !selectedAsset}
-                  className={`font-varien flex-1 transition-all duration-300 ${
-                    purchaseDialogState === "success"
-                      ? "bg-green-500 hover:bg-green-600 text-white"
-                      : purchaseDialogState === "error"
-                        ? "bg-red-500 hover:bg-red-600 text-white"
-                        : "bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg hover:shadow-accent/40"
-                  }`}
-                >
-                  <motion.div
-                    className="flex items-center"
-                    animate={purchaseDialogState === "processing" ? { scale: [1, 1.05, 1] } : {}}
-                    transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY }}
-                  >
-                    {getPurchaseButtonContent()}
-                  </motion.div>
-                </Button>
-              </motion.div>
-            </DialogFooter>
-          </motion.div>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setShowPurchaseDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => selectedAsset && handlePurchaseAsset(selectedAsset)}
+              disabled={isPurchasing}
+            >
+              {getPurchaseButtonContent()}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
