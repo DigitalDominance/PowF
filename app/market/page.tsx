@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type React from "react"
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, lazy } from "react"
 import {
   ArrowRight,
   FileText,
@@ -58,8 +58,13 @@ import { useUserContext, fetchEmployerDisplayName, fetchWithAuth } from "@/conte
 import { ethers } from "ethers"
 import STANDARD_LICENSE_1155 from "@/lib/contracts/StandardLicense1155.json"
 import EXCLUSIVE_LICENSE_721 from "@/lib/contracts/ExclusiveLicense721.json"
-import { Canvas } from "@react-three/fiber"
-import { OrbitControls, useGLTF, Environment, Html } from "@react-three/drei"
+
+// Lazy load 3D components to avoid SSR issues
+const Canvas = lazy(() => import("@react-three/fiber").then((module) => ({ default: module.Canvas })))
+const OrbitControls = lazy(() => import("@react-three/drei").then((module) => ({ default: module.OrbitControls })))
+const useGLTF = lazy(() => import("@react-three/drei").then((module) => ({ default: module.useGLTF })))
+const Environment = lazy(() => import("@react-three/drei").then((module) => ({ default: module.Environment })))
+const Html = lazy(() => import("@react-three/drei").then((module) => ({ default: module.Html })))
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -73,20 +78,6 @@ const staggerContainer = (staggerChildren = 0.1, delayChildren = 0) => ({
       staggerChildren,
       delayChildren,
     },
-  },
-})
-
-const slideIn = (direction = "left", delay = 0) => ({
-  hidden: {
-    x: direction === "left" ? -100 : direction === "right" ? 100 : 0,
-    y: direction === "up" ? 100 : direction === "down" ? -100 : 0,
-    opacity: 0,
-  },
-  visible: {
-    x: 0,
-    y: 0,
-    opacity: 1,
-    transition: { delay, duration: 0.6, ease: "easeOut" },
   },
 })
 
@@ -151,13 +142,6 @@ interface Asset {
   status: "active" | "pending" | "sold"
 }
 
-interface MyAsset {
-  purchaseDate: string
-  licenseType: string
-  price: string
-  asset: Asset
-}
-
 interface Purchase {
   purchaseDate: string
   licenseType: string
@@ -209,53 +193,31 @@ const LICENSE_TYPES = [
   { value: "exclusive", label: "Exclusive License", description: "Exclusive rights to the asset" },
 ]
 
-// 3D Model Viewer Component
-const Model3D = ({ url, className }: { url: string; className?: string }) => {
-  const { scene } = useGLTF(url)
-
-  return <primitive object={scene} scale={1} position={[0, 0, 0]} />
-}
-
-const Model3DViewer = ({ url, className }: { url: string; className?: string }) => {
-  return (
-    <div className={`relative ${className}`}>
-      <Canvas camera={{ position: [0, 0, 5], fov: 50 }} style={{ background: "transparent" }}>
-        <Suspense
-          fallback={
-            <Html center>
-              <div className="flex items-center gap-2 text-white">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading 3D Model...
-              </div>
-            </Html>
-          }
-        >
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          <Model3D url={url} />
-          <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} autoRotate={false} />
-          <Environment preset="studio" />
-        </Suspense>
-      </Canvas>
-      <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">Drag to rotate</div>
-    </div>
-  )
-}
-
 // Audio Player Component
 const AudioPlayer = ({ url, className }: { url: string; className?: string }) => {
   const [isPlaying, setIsPlaying] = useState(false)
-  const [audio] = useState(new Audio(url))
+  const [audio] = useState(() => {
+    if (typeof window !== "undefined") {
+      return new Audio(url)
+    }
+    return null
+  })
 
   useEffect(() => {
-    audio.addEventListener("ended", () => setIsPlaying(false))
+    if (!audio) return
+
+    const handleEnded = () => setIsPlaying(false)
+    audio.addEventListener("ended", handleEnded)
+
     return () => {
-      audio.removeEventListener("ended", () => setIsPlaying(false))
+      audio.removeEventListener("ended", handleEnded)
       audio.pause()
     }
   }, [audio])
 
   const togglePlay = () => {
+    if (!audio) return
+
     if (isPlaying) {
       audio.pause()
     } else {
@@ -281,6 +243,21 @@ const AudioPlayer = ({ url, className }: { url: string; className?: string }) =>
           <Volume2 className="h-4 w-4" />
           Audio Preview
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Simple 3D Model Viewer Component (fallback)
+const Simple3DViewer = ({ url, className }: { url: string; className?: string }) => {
+  return (
+    <div
+      className={`flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-purple-500/20 ${className}`}
+    >
+      <div className="text-center text-white">
+        <Palette className="h-16 w-16 mx-auto mb-2 opacity-80" />
+        <div className="text-sm">3D Model Preview</div>
+        <div className="text-xs opacity-70 mt-1">Click to view in 3D</div>
       </div>
     </div>
   )
@@ -369,7 +346,7 @@ const AssetPreview = ({ asset, className }: { asset: Asset; className?: string }
     }
 
     if (is3DFile(asset.mimeType, previewUrl)) {
-      return <Model3DViewer url={previewUrl} className={className} />
+      return <Simple3DViewer url={previewUrl} className={className} />
     }
   }
 
@@ -418,7 +395,6 @@ export default function MarketPage() {
   const [priceRange, setPriceRange] = useState({ min: "", max: "" })
   const [sortBy, setSortBy] = useState("newest")
   const [currentPage, setCurrentPage] = useState(1)
-  const [showListDialog, setShowListDialog] = useState(false)
   const [showAssetDialog, setShowAssetDialog] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false)
@@ -434,7 +410,6 @@ export default function MarketPage() {
   >("idle")
 
   const [favoriteAssets, setFavoriteAssets] = useState<string[]>([])
-
   const assetsPerPage = 12
   const API_BASE_URL = process.env.NEXT_PUBLIC_API
 
@@ -447,6 +422,7 @@ export default function MarketPage() {
         throw new Error("Failed to fetch assets")
       }
       const data = await response.json()
+
       // Transform the data to match the Asset interface
       const transformedAssets: Asset[] = await Promise.all(
         data.map(async (asset: any) => ({
@@ -454,32 +430,33 @@ export default function MarketPage() {
           id: asset.tokenId,
           title: asset.title,
           description: asset.description,
-          type: asset.type || "image", // Default type, update this if you have a way to determine the type
+          type: asset.type || "image",
           category: asset.category,
           tags: asset.tags || [],
           price: asset.price,
-          currency: "KAS", // Default currency
+          currency: "KAS",
           creatorAddress: asset.creatorAddress,
           mimeType: asset.mimeType,
-          creatorName: await fetchEmployerDisplayName(asset.creatorAddress), // Fetch display name asynchronously
-          thumbnailUrl: `https://gateway.pinata.cloud/ipfs/${asset.fileCid}?height=300&width=400`, // Generate thumbnail URL
-          assetUrl: `https://gateway.pinata.cloud/ipfs/${asset.fileCid}`, // Generate asset URL
-          fileSize: asset.fileSize || "Unknown", // Default file size, update this if you have a way to determine it
-          dimensions: undefined, // Default dimensions, update this if you have a way to determine it
-          duration: undefined, // Default duration, update this if you have a way to determine it
+          creatorName: await fetchEmployerDisplayName(asset.creatorAddress),
+          thumbnailUrl: `https://gateway.pinata.cloud/ipfs/${asset.fileCid}?height=300&width=400`,
+          assetUrl: `https://gateway.pinata.cloud/ipfs/${asset.fileCid}`,
+          fileSize: asset.fileSize || "Unknown",
+          dimensions: undefined,
+          duration: undefined,
           downloads: asset.downloads || 0,
           rating: asset.rating || 0,
           reviewCount: asset.reviewCount || 0,
           createdAt: asset.createdAt,
-          featured: false, // Default featured status, update this if you have a way to determine it
+          featured: false,
           license: asset.license,
           status: asset.status,
         })),
       )
-      console.log("Transformed Assets", transformedAssets)
+
       setAssets(transformedAssets)
       const featuredAssets = transformedAssets
       setFeaturedAssets(featuredAssets.sort((a: Asset, b: Asset) => b.downloads - a.downloads).slice(0, 3))
+
       if (wallet) {
         setMyAssets(transformedAssets.filter((asset: Asset) => asset.creatorAddress === wallet))
         await fetchPurchases()
@@ -492,51 +469,55 @@ export default function MarketPage() {
   }
 
   const fetchPurchases = async () => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/purchases`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
-    })
-    if (!response.ok) {
-      throw new Error("Failed to fetch purchases")
-    }
-    const data = await response.json()
-    // Transform the data to match the Asset interface
-    const transformedPurchases: Purchase[] = await Promise.all(
-      data.assets.map(async (asset_: any) => ({
-        purchaseDate: asset_.purchaseDate,
-        licenseType: asset_.licenseType,
-        price: asset_.price,
-        asset: {
-          _id: asset_.asset._id,
-          id: asset_.asset.tokenId,
-          title: asset_.asset.title,
-          description: asset_.asset.description,
-          type: "image", // Default type, update this if you have a way to determine the type
-          category: asset_.asset.category,
-          tags: asset_.asset.tags || [],
-          price: asset_.asset.price,
-          currency: "KAS", // Default currency
-          creatorAddress: asset_.asset.creatorAddress,
-          mimeType: asset_.asset.mimeType,
-          creatorName: await fetchEmployerDisplayName(asset_.asset.creatorAddress), // Fetch display name asynchronously
-          thumbnailUrl: `https://gateway.pinata.cloud/ipfs/${asset_.asset.fileCid}?height=300&width=400`, // Generate thumbnail URL
-          assetUrl: `https://gateway.pinata.cloud/ipfs/${asset_.asset.fileCid}`, // Generate asset_.asset URL
-          fileSize: asset_.asset.fileSize || "Unknown", // Default file size, update this if you have a way to determine it
-          dimensions: undefined, // Default dimensions, update this if you have a way to determine it
-          duration: undefined, // Default duration, update this if you have a way to determine it
-          downloads: asset_.asset.downloads || 0,
-          rating: asset_.asset.rating || 0,
-          reviewCount: asset_.asset.reviewCount || 0,
-          createdAt: asset_.asset.createdAt,
-          featured: false, // Default featured status, update this if you have a way to determine it
-          license: asset_.asset.license,
-          status: asset_.asset.status,
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/purchases`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
-      })),
-    )
-    setMyPurchases(transformedPurchases)
+      })
+      if (!response.ok) {
+        throw new Error("Failed to fetch purchases")
+      }
+      const data = await response.json()
+
+      const transformedPurchases: Purchase[] = await Promise.all(
+        data.assets.map(async (asset_: any) => ({
+          purchaseDate: asset_.purchaseDate,
+          licenseType: asset_.licenseType,
+          price: asset_.price,
+          asset: {
+            _id: asset_.asset._id,
+            id: asset_.asset.tokenId,
+            title: asset_.asset.title,
+            description: asset_.asset.description,
+            type: "image",
+            category: asset_.asset.category,
+            tags: asset_.asset.tags || [],
+            price: asset_.asset.price,
+            currency: "KAS",
+            creatorAddress: asset_.asset.creatorAddress,
+            mimeType: asset_.asset.mimeType,
+            creatorName: await fetchEmployerDisplayName(asset_.asset.creatorAddress),
+            thumbnailUrl: `https://gateway.pinata.cloud/ipfs/${asset_.asset.fileCid}?height=300&width=400`,
+            assetUrl: `https://gateway.pinata.cloud/ipfs/${asset_.asset.fileCid}`,
+            fileSize: asset_.asset.fileSize || "Unknown",
+            dimensions: undefined,
+            duration: undefined,
+            downloads: asset_.asset.downloads || 0,
+            rating: asset_.asset.rating || 0,
+            reviewCount: asset_.asset.reviewCount || 0,
+            createdAt: asset_.asset.createdAt,
+            featured: false,
+            license: asset_.asset.license,
+            status: asset_.asset.status,
+          },
+        })),
+      )
+      setMyPurchases(transformedPurchases)
+    } catch (err) {
+      console.error("Error fetching purchases:", err)
+    }
   }
 
   useEffect(() => {
@@ -596,6 +577,7 @@ export default function MarketPage() {
       if (assetFormData.file) {
         formData.append("file", assetFormData.file)
       }
+
       const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/upload`, {
         method: "POST",
         body: formData,
@@ -606,7 +588,6 @@ export default function MarketPage() {
       }
 
       const { cid: fileCid, url: fileUrl, size: fileSize, mimeType } = await uploadResponse.json()
-
       setListingState("processing")
 
       const metadata = {
@@ -638,7 +619,6 @@ export default function MarketPage() {
       }
 
       const { metadataUri, metadataCid } = await metadataResponse.json()
-
       const signer = await provider?.getSigner()
       let tx
 
@@ -658,11 +638,8 @@ export default function MarketPage() {
         tx = await exclusiveContract.registerExclusiveAsset(metadataUri, ethers.parseEther(assetFormData.price))
       }
 
-      // Wait for the transaction to be mined
       const receipt = await tx.wait()
-      console.log("Receipt", receipt)
 
-      // Step 4: Save the asset in the database
       const saveResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/assets`, {
         method: "POST",
         headers: {
@@ -684,11 +661,9 @@ export default function MarketPage() {
       setListingState("success")
       toast.success("Asset listed successfully!")
 
-      // Reset form and close dialog
       setTimeout(() => {
         resetAssetForm()
         setListingState("idle")
-        setShowListDialog(false)
         fetchAssets()
       }, 2000)
     } catch (err: any) {
@@ -707,39 +682,33 @@ export default function MarketPage() {
 
     try {
       setPurchaseDialogState("processing")
-
       const signer = await provider?.getSigner()
       let tx
 
       if (asset.license === "standard") {
-        // StandardLicense1155: Call purchaseStandard
         const standardContract = new ethers.Contract(
           process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
           STANDARD_LICENSE_1155,
           signer,
         )
         tx = await standardContract.purchaseStandard(asset.id, 1, {
-          value: ethers.parseEther(asset.price), // Ensure price is in ETH
+          value: ethers.parseEther(asset.price),
         })
       } else if (asset.license === "exclusive") {
-        // ExclusiveLicense721: Call purchaseExclusive
         const exclusiveContract = new ethers.Contract(
           process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
           EXCLUSIVE_LICENSE_721,
           signer,
         )
         tx = await exclusiveContract.purchaseExclusive(asset.id, {
-          value: ethers.parseEther(asset.price), // Ensure price is in ETH
+          value: ethers.parseEther(asset.price),
         })
       } else {
         throw new Error("Invalid license type")
       }
 
-      // Wait for the transaction to be mined
       const receipt = await tx.wait()
-      console.log("receipt", receipt)
 
-      // Send the transaction hash to the backend for confirmation
       const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/mint-${asset.license}`, {
         method: "POST",
         headers: {
@@ -749,7 +718,7 @@ export default function MarketPage() {
         body: JSON.stringify({
           txHash: receipt.hash,
           assetId: asset.id,
-          ...(asset.license === "standard" && { quantity: 1 }), // Include quantity for standard license
+          ...(asset.license === "standard" && { quantity: 1 }),
         }),
       })
 
@@ -757,13 +726,9 @@ export default function MarketPage() {
         throw new Error("Failed to confirm purchase")
       }
 
-      const data = await response.json()
-      console.log("Purchase confirmed:", data)
-
       setPurchaseDialogState("success")
       toast.success("Asset purchased successfully!")
 
-      // Close dialog after delay
       setTimeout(() => {
         setShowPurchaseDialog(false)
         setSelectedAsset(null)
@@ -792,7 +757,7 @@ export default function MarketPage() {
         ...prev,
         [assetId]: { ...prev[assetId], favoriting: true },
       }))
-      // Simulate API call
+
       await new Promise((resolve) => setTimeout(resolve, 500))
       setFavoriteAssets((prev) => (prev.includes(assetId) ? prev.filter((id) => id !== assetId) : [...prev, assetId]))
       toast.success(favoriteAssets.includes(assetId) ? "Removed from favorites" : "Added to favorites")
@@ -865,16 +830,6 @@ export default function MarketPage() {
   const getAssetTypeText = (type: Asset["type"]) => {
     const typeConfig = ASSET_TYPES.find((t) => t.value === type)
     return typeConfig ? typeConfig.label : "File"
-  }
-
-  // Format file size
-  const formatFileSize = (size: string) => {
-    return size
-  }
-
-  // Format duration
-  const formatDuration = (duration?: string) => {
-    return duration || "N/A"
   }
 
   const getListingButtonContent = () => {
@@ -985,6 +940,7 @@ export default function MarketPage() {
             <Balancer>Handpicked premium assets from our top creators</Balancer>
           </p>
         </motion.div>
+
         <motion.div
           variants={staggerContainer(0.1)}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
@@ -1111,6 +1067,7 @@ export default function MarketPage() {
             )
           })}
         </motion.div>
+
         <motion.div variants={fadeIn()} className="text-center">
           <Button
             variant="outline"
@@ -1751,6 +1708,7 @@ export default function MarketPage() {
                       )
                     })}
                   </motion.div>
+
                   {myAssets.length === 0 && (
                     <motion.div variants={fadeIn()} className="flex justify-center">
                       <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
@@ -1832,6 +1790,7 @@ export default function MarketPage() {
                         </div>
                       </InteractiveCard>
                     ))}
+
                     {myPurchases.length === 0 && (
                       <motion.div variants={fadeIn()} className="flex justify-center">
                         <InteractiveCard className="max-w-md w-full flex flex-col items-center justify-center text-center py-10">
@@ -2005,12 +1964,12 @@ export default function MarketPage() {
                       </Label>
                       <div
                         className="border-2 border-dashed border-border rounded-lg p-6 text-center"
-                        onDragOver={(e) => e.preventDefault()} // Prevent default to allow drop
+                        onDragOver={(e) => e.preventDefault()}
                         onDrop={(e) => {
                           e.preventDefault()
-                          const file = e.dataTransfer.files[0] // Get the first dropped file
+                          const file = e.dataTransfer.files[0]
                           if (file) {
-                            handleAssetInputChange("file", file) // Update the state with the dropped file
+                            handleAssetInputChange("file", file)
                           }
                         }}
                       >
@@ -2040,7 +1999,6 @@ export default function MarketPage() {
                       {assetFormData.file && (
                         <div className="mt-4 p-4 border border-border rounded-lg bg-background/50">
                           <div className="flex items-center gap-4">
-                            {/* File Icon or Thumbnail */}
                             {assetFormData.file.type.startsWith("image/") ? (
                               <img
                                 src={URL.createObjectURL(assetFormData.file) || "/placeholder.svg"}
@@ -2050,14 +2008,12 @@ export default function MarketPage() {
                             ) : (
                               <FileText className="h-16 w-16 text-muted-foreground" />
                             )}
-                            {/* File Details */}
                             <div className="flex-1">
                               <p className="text-sm font-medium text-foreground">{assetFormData.file.name}</p>
                               <p className="text-xs text-muted-foreground">
                                 {(assetFormData.file.size / 1024 / 1024).toFixed(2)} MB
                               </p>
                             </div>
-                            {/* Remove File Button */}
                             <Button
                               variant="outline"
                               size="sm"
@@ -2154,6 +2110,7 @@ export default function MarketPage() {
               Asset details and preview
             </DialogDescription>
           </DialogHeader>
+
           {selectedAsset && (
             <motion.div variants={fadeIn()} initial="hidden" animate="visible" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2307,6 +2264,7 @@ export default function MarketPage() {
               </div>
             </motion.div>
           )}
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -2326,7 +2284,6 @@ export default function MarketPage() {
       <Dialog open={showPurchaseDialog} onOpenChange={setShowPurchaseDialog}>
         <DialogContent className="sm:max-w-md bg-gradient-to-br from-background via-background/95 to-accent/5 border border-accent/20 overflow-hidden">
           <motion.div variants={scaleIn()} initial="hidden" animate="visible" className="relative">
-            {/* Animated background elements */}
             <div className="absolute inset-0 -z-10">
               <motion.div
                 className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-3xl"
@@ -2354,6 +2311,7 @@ export default function MarketPage() {
                 }}
               />
             </div>
+
             <DialogHeader>
               <motion.div variants={fadeIn(0.1)}>
                 <DialogTitle className="font-varien text-2xl tracking-wider text-foreground">
@@ -2364,6 +2322,7 @@ export default function MarketPage() {
                 </DialogDescription>
               </motion.div>
             </DialogHeader>
+
             <motion.div variants={fadeIn(0.2)} className="space-y-6 py-4">
               {selectedAsset && (
                 <div className="flex gap-4">
@@ -2378,6 +2337,7 @@ export default function MarketPage() {
                   </div>
                 </div>
               )}
+
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground font-varela">License Type:</span>
@@ -2464,6 +2424,7 @@ export default function MarketPage() {
                 )}
               </AnimatePresence>
             </motion.div>
+
             <DialogFooter>
               <motion.div variants={fadeIn(0.4)} className="flex gap-2 w-full">
                 <Button
