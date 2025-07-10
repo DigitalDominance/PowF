@@ -54,8 +54,8 @@ import { Balancer } from "react-wrap-balancer"
 import { toast } from "sonner"
 import { useUserContext, fetchEmployerDisplayName, fetchWithAuth } from "@/context/UserContext"
 import { ethers } from "ethers"
-import STANDARD_LICENSE_1155 from '@/lib/contracts/StandardLicense1155.json';
-import EXCLUSIVE_LICENSE_721 from '@/lib/contracts/ExclusiveLicense721.json';
+import STANDARD_LICENSE_1155 from "@/lib/contracts/StandardLicense1155.json"
+import EXCLUSIVE_LICENSE_721 from "@/lib/contracts/ExclusiveLicense721.json"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -120,8 +120,8 @@ const SectionWrapper = ({
 )
 
 interface Asset {
-  _id: string,
-  id: string,
+  _id: string
+  id: string
   title: string
   description: string
   type: "image" | "video" | "audio" | "3d" | "template"
@@ -131,11 +131,11 @@ interface Asset {
   currency: "KAS"
   creatorAddress: string
   creatorName?: string
-  thumbnailUrl: string,
-  mimeType: string,
+  thumbnailUrl: string
+  mimeType: string
   assetUrl: string
-  fileSize: string,
-  fileCid: string,
+  fileSize: string
+  fileCid: string
   dimensions?: string
   duration?: string
   downloads: number
@@ -148,10 +148,10 @@ interface Asset {
 }
 
 interface MyAsset {
-  purchaseDate: string;
-  licenseType: string;
-  price: string;
-  asset: Asset;
+  purchaseDate: string
+  licenseType: string
+  price: string
+  asset: Asset
 }
 
 interface Purchase {
@@ -162,10 +162,10 @@ interface Purchase {
   // purchaseDate: string
   // licenseType: string
   // transactionHash: string
-  purchaseDate: string;
-  licenseType: string;
-  price: string;
-  asset: Asset;
+  purchaseDate: string
+  licenseType: string
+  price: string
+  asset: Asset
 }
 
 const ASSET_CATEGORIES = [
@@ -173,7 +173,6 @@ const ASSET_CATEGORIES = [
   "Illustrations",
   "Videos",
   "Audio",
-  "3D Models",
   "Templates",
   "Graphics",
   "Icons",
@@ -223,10 +222,10 @@ export default function MarketPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all-categories")
-  const [selectedType, setSelectedType] = useState("all-types")
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState({ min: "", max: "" })
   const [sortBy, setSortBy] = useState("newest")
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [showListDialog, setShowListDialog] = useState(false)
   const [showAssetDialog, setShowAssetDialog] = useState(false)
@@ -250,15 +249,36 @@ export default function MarketPage() {
   const assetsPerPage = 12
   const API_BASE_URL = process.env.NEXT_PUBLIC_API
 
+  // Load favorites from localStorage on component mount
+  useEffect(() => {
+    if (wallet) {
+      const savedFavorites = localStorage.getItem(`favorites_${wallet}`)
+      if (savedFavorites) {
+        try {
+          setFavoriteAssets(JSON.parse(savedFavorites))
+        } catch (error) {
+          console.error("Error loading favorites:", error)
+        }
+      }
+    }
+  }, [wallet])
+
+  // Save favorites to localStorage whenever favoriteAssets changes
+  useEffect(() => {
+    if (wallet) {
+      localStorage.setItem(`favorites_${wallet}`, JSON.stringify(favoriteAssets))
+    }
+  }, [favoriteAssets, wallet])
+
   // Fetch assets from the API
   const fetchAssets = async () => {
     try {
-      setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/assets`);
+      setLoading(true)
+      const response = await fetch(`${API_BASE_URL}/assets`)
       if (!response.ok) {
-        throw new Error("Failed to fetch assets");
+        throw new Error("Failed to fetch assets")
       }
-      const data = await response.json();
+      const data = await response.json()
 
       // Transform the data to match the Asset interface
       const transformedAssets: Asset[] = await Promise.all(
@@ -267,7 +287,7 @@ export default function MarketPage() {
           id: asset.tokenId,
           title: asset.title,
           description: asset.description,
-          type: asset.type || 'file', // Default type, update this if you have a way to determine the type
+          type: asset.type || "file", // Default type, update this if you have a way to determine the type
           category: asset.category,
           tags: asset.tags || [],
           price: asset.price,
@@ -287,24 +307,24 @@ export default function MarketPage() {
           featured: false, // Default featured status, update this if you have a way to determine it
           license: asset.license,
           status: asset.status,
-        }))
-      );
+        })),
+      )
 
-      console.log('Transformed Assets', transformedAssets)
-      setAssets(transformedAssets);
+      console.log("Transformed Assets", transformedAssets)
+      setAssets(transformedAssets)
       // setFeaturedAssets(transformedAssets.filter((asset: Asset) => asset.featured));
-      const featuredAssets = transformedAssets;
-      setFeaturedAssets(featuredAssets.sort((a: Asset, b: Asset) =>  b.downloads - a.downloads).slice(0, 3));
+      const featuredAssets = transformedAssets
+      setFeaturedAssets(featuredAssets.sort((a: Asset, b: Asset) => b.downloads - a.downloads).slice(0, 3))
       if (wallet) {
-        setMyAssets(transformedAssets.filter((asset: Asset) => asset.creatorAddress === wallet));
-        await fetchPurchases();
+        setMyAssets(transformedAssets.filter((asset: Asset) => asset.creatorAddress === wallet))
+        await fetchPurchases()
       }
     } catch (err) {
-      console.error("Error fetching assets:", err);
+      console.error("Error fetching assets:", err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const fetchPurchases = async () => {
     const response = await fetchWithAuth(`${API_BASE_URL}/purchases`, {
@@ -312,12 +332,12 @@ export default function MarketPage() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
       },
-    });
+    })
     if (!response.ok) {
-      throw new Error("Failed to fetch purchases");
+      throw new Error("Failed to fetch purchases")
     }
 
-    const data = await response.json();
+    const data = await response.json()
 
     // Transform the data to match the Asset interface
     const transformedPurchases: Purchase[] = await Promise.all(
@@ -350,16 +370,16 @@ export default function MarketPage() {
           featured: false, // Default featured status, update this if you have a way to determine it
           license: asset_.asset.license,
           status: asset_.asset.status,
-        }
-      }))
-    );
+        },
+      })),
+    )
 
-    setMyPurchases(transformedPurchases);
+    setMyPurchases(transformedPurchases)
   }
 
   useEffect(() => {
-    fetchAssets();
-  }, [wallet]);
+    fetchAssets()
+  }, [wallet])
 
   // Handle form inputs
   const handleAssetInputChange = (field: string, value: string | string[] | File | null) => {
@@ -413,21 +433,21 @@ export default function MarketPage() {
       // Simulate file upload
       // await new Promise((resolve) => setTimeout(resolve, 2000))
       // Step 1: Upload file to Pinata via backend
-      const formData = new FormData();
+      const formData = new FormData()
       if (assetFormData.file) {
-        formData.append("file", assetFormData.file);
+        formData.append("file", assetFormData.file)
       }
 
       const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/upload`, {
         method: "POST",
         body: formData,
-      });
+      })
 
       if (!uploadResponse.ok) {
-        throw new Error("File upload failed");
+        throw new Error("File upload failed")
       }
 
-      const { cid: fileCid, url: fileUrl, size: fileSize, mimeType } = await uploadResponse.json();
+      const { cid: fileCid, url: fileUrl, size: fileSize, mimeType } = await uploadResponse.json()
 
       setListingState("processing")
 
@@ -446,8 +466,8 @@ export default function MarketPage() {
         fileUrl,
         fileSize,
         creatorAddress: wallet,
-        mimeType
-      };
+        mimeType,
+      }
 
       const metadataResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/metadata`, {
         method: "POST",
@@ -456,39 +476,39 @@ export default function MarketPage() {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
         body: JSON.stringify(metadata),
-      });
+      })
 
       if (!metadataResponse.ok) {
-        throw new Error("Metadata upload failed");
+        throw new Error("Metadata upload failed")
       }
 
-      const { metadataUri, metadataCid } = await metadataResponse.json();
+      const { metadataUri, metadataCid } = await metadataResponse.json()
 
-      const signer = await provider?.getSigner();
-      let tx;
+      const signer = await provider?.getSigner()
+      let tx
 
       if (assetFormData.license === "standard") {
         const standardContract = new ethers.Contract(
-          process.env.NEXT_PUBLIC_ERC1155_ADDRESS || '',
+          process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
           STANDARD_LICENSE_1155,
-          signer
-        );
+          signer,
+        )
 
-        tx = await standardContract.registerStandardAsset(metadataUri, ethers.parseEther(assetFormData.price));
+        tx = await standardContract.registerStandardAsset(metadataUri, ethers.parseEther(assetFormData.price))
       } else if (assetFormData.license === "exclusive") {
         const exclusiveContract = new ethers.Contract(
-          process.env.NEXT_PUBLIC_ERC721_ADDRESS || '',
+          process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
           EXCLUSIVE_LICENSE_721,
-          signer
-        );
+          signer,
+        )
 
-        tx = await exclusiveContract.registerExclusiveAsset(metadataUri, ethers.parseEther(assetFormData.price));
+        tx = await exclusiveContract.registerExclusiveAsset(metadataUri, ethers.parseEther(assetFormData.price))
       }
 
       // Wait for the transaction to be mined
-      const receipt = await tx.wait();
+      const receipt = await tx.wait()
 
-      console.log('Receipt', receipt);
+      console.log("Receipt", receipt)
 
       // Step 4: Save the asset in the database
       const saveResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/assets`, {
@@ -503,10 +523,10 @@ export default function MarketPage() {
           metadataCid,
           transactionHash: receipt.hash,
         }),
-      });
+      })
 
       if (!saveResponse.ok) {
-        throw new Error("Failed to save asset in the database");
+        throw new Error("Failed to save asset in the database")
       }
 
       setListingState("success")
@@ -517,7 +537,7 @@ export default function MarketPage() {
         resetAssetForm()
         setListingState("idle")
         setShowListDialog(false)
-        fetchAssets();
+        fetchAssets()
       }, 2000)
     } catch (err: any) {
       console.error("Error listing asset:", err)
@@ -539,74 +559,70 @@ export default function MarketPage() {
       // Simulate blockchain transaction
       // await new Promise((resolve) => setTimeout(resolve, 3000))
 
-      const signer = await provider?.getSigner();
+      const signer = await provider?.getSigner()
 
-      let tx;
+      let tx
       if (asset.license === "standard") {
         // StandardLicense1155: Call purchaseStandard
         const standardContract = new ethers.Contract(
           process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
           STANDARD_LICENSE_1155,
-          signer
-        );
+          signer,
+        )
 
         tx = await standardContract.purchaseStandard(asset.id, 1, {
           value: ethers.parseEther(asset.price), // Ensure price is in ETH
-        });
+        })
       } else if (asset.license === "exclusive") {
         // ExclusiveLicense721: Call purchaseExclusive
         const exclusiveContract = new ethers.Contract(
           process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
           EXCLUSIVE_LICENSE_721,
-          signer
-        );
+          signer,
+        )
 
         tx = await exclusiveContract.purchaseExclusive(asset.id, {
           value: ethers.parseEther(asset.price), // Ensure price is in ETH
-        });
+        })
       } else {
-        throw new Error("Invalid license type");
+        throw new Error("Invalid license type")
       }
 
       // Wait for the transaction to be mined
-      const receipt = await tx.wait();
+      const receipt = await tx.wait()
 
-      console.log('receipt', receipt);
+      console.log("receipt", receipt)
 
       // Send the transaction hash to the backend for confirmation
-      const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API}/mint-${asset.license}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-          body: JSON.stringify({
-            txHash: receipt.hash,
-            assetId: asset.id,
-            ...(asset.license === "standard" && { quantity: 1 }), // Include quantity for standard license
-          }),
-        }
-      );
+      const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/mint-${asset.license}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify({
+          txHash: receipt.hash,
+          assetId: asset.id,
+          ...(asset.license === "standard" && { quantity: 1 }), // Include quantity for standard license
+        }),
+      })
 
       if (!response.ok) {
-        throw new Error("Failed to confirm purchase");
+        throw new Error("Failed to confirm purchase")
       }
 
-      const data = await response.json();
-      console.log("Purchase confirmed:", data);
+      const data = await response.json()
+      console.log("Purchase confirmed:", data)
 
       setPurchaseDialogState("success")
       toast.success("Asset purchased successfully!")
-
 
       // Close dialog after delay
       setTimeout(() => {
         setShowPurchaseDialog(false)
         setSelectedAsset(null)
         setPurchaseDialogState("idle")
-        fetchPurchases();
+        fetchPurchases()
       }, 2000)
     } catch (err: any) {
       console.error("Error purchasing asset:", err)
@@ -657,15 +673,15 @@ export default function MarketPage() {
       asset.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
 
     const matchesCategory = selectedCategory === "all-categories" || asset.category === selectedCategory
-    const matchesType = selectedType === "all-types" || asset.type === selectedType
     const matchesTags = selectedTags.length === 0 || selectedTags.some((tag) => asset.tags.includes(tag))
+    const matchesFavorites = !showFavoritesOnly || favoriteAssets.includes(asset._id)
 
     const price = Number.parseFloat(asset.price)
     const matchesPrice =
       (!priceRange.min || price >= Number.parseFloat(priceRange.min)) &&
       (!priceRange.max || price <= Number.parseFloat(priceRange.max))
 
-    return matchesSearch && matchesCategory && matchesType && matchesTags && matchesPrice
+    return matchesSearch && matchesCategory && matchesTags && matchesPrice && matchesFavorites
   })
 
   const sortedAssets = [...filteredAssets].sort((a, b) => {
@@ -706,8 +722,8 @@ export default function MarketPage() {
 
   const getAssetTypeText = (type: Asset["type"]) => {
     const typeConfig = ASSET_TYPES.find((t) => t.value === type)
-    return typeConfig ? typeConfig.label : 'File'
-  }  
+    return typeConfig ? typeConfig.label : "File"
+  }
 
   // Format file size
   const formatFileSize = (size: string) => {
@@ -788,46 +804,46 @@ export default function MarketPage() {
 
   // Helper function to check if mimeType is an image
   const isImage = (mimeType: string) => {
-    if (!mimeType) return false;
-    return mimeType.startsWith('image/');
-  };
+    if (!mimeType) return false
+    return mimeType.startsWith("image/")
+  }
 
   // Helper function to check if mimeType is a video
   const isVideo = (mimeType: string) => {
-    if (!mimeType) return false;
-    return mimeType.startsWith('video/');
-  };
+    if (!mimeType) return false
+    return mimeType.startsWith("video/")
+  }
 
   // Alternative version with more specific checks (if you want to be more restrictive)
   const isImageSpecific = (mimeType: string) => {
-    if (!mimeType) return false;
+    if (!mimeType) return false
     const imageTypes = [
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'image/svg+xml',
-      'image/bmp',
-      'image/tiff'
-    ];
-    return imageTypes.includes(mimeType.toLowerCase());
-  };
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/svg+xml",
+      "image/bmp",
+      "image/tiff",
+    ]
+    return imageTypes.includes(mimeType.toLowerCase())
+  }
 
   const isVideoSpecific = (mimeType: string) => {
-    if (!mimeType) return false;
+    if (!mimeType) return false
     const videoTypes = [
-      'video/mp4',
-      'video/avi',
-      'video/mov',
-      'video/wmv',
-      'video/flv',
-      'video/webm',
-      'video/mkv',
-      'video/quicktime'
-    ];
-    return videoTypes.includes(mimeType.toLowerCase());
-  };
+      "video/mp4",
+      "video/avi",
+      "video/mov",
+      "video/wmv",
+      "video/flv",
+      "video/webm",
+      "video/mkv",
+      "video/quicktime",
+    ]
+    return videoTypes.includes(mimeType.toLowerCase())
+  }
 
   const isListing = listingState !== "idle"
   const isPurchasing = purchaseDialogState !== "idle"
@@ -896,8 +912,6 @@ export default function MarketPage() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
         >
           {featuredAssets.slice(0, 6).map((asset, i) => {
-            const TypeIcon = getAssetTypeIcon(asset.type)
-            const TypeText = getAssetTypeText(asset.type)
             return (
               <motion.div key={asset._id} variants={fadeIn(i * 0.1)}>
                 <InteractiveCard className="h-full group">
@@ -905,7 +919,7 @@ export default function MarketPage() {
                     {asset.thumbnailUrl ? (
                       isImage(asset.mimeType) ? (
                         <img
-                          src={asset.thumbnailUrl}
+                          src={asset.thumbnailUrl || "/placeholder.svg"}
                           alt="Asset"
                           className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
@@ -922,19 +936,9 @@ export default function MarketPage() {
                         </div>
                       )
                     ) : (
-                      <img
-                        src="/placeholder.svg"
-                        alt="Placeholder"
-                        className="w-full h-48 object-cover"
-                      />
+                      <img src="/placeholder.svg" alt="Placeholder" className="w-full h-48 object-cover" />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="absolute top-3 left-3">
-                      <Badge variant="secondary" className="bg-black/50 text-white border-0">
-                        <TypeIcon className="h-3 w-3 mr-1" />
-                        {TypeText}
-                      </Badge>
-                    </div>
                     <div className="absolute top-3 right-3">
                       <Button
                         variant="ghost"
@@ -944,8 +948,9 @@ export default function MarketPage() {
                         disabled={processingStates[asset._id]?.favoriting}
                       >
                         <Heart
-                          className={`h-4 w-4 ${favoriteAssets.includes(asset._id) ? "fill-red-500 text-red-500" : "text-white"
-                            }`}
+                          className={`h-4 w-4 ${
+                            favoriteAssets.includes(asset._id) ? "fill-red-500 text-red-500" : "text-white"
+                          }`}
                         />
                       </Button>
                     </div>
@@ -1109,19 +1114,15 @@ export default function MarketPage() {
                       </SelectContent>
                     </Select>
 
-                    <Select value={selectedType} onValueChange={setSelectedType}>
-                      <SelectTrigger className="w-full sm:w-32 border-border focus:border-accent">
-                        <SelectValue placeholder="Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all-types">All Types</SelectItem>
-                        {ASSET_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Button
+                      variant={showFavoritesOnly ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                      className={`border-accent/30 ${showFavoritesOnly ? "bg-accent text-accent-foreground" : "hover:bg-accent/10"}`}
+                    >
+                      <Heart className={`h-4 w-4 mr-2 ${showFavoritesOnly ? "fill-current" : ""}`} />
+                      Favorites
+                    </Button>
 
                     <Select value={sortBy} onValueChange={setSortBy}>
                       <SelectTrigger className="w-full sm:w-40 border-border focus:border-accent">
@@ -1199,8 +1200,9 @@ export default function MarketPage() {
                     <Badge
                       key={tag}
                       variant={selectedTags.includes(tag) ? "default" : "outline"}
-                      className={`cursor-pointer transition-all duration-200 ${selectedTags.includes(tag) ? "bg-accent text-accent-foreground" : "hover:bg-accent/10"
-                        }`}
+                      className={`cursor-pointer transition-all duration-200 ${
+                        selectedTags.includes(tag) ? "bg-accent text-accent-foreground" : "hover:bg-accent/10"
+                      }`}
                       onClick={() => {
                         setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
                       }}
@@ -1227,8 +1229,6 @@ export default function MarketPage() {
               >
                 <AnimatePresence>
                   {currentAssets.map((asset, i) => {
-                    const TypeIcon = getAssetTypeIcon(asset.type)
-                    const TypeText = getAssetTypeText(asset.type)
                     return (
                       <motion.div
                         key={asset._id}
@@ -1244,7 +1244,7 @@ export default function MarketPage() {
                               {asset.thumbnailUrl ? (
                                 isImage(asset.mimeType) ? (
                                   <img
-                                    src={asset.thumbnailUrl}
+                                    src={asset.thumbnailUrl || "/placeholder.svg"}
                                     alt="Asset"
                                     className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
@@ -1261,19 +1261,9 @@ export default function MarketPage() {
                                   </div>
                                 )
                               ) : (
-                                <img
-                                  src="/placeholder.svg"
-                                  alt="Placeholder"
-                                  className="w-full h-40 object-cover"
-                                />
+                                <img src="/placeholder.svg" alt="Placeholder" className="w-full h-40 object-cover" />
                               )}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                              <div className="absolute top-2 left-2">
-                                <Badge variant="secondary" className="bg-black/50 text-white border-0 text-xs">
-                                  <TypeIcon className="h-3 w-3 mr-1" />
-                                  {TypeText}
-                                </Badge>
-                              </div>
                               <div className="absolute top-2 right-2">
                                 <Button
                                   variant="ghost"
@@ -1283,8 +1273,9 @@ export default function MarketPage() {
                                   disabled={processingStates[asset._id]?.favoriting}
                                 >
                                   <Heart
-                                    className={`h-3 w-3 ${favoriteAssets.includes(asset._id) ? "fill-red-500 text-red-500" : "text-white"
-                                      }`}
+                                    className={`h-3 w-3 ${
+                                      favoriteAssets.includes(asset._id) ? "fill-red-500 text-red-500" : "text-white"
+                                    }`}
                                   />
                                 </Button>
                               </div>
@@ -1377,12 +1368,6 @@ export default function MarketPage() {
                                   alt={asset.title}
                                   className="w-24 h-24 object-cover rounded-lg"
                                 />
-                                <div className="absolute top-1 left-1">
-                                  <Badge variant="secondary" className="bg-black/50 text-white border-0 text-xs">
-                                    <TypeIcon className="h-3 w-3 mr-1" />
-                                    {TypeText}
-                                  </Badge>
-                                </div>
                               </div>
 
                               <div className="flex-1 min-w-0">
@@ -1398,10 +1383,11 @@ export default function MarketPage() {
                                     disabled={processingStates[asset._id]?.favoriting}
                                   >
                                     <Heart
-                                      className={`h-4 w-4 ${favoriteAssets.includes(asset._id)
+                                      className={`h-4 w-4 ${
+                                        favoriteAssets.includes(asset._id)
                                           ? "fill-red-500 text-red-500"
                                           : "text-muted-foreground"
-                                        }`}
+                                      }`}
                                     />
                                   </Button>
                                 </div>
@@ -1538,10 +1524,11 @@ export default function MarketPage() {
                           variant={currentPage === page ? "default" : "outline"}
                           size="sm"
                           onClick={() => setCurrentPage(page)}
-                          className={`min-w-[2.5rem] ${currentPage === page
+                          className={`min-w-[2.5rem] ${
+                            currentPage === page
                               ? "bg-accent text-accent-foreground"
                               : "border-accent/30 hover:bg-accent/10"
-                            }`}
+                          }`}
                         >
                           {page}
                         </Button>
@@ -1579,9 +1566,9 @@ export default function MarketPage() {
                     <h3 className="font-varien text-lg font-semibold text-foreground mb-2">No Assets Found</h3>
                     <p className="text-sm text-muted-foreground font-varela">
                       {searchTerm ||
-                        selectedTags.length > 0 ||
-                        selectedCategory !== "all-categories" ||
-                        selectedType !== "all-types"
+                      selectedTags.length > 0 ||
+                      selectedCategory !== "all-categories" ||
+                      showFavoritesOnly
                         ? "Try adjusting your search criteria"
                         : "Be the first to list an asset!"}
                     </p>
@@ -1611,8 +1598,6 @@ export default function MarketPage() {
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                   >
                     {myAssets.map((asset, i) => {
-                      const TypeIcon = getAssetTypeIcon(asset.type)
-                      const TypeText = getAssetTypeText(asset.type)
                       return (
                         <motion.div key={asset._id} variants={fadeIn(i * 0.1)}>
                           <InteractiveCard className="h-full">
@@ -1620,7 +1605,7 @@ export default function MarketPage() {
                               {asset.thumbnailUrl ? (
                                 isImage(asset.mimeType) ? (
                                   <img
-                                    src={asset.thumbnailUrl}
+                                    src={asset.thumbnailUrl || "/placeholder.svg"}
                                     alt="Asset"
                                     className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
@@ -1637,18 +1622,8 @@ export default function MarketPage() {
                                   </div>
                                 )
                               ) : (
-                                <img
-                                  src="/placeholder.svg"
-                                  alt="Placeholder"
-                                  className="w-full h-40 object-cover"
-                                />
+                                <img src="/placeholder.svg" alt="Placeholder" className="w-full h-40 object-cover" />
                               )}
-                              <div className="absolute top-2 left-2">
-                                <Badge variant="secondary" className="bg-black/50 text-white border-0 text-xs">
-                                  <TypeIcon className="h-3 w-3 mr-1" />
-                                  {TypeText}
-                                </Badge>
-                              </div>
                               <div className="absolute top-2 right-2 flex gap-1">
                                 <Button
                                   variant="ghost"
@@ -1792,7 +1767,7 @@ export default function MarketPage() {
                               {purchase.asset.thumbnailUrl ? (
                                 isImage(purchase.asset.mimeType) ? (
                                   <img
-                                    src={purchase.asset.thumbnailUrl}
+                                    src={purchase.asset.thumbnailUrl || "/placeholder.svg"}
                                     alt="Asset"
                                     className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
@@ -1861,21 +1836,21 @@ export default function MarketPage() {
                               className="bg-accent hover:bg-accent-hover text-accent-foreground font-varien"
                               onClick={async () => {
                                 try {
-                                  const response = await fetch(purchase.asset.assetUrl);
+                                  const response = await fetch(purchase.asset.assetUrl)
                                   if (!response.ok) {
-                                    throw new Error("Failed to fetch the file.");
+                                    throw new Error("Failed to fetch the file.")
                                   }
-                            
-                                  const blob = await response.blob();
-                                  const link = document.createElement("a");
-                                  link.href = URL.createObjectURL(blob); // Create a blob URL for the file
-                                  link.download = purchase.asset.title || "download"; // Suggested file name
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
+
+                                  const blob = await response.blob()
+                                  const link = document.createElement("a")
+                                  link.href = URL.createObjectURL(blob) // Create a blob URL for the file
+                                  link.download = purchase.asset.title || "download" // Suggested file name
+                                  document.body.appendChild(link)
+                                  link.click()
+                                  document.body.removeChild(link)
                                 } catch (error) {
-                                  console.error("Error downloading file:", error);
-                                  toast.error("Failed to download the file. Please try again.");
+                                  console.error("Error downloading file:", error)
+                                  toast.error("Failed to download the file. Please try again.")
                                 }
                               }}
                             >
@@ -2073,10 +2048,10 @@ export default function MarketPage() {
                         className="border-2 border-dashed border-border rounded-lg p-6 text-center"
                         onDragOver={(e) => e.preventDefault()} // Prevent default to allow drop
                         onDrop={(e) => {
-                          e.preventDefault();
-                          const file = e.dataTransfer.files[0]; // Get the first dropped file
+                          e.preventDefault()
+                          const file = e.dataTransfer.files[0] // Get the first dropped file
                           if (file) {
-                            handleAssetInputChange("file", file); // Update the state with the dropped file
+                            handleAssetInputChange("file", file) // Update the state with the dropped file
                           }
                         }}
                       >
@@ -2107,7 +2082,7 @@ export default function MarketPage() {
                             {/* File Icon or Thumbnail */}
                             {assetFormData.file.type.startsWith("image/") ? (
                               <img
-                                src={URL.createObjectURL(assetFormData.file)}
+                                src={URL.createObjectURL(assetFormData.file) || "/placeholder.svg"}
                                 alt="Uploaded file preview"
                                 className="h-16 w-16 object-cover rounded-lg"
                               />
@@ -2181,10 +2156,11 @@ export default function MarketPage() {
                       type="submit"
                       size="lg"
                       disabled={isListing || !wallet}
-                      className={`w-full transition-all duration-300 transform hover:scale-105 group font-varien ${listingState === "success"
+                      className={`w-full transition-all duration-300 transform hover:scale-105 group font-varien ${
+                        listingState === "success"
                           ? "bg-green-500 hover:bg-green-600 text-white"
                           : "bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg hover:shadow-accent/40"
-                        }`}
+                      }`}
                     >
                       {getListingButtonContent()}
                     </Button>
@@ -2233,7 +2209,7 @@ export default function MarketPage() {
                     {selectedAsset.thumbnailUrl ? (
                       isImage(selectedAsset.mimeType) ? (
                         <img
-                          src={selectedAsset.thumbnailUrl}
+                          src={selectedAsset.thumbnailUrl || "/placeholder.svg"}
                           alt="Asset"
                           className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
@@ -2250,11 +2226,7 @@ export default function MarketPage() {
                         </div>
                       )
                     ) : (
-                      <img
-                        src="/placeholder.svg"
-                        alt="Placeholder"
-                        className="w-full h-64 object-cover"
-                      />
+                      <img src="/placeholder.svg" alt="Placeholder" className="w-full h-64 object-cover" />
                     )}
                     {selectedAsset.type === "video" && (
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -2386,10 +2358,11 @@ export default function MarketPage() {
                         disabled={processingStates[selectedAsset._id]?.favoriting}
                       >
                         <Heart
-                          className={`h-5 w-5 ${favoriteAssets.includes(selectedAsset._id)
+                          className={`h-5 w-5 ${
+                            favoriteAssets.includes(selectedAsset._id)
                               ? "fill-red-500 text-red-500"
                               : "text-muted-foreground"
-                            }`}
+                          }`}
                         />
                       </Button>
                     </div>
@@ -2481,7 +2454,7 @@ export default function MarketPage() {
                   {selectedAsset.thumbnailUrl ? (
                     isImage(selectedAsset.mimeType) ? (
                       <img
-                        src={selectedAsset.thumbnailUrl}
+                        src={selectedAsset.thumbnailUrl || "/placeholder.svg"}
                         alt="Asset"
                         className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
                       />
@@ -2498,11 +2471,7 @@ export default function MarketPage() {
                       </div>
                     )
                   ) : (
-                    <img
-                      src="/placeholder.svg"
-                      alt="Placeholder"
-                      className="w-16 h-16 object-cover"
-                    />
+                    <img src="/placeholder.svg" alt="Placeholder" className="w-16 h-16 object-cover" />
                   )}
                   <div className="flex-1 min-w-0">
                     <h4 className="font-varien text-lg font-semibold text-foreground line-clamp-1">
@@ -2622,12 +2591,13 @@ export default function MarketPage() {
                 <Button
                   onClick={() => selectedAsset && handlePurchaseAsset(selectedAsset)}
                   disabled={isPurchasing || !selectedAsset}
-                  className={`font-varien flex-1 transition-all duration-300 ${purchaseDialogState === "success"
+                  className={`font-varien flex-1 transition-all duration-300 ${
+                    purchaseDialogState === "success"
                       ? "bg-green-500 hover:bg-green-600 text-white"
                       : purchaseDialogState === "error"
                         ? "bg-red-500 hover:bg-red-600 text-white"
                         : "bg-accent hover:bg-accent-hover text-accent-foreground shadow-lg hover:shadow-accent/40"
-                    }`}
+                  }`}
                 >
                   <motion.div
                     className="flex items-center"
