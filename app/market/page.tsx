@@ -56,6 +56,7 @@ import { ethers } from "ethers"
 import STANDARD_LICENSE_1155 from "@/lib/contracts/StandardLicense1155.json"
 import EXCLUSIVE_LICENSE_721 from "@/lib/contracts/ExclusiveLicense721.json"
 import VideoComponent from "@/components/custom/video-component"
+import AudioComponent from "@/components/custom/audio-component"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -815,6 +816,12 @@ export default function MarketPage() {
     return mimeType.startsWith("video/")
   }
 
+  // Helper function to check if mimeType is a video
+  const isAudio = (mimeType: string) => {
+    if (!mimeType) return false
+    return mimeType.startsWith("audio/")
+  }  
+
   // Alternative version with more specific checks (if you want to be more restrictive)
   const isImageSpecific = (mimeType: string) => {
     if (!mimeType) return false
@@ -925,12 +932,12 @@ export default function MarketPage() {
                           className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : isVideo(asset.mimeType) ? (
-                        // <video
-                        //   src={asset.thumbnailUrl}
-                        //   controls
-                        //   className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-                        // />
                         <VideoComponent
+                        src={asset.thumbnailUrl}
+                        className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : isAudio(asset.mimeType) ? (
+                        <AudioComponent
                         src={asset.thumbnailUrl}
                         className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
@@ -1254,12 +1261,12 @@ export default function MarketPage() {
                                     className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
                                 ) : isVideo(asset.mimeType) ? (
-                                  // <video
-                                  //   src={asset.thumbnailUrl}
-                                  //   controls
-                                  //   className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
-                                  // />
                                   <VideoComponent
+                                  src={asset.thumbnailUrl}
+                                  className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                ) : isAudio(asset.mimeType) ? (
+                                  <AudioComponent
                                   src={asset.thumbnailUrl}
                                   className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
@@ -1619,12 +1626,12 @@ export default function MarketPage() {
                                     className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
                                 ) : isVideo(asset.mimeType) ? (
-                                  // <video
-                                  //   src={asset.thumbnailUrl}
-                                  //   controls
-                                  //   className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
-                                  // />
                                   <VideoComponent
+                                  src={asset.thumbnailUrl}
+                                  className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                ) : isAudio(asset.mimeType) ? (
+                                  <AudioComponent
                                   src={asset.thumbnailUrl}
                                   className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
@@ -1779,12 +1786,12 @@ export default function MarketPage() {
                                     className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
                                 ) : isVideo(purchase.asset.mimeType) ? (
-                                  // <video
-                                  //   src={purchase.asset.thumbnailUrl}
-                                  //   controls
-                                  //   className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
-                                  // />
                                   <VideoComponent
+                                  src={purchase.asset.thumbnailUrl}
+                                  className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                ) : isAudio(purchase.asset.mimeType) ? (
+                                  <AudioComponent
                                   src={purchase.asset.thumbnailUrl}
                                   className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
@@ -2216,12 +2223,12 @@ export default function MarketPage() {
                           className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : isVideo(selectedAsset.mimeType) ? (
-                        // <video
-                        //   src={selectedAsset.thumbnailUrl}
-                        //   controls
-                        //   className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                        // />
                         <VideoComponent
+                        src={selectedAsset.thumbnailUrl}
+                        className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : isAudio(selectedAsset.mimeType) ? (
+                        <AudioComponent
                         src={selectedAsset.thumbnailUrl}
                         className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
@@ -2459,12 +2466,12 @@ export default function MarketPage() {
                         className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : isVideo(selectedAsset.mimeType) ? (
-                      // <video
-                      //   src={selectedAsset.thumbnailUrl}
-                      //   controls
-                      //   className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
-                      // />
                       <VideoComponent
+                      src={selectedAsset.thumbnailUrl}
+                      className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : isAudio(selectedAsset.mimeType) ? (
+                      <AudioComponent
                       src={selectedAsset.thumbnailUrl}
                       className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
                       />
