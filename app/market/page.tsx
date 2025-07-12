@@ -55,6 +55,7 @@ import { useUserContext, fetchEmployerDisplayName, fetchWithAuth } from "@/conte
 import { ethers } from "ethers"
 import STANDARD_LICENSE_1155 from "@/lib/contracts/StandardLicense1155.json"
 import EXCLUSIVE_LICENSE_721 from "@/lib/contracts/ExclusiveLicense721.json"
+import VideoComponent from "@/components/custom/video-component"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -924,11 +925,14 @@ export default function MarketPage() {
                           className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : isVideo(asset.mimeType) ? (
-                        <video
-                          src={asset.thumbnailUrl}
-                          controls
-                          className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-                          autoPlay
+                        // <video
+                        //   src={asset.thumbnailUrl}
+                        //   controls
+                        //   className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                        // />
+                        <VideoComponent
+                        src={asset.thumbnailUrl}
+                        className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : (
                         <div className="w-full h-48 flex items-center justify-center bg-gray-200 text-gray-500">
@@ -959,21 +963,22 @@ export default function MarketPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 bg-black/50 hover:bg-black/70 text-white border-0"
+                          className="h-8 w-auto bg-black/50 hover:bg-black/70 text-white hover:text-white border-0 flex items-center gap-1 p-1"
                           onClick={() => {
                             setSelectedAsset(asset)
                             setShowAssetDialog(true)
                           }}
                         >
                           <Eye className="h-4 w-4" />
+                          <span className="text-xs">View</span>
                         </Button>
-                        <Button
+                        {/* <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 bg-black/50 hover:bg-black/70 text-white border-0"
                         >
                           <Share2 className="h-4 w-4" />
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   </div>
@@ -1249,11 +1254,14 @@ export default function MarketPage() {
                                     className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
                                 ) : isVideo(asset.mimeType) ? (
-                                  <video
-                                    src={asset.thumbnailUrl}
-                                    controls
-                                    className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
-                                    autoPlay
+                                  // <video
+                                  //   src={asset.thumbnailUrl}
+                                  //   controls
+                                  //   className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  // />
+                                  <VideoComponent
+                                  src={asset.thumbnailUrl}
+                                  className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
                                 ) : (
                                   <div className="w-full h-40 flex items-center justify-center bg-gray-200 text-gray-500">
@@ -1284,7 +1292,7 @@ export default function MarketPage() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-auto bg-black/50 hover:bg-black/70 text-white border-0 flex items-center gap-1 p-1"
+                                    className="h-7 w-auto bg-black/50 hover:bg-black/70 text-white hover:text-white border-0 flex items-center gap-1 p-1"
                                     onClick={() => {
                                       setSelectedAsset(asset)
                                       setShowAssetDialog(true)
@@ -1611,11 +1619,14 @@ export default function MarketPage() {
                                     className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
                                 ) : isVideo(asset.mimeType) ? (
-                                  <video
-                                    src={asset.thumbnailUrl}
-                                    controls
-                                    className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
-                                    autoPlay
+                                  // <video
+                                  //   src={asset.thumbnailUrl}
+                                  //   controls
+                                  //   className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  // />
+                                  <VideoComponent
+                                  src={asset.thumbnailUrl}
+                                  className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
                                 ) : (
                                   <div className="w-full h-40 flex items-center justify-center bg-gray-200 text-gray-500">
@@ -1768,11 +1779,14 @@ export default function MarketPage() {
                                     className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
                                 ) : isVideo(purchase.asset.mimeType) ? (
-                                  <video
-                                    src={purchase.asset.thumbnailUrl}
-                                    controls
-                                    className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
-                                    autoPlay
+                                  // <video
+                                  //   src={purchase.asset.thumbnailUrl}
+                                  //   controls
+                                  //   className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  // />
+                                  <VideoComponent
+                                  src={purchase.asset.thumbnailUrl}
+                                  className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
                                 ) : (
                                   <img
@@ -2202,11 +2216,14 @@ export default function MarketPage() {
                           className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : isVideo(selectedAsset.mimeType) ? (
-                        <video
-                          src={selectedAsset.thumbnailUrl}
-                          controls
-                          className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                          autoPlay
+                        // <video
+                        //   src={selectedAsset.thumbnailUrl}
+                        //   controls
+                        //   className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                        // />
+                        <VideoComponent
+                        src={selectedAsset.thumbnailUrl}
+                        className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : (
                         <div className="w-full h-64 flex items-center justify-center bg-gray-200 text-gray-500">
@@ -2442,11 +2459,14 @@ export default function MarketPage() {
                         className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : isVideo(selectedAsset.mimeType) ? (
-                      <video
-                        src={selectedAsset.thumbnailUrl}
-                        controls
-                        className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
-                        autoPlay
+                      // <video
+                      //   src={selectedAsset.thumbnailUrl}
+                      //   controls
+                      //   className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
+                      // />
+                      <VideoComponent
+                      src={selectedAsset.thumbnailUrl}
+                      className="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : (
                       <div className="w-16 h-16 flex items-center justify-center bg-gray-200 text-gray-500">
