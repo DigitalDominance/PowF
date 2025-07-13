@@ -14,7 +14,7 @@ const AudioComponent = ({ src, className }: { src: string, className: string }) 
   return (
     <div className={`relative ${className}`}>
       <img
-      src={'/placeholder.svg'}
+      src={'/soundicon.webp'}
       alt="Autdio placeholder"
       className="absolute inset-0 w-full h-full object-cover"
       />
