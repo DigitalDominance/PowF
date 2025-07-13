@@ -940,6 +940,7 @@ export default function MarketPage() {
                         <AudioComponent
                         src={asset.thumbnailUrl}
                         className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                        isControl={false}
                         />
                       ) : (
                         <div className="w-full h-48 flex items-center justify-center bg-gray-200 text-gray-500">
@@ -1269,6 +1270,7 @@ export default function MarketPage() {
                                   <AudioComponent
                                   src={asset.thumbnailUrl}
                                   className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                                  isControl={false}
                                   />
                                 ) : (
                                   <div className="w-full h-40 flex items-center justify-center bg-gray-200 text-gray-500">
