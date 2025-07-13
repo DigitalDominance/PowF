@@ -17,6 +17,7 @@ const VideoComponent = ({ src, className }: { src: string, className: string }) 
       src={src}
       loop
       muted
+      playsInline
       className={className}
     />
   )
