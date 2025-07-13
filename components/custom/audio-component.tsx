@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react"
 
-const AudioComponent = ({ src, className }: { src: string, className: string }) => {
+const AudioComponent = ({ src, className, isControl = true }: { src: string, className: string, isControl?: boolean }) => {
   const audioRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -14,7 +14,7 @@ const AudioComponent = ({ src, className }: { src: string, className: string }) 
   return (
     <div className={`relative ${className}`}>
       <img
-      src={'/soundicon.webp'}
+      src={'/placeholder.svg'}
       alt="Autdio placeholder"
       className="absolute inset-0 w-full h-full object-cover"
       />
@@ -23,7 +23,8 @@ const AudioComponent = ({ src, className }: { src: string, className: string }) 
         src={src}
         loop
         muted
-        controls
+        controls={isControl}
+        controlsList="nodownload"
         className={className}
       />
     </div>
