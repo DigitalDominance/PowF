@@ -391,64 +391,66 @@ export function ConnectWallet() {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              variant="outline"
-              className="font-varien flex items-center gap-2 border-accent/70 hover:border-accent"
-            >
-              <Avatar className="h-6 w-6">
+      <div className="max-md:scale-[0.65] -mx-8 px-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant="outline"
+                className="font-varien flex items-center gap-2 border-accent/70 hover:border-accent"
+              >
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={`https://effigy.im/a/${address}.svg`} alt={address} />
+                  <AvatarFallback>{address.charAt(2)}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-start">
+                  <span>{displayName || truncateAddress(address)}</span>
+                  {renderRoleIcon()}
+                </div>
+              </Button>
+            </motion.div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="font-varien w-64 glass-effect">
+            <DropdownMenuLabel className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
                 <AvatarImage src={`https://effigy.im/a/${address}.svg`} alt={address} />
                 <AvatarFallback>{address.charAt(2)}</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col items-start">
-                <span>{displayName || truncateAddress(address)}</span>
-                {renderRoleIcon()}
+              <div>  
+                <p className="font-medium">{truncateAddress(address)}</p>
               </div>
-            </Button>
-          </motion.div>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="font-varien w-64 glass-effect">
-          <DropdownMenuLabel className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={`https://effigy.im/a/${address}.svg`} alt={address} />
-              <AvatarFallback>{address.charAt(2)}</AvatarFallback>
-            </Avatar>
-            <div>  
-              <p className="font-medium">{truncateAddress(address)}</p>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => {
-              setShowMessagesPopup(true)
-              fetchConversationsFromContext()
-            }}
-          >
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Messages
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleCopyAddress}>
-            {copied ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Copy className="mr-2 h-4 w-4" />}
-            Copy Address
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <a href={getBlockExplorerUrl()} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View on Explorer
-            </a>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={handleDisconnect}
-            className="text-red-500 hover:!text-red-500 focus:!text-red-500 hover:!bg-red-500/10"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Disconnect
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                setShowMessagesPopup(true)
+                fetchConversationsFromContext()
+              }}
+            >
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Messages
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleCopyAddress}>
+              {copied ? <Check className="mr-2 h-4 w-4 text-green-500" /> : <Copy className="mr-2 h-4 w-4" />}
+              Copy Address
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href={getBlockExplorerUrl()} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View on Explorer
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleDisconnect}
+              className="text-red-500 hover:!text-red-500 focus:!text-red-500 hover:!bg-red-500/10"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Disconnect
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       {isSigned && (
         <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50">
@@ -457,22 +459,22 @@ export function ConnectWallet() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="w-full max-w-md p-8 bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-2xl shadow-2xl backdrop-blur-sm"
+            className="w-[90vw] max-w-md p-6 md:p-8 bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-lg md:rounded-2xl shadow-2xl backdrop-blur-sm"
           >
-            <div className="text-center mb-6">
+            <div className="text-center mb-4 md:mb-6">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                className="w-16 h-16 bg-gradient-to-br from-accent/20 to-accent/40 rounded-full flex items-center justify-center mx-auto mb-4"
+                className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-accent/20 to-accent/40 rounded-full flex items-center justify-center mx-auto mb-4"
               >
-                <User className="h-8 w-8 text-accent" />
+                <User className="h-6 w-6 md:h-8 md:w-8 text-accent" />
               </motion.div>
-              <h2 className="font-varien text-2xl font-bold mb-2 text-foreground tracking-wider">Welcome!</h2>
-              <p className="font-varela text-muted-foreground">Set up your profile to get started</p>
+              <h2 className="font-varien text-xl md:text-2xl font-bold mb-1 md:mb-2 text-foreground tracking-wider">Welcome!</h2>
+              <p className="font-varela text-sm md:text-base text-muted-foreground">Set up your profile to get started</p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* Display Name Input */}
               <div className="space-y-2">
                 <label htmlFor="displayName" className="block text-sm font-medium text-foreground font-varien">
@@ -484,7 +486,7 @@ export function ConnectWallet() {
                   value={displayName_}
                   onChange={(e) => setDisplayName_(e.target.value)}
                   placeholder="Enter your display name"
-                  className="w-full px-4 py-3 border border-accent/30 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela transition-all duration-200"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-accent/30 rounded-lg md:rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela text-sm md:text-base transition-all duration-200"
                 />
               </div>
 
@@ -497,7 +499,7 @@ export function ConnectWallet() {
                   id="role"
                   value={role_}
                   onChange={(e) => setRole_(e.target.value)}
-                  className="w-full px-4 py-3 border border-accent/30 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela transition-all duration-200"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-accent/30 rounded-lg md:rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela text-sm md:text-base transition-all duration-200"
                 >
                   <option value="" disabled>
                     Select your role
@@ -513,9 +515,9 @@ export function ConnectWallet() {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSubmitDisplayName}
                 disabled={!displayName_ || !role_}
-                className={`w-full py-3 px-6 rounded-xl font-varien font-medium transition-all duration-200 ${
+                className={`w-full py-2 md:py-3 px-4 md:px-6 rounded-lg md:rounded-xl font-varien font-medium transition-all duration-200 ${
                   displayName_ && role_
-                    ? "bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 text-accent-foreground shadow-lg hover:shadow-xl"
+                    ? "bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 text-accent-foreground shadow-md md:shadow-lg hover:shadow-lg md:hover:shadow-xl"
                     : "bg-muted text-muted-foreground cursor-not-allowed"
                 }`}
               >

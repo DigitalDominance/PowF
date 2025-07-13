@@ -74,7 +74,7 @@ export function Header() {
               <div className="scale-[0.5]">
                 <ThemeSwitch />
               </div>
-              <div className="block md:hidden scale-[0.65] -mx-8">
+              <div className="block md:hidden">
                 <ConnectWallet />
               </div>
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
