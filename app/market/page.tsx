@@ -1348,7 +1348,8 @@ export default function MarketPage() {
                                   <span>{asset.rating}</span>
                                   <span className="text-muted-foreground">({asset.reviewCount})</span>
                                 </div>
-                                <span className="text-muted-foreground">{asset.downloads} downloads</span>
+                                {/* <span className="text-muted-foreground">{asset.downloads} downloads</span> */}
+                                <span className="text-muted-foreground">{asset.license === 'exclusive' ? `Exclusive License` : 'Standard License'}</span>
                               </div>
 
                               <div className="flex items-center justify-between pt-2 border-t border-border/50">
