@@ -12,13 +12,21 @@ const AudioComponent = ({ src, className }: { src: string, className: string }) 
   }, [])
 
   return (
-    <audio
-      ref={audioRef}
-      src={src}
-      loop
-      muted
-      className={className}
-    />
+    <div className={`relative ${className}`}>
+      <img
+      src={'/placeholder.svg'}
+      alt="Autdio placeholder"
+      className="absolute inset-0 w-full h-full object-cover"
+      />
+      <audio
+        ref={audioRef}
+        src={src}
+        loop
+        muted
+        controls
+        className={className}
+      />
+    </div>
   )
 }
 
