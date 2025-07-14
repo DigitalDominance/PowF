@@ -149,7 +149,7 @@ interface Offer {
 }
 
 export default function TaskPage() {
-  const { wallet, role, contracts, provider, setEmployerJobs, setJobDetails, displayName, allJobs } = useUserContext()
+  const { wallet, role, contracts, provider, setEmployerJobs, setJobDetails, displayName, allJobs, submitApplication } = useUserContext()
 
   // Task creation state
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "confirming" | "success">("idle")
@@ -454,6 +454,8 @@ export default function TaskPage() {
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    console.log('Role:', role)
+
     if (role !== "worker") {
       toast.error("Only workers can create tasks.", { duration: 3000 })
       return
@@ -463,6 +465,11 @@ export default function TaskPage() {
       toast.error("Please connect your wallet first", { duration: 3000 })
       return
     }
+
+    if (!displayName || displayName.trim() === "" || displayName === 'Unknown Employer') {
+      toast.error("Please set your display name before posting a job.", { duration: 3000 });
+      return;
+    }    
 
     // Validate minimum amount
     const kasAmount = Number.parseFloat(taskFormData.kasAmount)
@@ -640,13 +647,15 @@ export default function TaskPage() {
         // Get the latest job address from employer's jobs (try-catch to handle potential errors)
         try {
           if (contracts?.jobFactory) {
-            const jobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
+            const jobs = await fetchJobsByEmployerFromEvents(contracts?.jobFactory, offer.employerAddress)
             const latestJob = jobs[jobs.length - 1] // Get the latest job
+
+            console.log('latestJob', latestJob)
 
             if (latestJob) {
               // Step 3: Auto-apply worker to the job using the submitApplication function
               const applicationText = `I'm the worker who created the original task "${offer.task.taskName}". I accept this offer and am ready to begin work.`
-              await submitApplication(latestJob, applicationText, provider, wallet)
+              await submitApplication(latestJob, applicationText)
             }
           }
         } catch (contractError) {
@@ -657,11 +666,12 @@ export default function TaskPage() {
         // Update context with new jobs for worker
         if (role === "worker" && contracts?.jobFactory) {
           try {
-            const updatedJobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
+            const updatedJobs = await fetchJobsByEmployerFromEvents(contracts.jobFactory, offer.employerAddress)
             setEmployerJobs(updatedJobs)
 
-            const jobDetailsPromises = updatedJobs.map((jobAddress) => fetchJobDetails(provider, jobAddress))
-            const allJobDetails = await Promise.all(jobDetailsPromises)
+            // const jobDetailsPromises = updatedJobs.map((jobAddress) => fetchJobDetails(provider, jobAddress))
+            const allJobDetails = await fetchJobDetails(updatedJobs, provider)
+            // const allJobDetails = await Promise.all(jobDetailsPromises)
             const validJobDetails = allJobDetails.filter((details) => details !== null)
             setJobDetails(validJobDetails)
           } catch (error) {
@@ -751,10 +761,10 @@ export default function TaskPage() {
       // Refresh jobs data in context for employer
       if (role === "employer" && contracts?.jobFactory && provider) {
         try {
-          const updatedEmployerJobs = await fetchJobsByEmployerFromEvents(provider, contracts.jobFactory)
+          const updatedEmployerJobs = await fetchJobsByEmployerFromEvents(contracts.jobFactory, offer.employerAddress)
           setEmployerJobs(updatedEmployerJobs)
 
-          const jobDetailsPromises = updatedEmployerJobs.map((jobAddress) => fetchJobDetails(provider, jobAddress))
+          const jobDetailsPromises = await fetchJobDetails(updatedEmployerJobs, provider)
           const allJobDetails = await Promise.all(jobDetailsPromises)
           const validJobDetails = allJobDetails.filter((details) => details !== null)
           setJobDetails(validJobDetails)

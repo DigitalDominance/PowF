@@ -9,6 +9,7 @@ import DISPUTE_DAO_ABI from "../lib/contracts/DisputeDAO.json"
 import REPUTATION_SYSTEM_ABI from "../lib/contracts/ReputationSystem.json"
 import PROOF_OF_WORK_JOB_ABI from "../lib/contracts/ProofOfWorkJob.json"
 import axios from "axios"
+import { toast } from "sonner"
 
 interface UserContextType {
   wallet: string
@@ -37,6 +38,7 @@ interface UserContextType {
   fetchP2PMessages: (peer: string, page?: number, limit?: number) => Promise<any[]>
   setMyDisputes: React.Dispatch<React.SetStateAction<any[]>>
   fetchConversations: () => Promise<any[]>
+  submitApplication: (jobAddress: string, applicationText: string) => Promise<void>
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -979,6 +981,47 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
+  const submitApplication = async (
+    jobAddress: string,
+    applicationText: string,
+  ) => {
+    try {
+      if(!provider) {
+        console.error('Please connect the wallet first');
+        return;
+      }
+
+      const signer = await provider.getSigner();
+      // Step 1: Interact with the ProofOfWorkJob contract
+      const jobContract = new ethers.Contract(jobAddress, PROOF_OF_WORK_JOB_ABI, signer);
+  
+      // Ensure the application text is valid
+      if (!applicationText || applicationText.trim() === "") {
+        throw new Error("Application text cannot be empty.");
+      }
+  
+      // Submit the application
+      const tx = await jobContract.submitApplication(applicationText);
+      await tx.wait();
+  
+      // toast.success("Application submitted successfully!");
+    } catch (error: any) {
+      console.error("Error submitting application:", error);
+  
+      // Handle specific errors
+      // if (error.message.includes("Application cannot be empty")) {
+      //   toast.error("Application text cannot be empty.");
+      // } else if (error.message.includes("Already applied")) {
+      //   toast.error("You have already applied for this job.");
+      // } else if (error.message.includes("All positions filled")) {
+      //   toast.error("All positions for this job have been filled.");
+      // } else {
+      //   toast.error("Failed to submit application. Please try again.");
+      // }
+      throw new Error("Contract Error");
+    }
+  };  
+
   return (
     <UserContext.Provider
       value={{
@@ -1008,6 +1051,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setJobDetails,
         setMyDisputes,
         fetchConversations,
+        submitApplication
       }}
     >
       {children}

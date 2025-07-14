@@ -194,7 +194,7 @@ const LICENSE_TYPES = [
 ]
 
 export default function MarketPage() {
-  const { wallet, role, contracts, provider, displayName } = useUserContext()
+  const { wallet, provider } = useUserContext()
 
   // Asset listing state
   const [listingState, setListingState] = useState<"idle" | "uploading" | "processing" | "success">("idle")

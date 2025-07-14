@@ -127,7 +127,7 @@ export default function PostJobPage() {
     }
 
     // Check if the displayName is valid
-    if (!displayName || displayName.trim() === "") {
+    if (!displayName || displayName.trim() === "" || displayName === 'Unknown Employer') {
       toast.error("Please set your display name before posting a job.", { duration: 3000 });
       return;
     }    
