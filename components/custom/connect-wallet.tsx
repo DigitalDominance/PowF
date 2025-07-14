@@ -104,16 +104,21 @@ export function ConnectWallet() {
           const response_ = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
           const data = response_.data
 
-          const storedToken = localStorage.getItem("accessToken");
-          const refreshToken = localStorage.getItem("refreshToken");
-          const storedWallet = localStorage.getItem("wallet");
+          let storedToken = localStorage.getItem("accessToken");
+          let refreshToken = localStorage.getItem("refreshToken");
+          let storedWallet = localStorage.getItem("wallet");
+
+          console.log('Stored Wallet', storedWallet, address)
 
           // Check if tokens are for the current wallet address
-          if (storedWallet !== address) {
+          if (storedWallet?.toLowerCase() !== address?.toLowerCase()) {
             // Invalidate tokens if wallet address has changed
             localStorage.removeItem("accessToken");
             localStorage.removeItem("refreshToken");
             localStorage.setItem("wallet", address || ''); // Update wallet in localStorage
+            storedToken = '';
+            refreshToken = '';
+            storedWallet = address || null;
             // toast.info("Wallet changed, tokens invalidated!");
           }          
   
@@ -137,11 +142,15 @@ export function ConnectWallet() {
                     data: { challenge },
                   } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address });
                   const signer = await provider?.getSigner();
+                  const signature = await signer?.signMessage(challenge);
+                  if (!signature) {
+                    throw new Error("Signature rejected");
+                  }
                   const {
                     data: { accessToken, refreshToken: newRefreshToken },
                   } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
                     wallet: address,
-                    signature: await signer?.signMessage(challenge),
+                    signature,
                   });
 
                   localStorage.setItem("accessToken", accessToken);
@@ -149,25 +158,42 @@ export function ConnectWallet() {
                   // toast.info("New token generated!");
                 } catch (authError) {
                   console.error("Failed to generate new token:", authError);
-                  toast.error("Failed to generate new token!");
+                  // if(authError === 'Signature rejected') {
+                    disconnect();
+                    toast.error("Signing request rejected. Wallet disconnected.");
+                  // } else {
+                  //   toast.error("Failed to generate new token!");
+                  // }
                 }                
               }
             } else {
-              const {
-                data: { challenge },
-              } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
-              // Generate new token
-              const signer = await provider?.getSigner();
-              const {
-                data: { accessToken, refreshToken: newRefreshToken },
-              } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
-                wallet: address,
-                signature: await signer?.signMessage(challenge),
-              });
-  
-              localStorage.setItem("accessToken", accessToken);
-              localStorage.setItem("refreshToken", newRefreshToken);
-              // toast.info("New token generated!");
+              try {
+                const {
+                  data: { challenge },
+                } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
+                // Generate new token
+                const signer = await provider?.getSigner();
+
+                const signature = await signer?.signMessage(challenge);
+                if (!signature) {
+                  throw new Error("Signature rejected");
+                }
+                const {
+                  data: { accessToken, refreshToken: newRefreshToken },
+                } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
+                  wallet: address,
+                  signature,
+                });
+    
+                localStorage.setItem("accessToken", accessToken);
+                localStorage.setItem("refreshToken", newRefreshToken);
+              } catch (error: any) {
+                console.error(error);
+                // if(error.startsWith('user rejected')) {
+                  disconnect();
+                  toast.error("Signing request rejected. Wallet disconnected.");
+                // }
+              }
             }
           }
 
@@ -385,7 +411,7 @@ export function ConnectWallet() {
   const handleDisconnect = () => {
     setUserData({ wallet: "", displayName: "", role: "" })
     disconnect()
-    localStorage.removeItem("wallet"); // Remove wallet address from localStorage
+    // localStorage.removeItem("wallet"); // Remove wallet address from localStorage
     toast.success("Disconnected successfully!")
   }
 
