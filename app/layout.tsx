@@ -6,16 +6,15 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/custom/header"
 import { Footer } from "@/components/custom/footer"
 import { Toaster } from "sonner"
-import { Web3Provider } from "@/components/custom/web3-provider"
-import { headers } from "next/headers"
-import { cookieToInitialState } from "wagmi"
 // import { wagmiConfig } from "@/lib/web3modal-config"
 import { AnimatedBackground } from "@/components/custom/animated-background"
 import { AppKitProvider } from "./appkit"
 import { UserProvider } from "@/context/UserContext"
-// import { Toaster } from "@/components/ui/toaster"
+import { Analytics } from "@vercel/analytics/next"
+import { Suspense } from "react"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" })
+
 // Initialize Poppins font
 const poppins = Poppins({
   subsets: ["latin"],
@@ -33,7 +32,7 @@ export const metadata: Metadata = {
       { url: "/favicon.ico", media: "(prefers-color-scheme: dark)" },
     ],
   },
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -42,7 +41,6 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   // const initialState = cookieToInitialState(wagmiConfig, headers().get("cookie"))
-
   return (
     // Add poppins.variable to the html tag classes
     <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
@@ -50,17 +48,20 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
           <AnimatedBackground />
           {/* <Web3Provider initialState={initialState}> */}
-          <AppKitProvider>
-            <UserProvider>
-              <Header />
-              <main className="flex-1 relative z-10">{children}</main>
-              <Footer />
-            </UserProvider>
-            <Toaster richColors position="top-right" />
-            {/* <Toaster/> */}
-          </AppKitProvider>            
+          <Suspense fallback={null}>
+            <AppKitProvider>
+              <UserProvider>
+                <Header />
+                <main className="flex-1 relative z-10">{children}</main>
+                <Footer />
+              </UserProvider>
+              <Toaster richColors position="top-right" />
+              {/* <Toaster/> */}
+            </AppKitProvider>
+          </Suspense>
           {/* </Web3Provider> */}
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   )
