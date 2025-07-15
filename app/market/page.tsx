@@ -311,7 +311,6 @@ export default function MarketPage() {
         })),
       )
 
-      console.log("Transformed Assets", transformedAssets)
       setAssets(transformedAssets)
       // setFeaturedAssets(transformedAssets.filter((asset: Asset) => asset.featured));
       const featuredAssets = transformedAssets
@@ -510,8 +509,6 @@ export default function MarketPage() {
       // Wait for the transaction to be mined
       const receipt = await tx.wait()
 
-      console.log("Receipt", receipt)
-
       // Step 4: Save the asset in the database
       const saveResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/assets`, {
         method: "POST",
@@ -542,7 +539,6 @@ export default function MarketPage() {
         fetchAssets()
       }, 2000)
     } catch (err: any) {
-      console.error("Error listing asset:", err)
       setListingState("idle")
       toast.error(`Failed to list asset: ${err.message}`, { duration: 5000 })
     }
@@ -593,8 +589,6 @@ export default function MarketPage() {
       // Wait for the transaction to be mined
       const receipt = await tx.wait()
 
-      console.log("receipt", receipt)
-
       // Send the transaction hash to the backend for confirmation
       const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/mint-${asset.license}`, {
         method: "POST",
@@ -614,7 +608,6 @@ export default function MarketPage() {
       }
 
       const data = await response.json()
-      console.log("Purchase confirmed:", data)
 
       setPurchaseDialogState("success")
       toast.success("Asset purchased successfully!")
@@ -627,7 +620,6 @@ export default function MarketPage() {
         fetchPurchases()
       }, 2000)
     } catch (err: any) {
-      console.error("Error purchasing asset:", err)
       setPurchaseDialogState("error")
       toast.error(`Failed to purchase asset: ${err.message}`, { duration: 5000 })
 

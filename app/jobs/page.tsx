@@ -251,7 +251,6 @@ export default function JobsPage() {
       const messages = await fetchP2PMessages(employerAddress)
       setChatMessages(messages)
     } catch (error) {
-      console.error("Error fetching messages:", error)
       toast.error("Failed to load messages")
     } finally {
       setIsLoadingMessages(false)
@@ -268,7 +267,6 @@ export default function JobsPage() {
       const messages = await fetchP2PMessages(employerAddress)
       setActiveJobChatMessages(messages)
     } catch (error) {
-      console.error("Error fetching active job messages:", error)
       toast.error("Failed to load messages")
     } finally {
       setIsLoadingActiveJobMessages(false)
@@ -293,7 +291,6 @@ export default function JobsPage() {
       setNewChatMessage("")
       toast.success("Message sent successfully!")
     } catch (error) {
-      console.error("Error sending message:", error)
       toast.error("Failed to send message")
     } finally {
       setIsSendingMessage(false)
@@ -318,7 +315,6 @@ export default function JobsPage() {
       setNewActiveJobChatMessage("")
       toast.success("Message sent successfully!")
     } catch (error) {
-      console.error("Error sending active job message:", error)
       toast.error("Failed to send message")
     } finally {
       setIsSendingActiveJobMessage(false)
@@ -401,7 +397,6 @@ export default function JobsPage() {
 
       setMyApplications((prev) => [...prev, newApplication])
     } catch (error) {
-      console.error("Error submitting application:", error)
       setApplyState("idle")
       toast.error("Failed to submit application. Please try again.")
     }
@@ -437,7 +432,6 @@ export default function JobsPage() {
       // Submit the application
       handleSubmitApplication(selectedJob.address, applicationText)
     } catch (error) {
-      console.error("Error checking application status:", error)
       toast.error("Failed to check application status.")
     }
   }
@@ -484,7 +478,6 @@ export default function JobsPage() {
         setDisputeState("idle")
       }, 2000)
     } catch (error) {
-      console.error("Error submitting dispute:", error)
       setDisputeState("idle")
       const errorMessage = error instanceof Error ? error.message : "Failed to submit dispute."
       toast.error(errorMessage)
@@ -575,7 +568,6 @@ export default function JobsPage() {
         [jobAddress]: { hasRequested, requestTime, paymentConfirmed },
       }));
     } catch (error) {
-      console.error("Error fetching payment request status:", error);
       toast.error("Failed to fetch payment request status.");
     }
   };
@@ -652,7 +644,6 @@ export default function JobsPage() {
         setWithdrawState("idle")
       }, 2000)
     } catch (error) {
-      console.error("Error withdrawing application:", error)
       setWithdrawState("idle")
       toast.error("Failed to withdraw application. Please try again.")
     }
@@ -1074,7 +1065,6 @@ export default function JobsPage() {
       }));
       toast.success("Payment request submitted successfully!");
     } catch (error) {
-      console.error("Error requesting payment:", error);
       setRequestState("idle");
       toast.error("Failed to request payment. Please try again.");
     }
@@ -1108,7 +1098,6 @@ export default function JobsPage() {
       setApplyState("success");
       toast.success("Payment confirmed successfully!");
     } catch (error) {
-      console.error("Error confirming payment:", error);
       setApplyState("idle");
       toast.error("Failed to confirm payment. Please try again.");
     }

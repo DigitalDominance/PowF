@@ -454,8 +454,6 @@ export default function TaskPage() {
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    console.log('Role:', role)
-
     if (role !== "worker") {
       toast.error("Only workers can create tasks.", { duration: 3000 })
       return
@@ -639,7 +637,6 @@ export default function TaskPage() {
       }
 
       const acceptData = await acceptResponse.json()
-      console.log("Offer accepted, job created:", acceptData)
 
       // Step 2: Since we have the job data from the backend response, we can use it directly
       // The backend already created the job and assigned the worker, so we just need to apply
@@ -649,8 +646,6 @@ export default function TaskPage() {
           if (contracts?.jobFactory) {
             const jobs = await fetchJobsByEmployerFromEvents(contracts?.jobFactory, offer.employerAddress)
             const latestJob = jobs[jobs.length - 1] // Get the latest job
-
-            console.log('latestJob', latestJob)
 
             if (latestJob) {
               // Step 3: Auto-apply worker to the job using the submitApplication function
@@ -669,7 +664,6 @@ export default function TaskPage() {
             const updatedJobs = await fetchJobsByEmployerFromEvents(contracts.jobFactory, offer.employerAddress)
             setEmployerJobs(updatedJobs)
 
-            // const jobDetailsPromises = updatedJobs.map((jobAddress) => fetchJobDetails(provider, jobAddress))
             const allJobDetails = await fetchJobDetails(updatedJobs, provider)
             // const allJobDetails = await Promise.all(jobDetailsPromises)
             const validJobDetails = allJobDetails.filter((details) => details !== null)

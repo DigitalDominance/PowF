@@ -65,6 +65,7 @@ export const fetchEmployerInfo = async (wallet: string) => {
     try {
       // Check if the employer exists
       const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${normalizedWallet}`)
+
       if (response.status === 200) {
         // Fetch employer details
         const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${normalizedWallet}`)
@@ -97,7 +98,6 @@ export const fetchEmployerDisplayName = async (employerAddress: string) => {
       return "Unknown Employer"
     }
   } catch (error) {
-    // console.error("Error fetching employer display name:", error);
     return "Unknown Employer"
   }
 }
@@ -105,11 +105,9 @@ export const fetchEmployerDisplayName = async (employerAddress: string) => {
 export const getAverageRating = async (reputationContract: ethers.Contract, userAddress: string) => {
   try {
     const [average, totalRatings] = await reputationContract.getAverageRating(userAddress)
-    // console.log("Average Rating:", Number(average) / 100) // Divide by 100 for precision
-    // console.log("Total Ratings:", totalRatings)
+
     return { averageRating: Number(average) / 100, totalRatings }
   } catch (error) {
-    // console.error("Error fetching average rating:", error);
     return null
   }
 }
@@ -117,10 +115,9 @@ export const getAverageRating = async (reputationContract: ethers.Contract, user
 const fetchAssignedWorkersLength = async (jobContract: ethers.Contract) => {
   try {
     const assignedWorkers = await jobContract.getAssignedWorkers() // Fetch the entire array
-    // console.log("Assigned Workers:", assignedWorkers)
+
     return assignedWorkers.length // Return the length of the array
   } catch (error) {
-    // console.error("Error fetching assigned workers:", error);
     return 0
   }
 }
@@ -128,7 +125,6 @@ const fetchAssignedWorkersLength = async (jobContract: ethers.Contract) => {
 const fetchAllJobAddresses = async (jobFactoryContract: ethers.Contract) => {
   try {
     const jobAddresses = await jobFactoryContract.getAllJobs();
-    // console.log("Fetched job addresses:", jobAddresses)
     return jobAddresses;
 
   } catch (error) {
@@ -140,10 +136,9 @@ const fetchAllJobAddresses = async (jobFactoryContract: ethers.Contract) => {
 const fetchDisputeDAOAddress = async (jobFactoryContract: ethers.Contract) => {
   try {
     const disputeDAOAddress = await jobFactoryContract.disputeDAOAddress()
-    // console.log("Fetched DisputeDAO Address:", disputeDAOAddress)
+
     return disputeDAOAddress
   } catch (error) {
-    // console.error("Error fetching DisputeDAO address:", error);
     return null
   }
 }
@@ -151,10 +146,8 @@ const fetchDisputeDAOAddress = async (jobFactoryContract: ethers.Contract) => {
 export const fetchJobsByEmployerFromEvents = async (jobFactoryContract: ethers.Contract, employerAddress: string) => {
   try {
     const events = await jobFactoryContract.queryFilter(jobFactoryContract.filters.JobCreated());
-    // console.log('Events:', events, employerAddress);
 
     const filteredEvents = events.filter((ev) => (ev as EventLog).args?.employer.toLowerCase() === employerAddress);
-    // console.log('Filtered Jobs', filteredEvents.map((ev) => (ev as EventLog).args?.jobAddress));
     return filteredEvents.map((ev) => (ev as EventLog).args?.jobAddress);
   } catch (err) {
     console.error(err)
@@ -412,8 +405,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           break
         }
       }
-
-      // console.log("Fetched tags:", tags)
       return tags
     } catch (error) {
       console.error("Error fetching tags:", error)
@@ -543,8 +534,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Filter out null values (canceled jobs)
           const filteredJobs = jobs.filter((job) => job !== null)
 
-          console.log('Filtered Jobs', filteredJobs);
-
           setAllJobs(filteredJobs)
         } catch (error) {
           console.error("Error fetching all jobs:", error)
@@ -573,7 +562,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const activeProvider = provider || publicProvider
-    console.log("Employer Jobs:", employerJobs)
     if (employerJobs.length && activeProvider) {
 
       fetchJobDetails(employerJobs, activeProvider).then(setJobDetails)
@@ -724,7 +712,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const jobs = [];
 
-      console.log('Fetching My jobs...', jobAddresses);
       for (const jobAddress of jobAddresses) {
         const jobContract = new ethers.Contract(jobAddress, PROOF_OF_WORK_JOB_ABI, provider)
 
@@ -791,7 +778,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // console.log("Fetched my jobs:", jobs)
       return jobs
     } catch (error) {
       console.error("Error fetching my jobs:", error)
@@ -837,7 +823,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         { to, content },
         { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` } },
       )
-      // console.log(`P2P message sent to ${to}:`, response.data)
     } catch (error) {
       console.error(`Error sending P2P message to ${to}:`, error)
     }
@@ -975,7 +960,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ),
       )
 
-      // console.log(`Message sent for dispute ${disputeId}:`, newMessage)
     } catch (error) {
       console.error(`Error sending message for dispute ${disputeId}:`, error)
     }
@@ -1008,16 +992,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.error("Error submitting application:", error);
   
-      // Handle specific errors
-      // if (error.message.includes("Application cannot be empty")) {
-      //   toast.error("Application text cannot be empty.");
-      // } else if (error.message.includes("Already applied")) {
-      //   toast.error("You have already applied for this job.");
-      // } else if (error.message.includes("All positions filled")) {
-      //   toast.error("All positions for this job have been filled.");
-      // } else {
-      //   toast.error("Failed to submit application. Please try again.");
-      // }
       throw new Error("Contract Error");
     }
   };  

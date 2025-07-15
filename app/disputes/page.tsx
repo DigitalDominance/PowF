@@ -152,7 +152,6 @@ export default function DisputesPage() {
       })
       return
     }
-    // console.log("Dispute submitted for job:", selectedJob, "with reason:", disputeReason)
     try {
       await createDispute(selectedJob, disputeReason)
     } catch (error) {
@@ -205,7 +204,6 @@ export default function DisputesPage() {
         [disputeId]: { isVoting: false, isConfirming: false },
       }))
     } catch (error) {
-      console.error("Error voting:", error)
       toast.error("Failed to submit vote. Please try again.", {
         duration: 3000,
       })

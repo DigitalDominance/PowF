@@ -172,7 +172,6 @@ export default function JobDetailPage() {
   }
 
   const handleApply = () => {
-    console.log("Applied to job:", job.id, "with text:", applicationText)
     setApplicationText("")
     // In real implementation, this would call smart contract
   }
