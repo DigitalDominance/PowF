@@ -305,7 +305,10 @@ export function ConnectWallet() {
       setUserData({ wallet: address || "", displayName: displayName_.trim(), role })
       toast.success("Display name updated successfully!")
     } catch (error: any) {
-      if (error.response?.status === 400) {
+      if (error.response?.status === 429) {
+        const nextAllowed = new Date(error.response.data.nextAllowedChange).toLocaleDateString()
+        toast.error(`Display name can only be changed once every 14 days. Next allowed: ${nextAllowed}`)
+      } else if (error.response?.status === 400) {
         toast.error(error.response.data.error || "Invalid display name")
       } else {
         toast.error("Failed to update display name")
@@ -690,7 +693,9 @@ export function ConnectWallet() {
                     )}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Update your display name</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Update your display name (can change every 14 days)
+                </p>
               </div>
 
               {/* Work Records */}
