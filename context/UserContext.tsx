@@ -9,6 +9,7 @@ import DISPUTE_DAO_ABI from "../lib/contracts/DisputeDAO.json"
 import REPUTATION_SYSTEM_ABI from "../lib/contracts/ReputationSystem.json"
 import PROOF_OF_WORK_JOB_ABI from "../lib/contracts/ProofOfWorkJob.json"
 import axios from "axios"
+import { toast } from "sonner"
 
 interface UserContextType {
   wallet: string
@@ -44,10 +45,11 @@ const UserContext = createContext<UserContextType | undefined>(undefined)
 
 // Cache for employer information
 const employerInfoCache: Record<string, any> = {}
-const pendingPromises: Record<string, { promise: Promise<any>; isPending: boolean }> = {} // Cache for pending promises
+const pendingPromises: Record<string, { promise: Promise<any>; isPending: boolean }> = {};  // Cache for pending promises
 
 export const fetchEmployerInfo = async (wallet: string) => {
   const normalizedWallet = wallet.toLowerCase()
+
   // Check if the employer info is already cached
   if (employerInfoCache[normalizedWallet]) {
     return employerInfoCache[normalizedWallet]
@@ -63,6 +65,7 @@ export const fetchEmployerInfo = async (wallet: string) => {
     try {
       // Check if the employer exists
       const response = await axios.head(`${process.env.NEXT_PUBLIC_API}/users/${normalizedWallet}`)
+
       if (response.status === 200) {
         // Fetch employer details
         const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${normalizedWallet}`)
@@ -76,12 +79,12 @@ export const fetchEmployerInfo = async (wallet: string) => {
       return null
     } finally {
       // Mark the promise as resolved
-      pendingPromises[normalizedWallet].isPending = false
+      pendingPromises[normalizedWallet].isPending = false;
     }
   })()
 
   // Store the promise and its state in the cache
-  pendingPromises[normalizedWallet] = { promise, isPending: true }
+  pendingPromises[normalizedWallet] = { promise, isPending: true };
   return promise
 }
 
@@ -102,6 +105,7 @@ export const fetchEmployerDisplayName = async (employerAddress: string) => {
 export const getAverageRating = async (reputationContract: ethers.Contract, userAddress: string) => {
   try {
     const [average, totalRatings] = await reputationContract.getAverageRating(userAddress)
+
     return { averageRating: Number(average) / 100, totalRatings }
   } catch (error) {
     return null
@@ -111,6 +115,7 @@ export const getAverageRating = async (reputationContract: ethers.Contract, user
 const fetchAssignedWorkersLength = async (jobContract: ethers.Contract) => {
   try {
     const assignedWorkers = await jobContract.getAssignedWorkers() // Fetch the entire array
+
     return assignedWorkers.length // Return the length of the array
   } catch (error) {
     return 0
@@ -119,10 +124,11 @@ const fetchAssignedWorkersLength = async (jobContract: ethers.Contract) => {
 
 const fetchAllJobAddresses = async (jobFactoryContract: ethers.Contract) => {
   try {
-    const jobAddresses = await jobFactoryContract.getAllJobs()
-    return jobAddresses
+    const jobAddresses = await jobFactoryContract.getAllJobs();
+    return jobAddresses;
+
   } catch (error) {
-    console.error("Error fetching job addresses:", error)
+    console.error("Error fetching job addresses:", error);
     return []
   }
 }
@@ -130,6 +136,7 @@ const fetchAllJobAddresses = async (jobFactoryContract: ethers.Contract) => {
 const fetchDisputeDAOAddress = async (jobFactoryContract: ethers.Contract) => {
   try {
     const disputeDAOAddress = await jobFactoryContract.disputeDAOAddress()
+
     return disputeDAOAddress
   } catch (error) {
     return null
@@ -138,9 +145,10 @@ const fetchDisputeDAOAddress = async (jobFactoryContract: ethers.Contract) => {
 
 export const fetchJobsByEmployerFromEvents = async (jobFactoryContract: ethers.Contract, employerAddress: string) => {
   try {
-    const events = await jobFactoryContract.queryFilter(jobFactoryContract.filters.JobCreated())
-    const filteredEvents = events.filter((ev) => (ev as EventLog).args?.employer.toLowerCase() === employerAddress)
-    return filteredEvents.map((ev) => (ev as EventLog).args?.jobAddress)
+    const events = await jobFactoryContract.queryFilter(jobFactoryContract.filters.JobCreated());
+
+    const filteredEvents = events.filter((ev) => (ev as EventLog).args?.employer.toLowerCase() === employerAddress);
+    return filteredEvents.map((ev) => (ev as EventLog).args?.jobAddress);
   } catch (err) {
     console.error(err)
     return []
@@ -188,7 +196,6 @@ export const fetchJobDetails = async (jobAddresses: string[], provider: ethers.P
         c.getTotalApplications(),
         c.jobCancelled(), // Check if the job is canceled
       ])
-
       // Only include jobs that are not canceled
       if (!jobCancelled) {
         results.push({
@@ -219,7 +226,6 @@ const fetchApplicantsForJobs = async (jobAddresses: string[], provider: ethers.P
     const tags = await fetchTags(c)
     const repAddr = await c.reputation()
     const rep = new ethers.Contract(repAddr, REPUTATION_SYSTEM_ABI, provider)
-
     for (const a of addresses) {
       const [addrDetail, application, appliedAt, isActive] = await c.getApplicant(a)
       const isCurrent = await c.isWorker(a)
@@ -232,8 +238,7 @@ const fetchApplicantsForJobs = async (jobAddresses: string[], provider: ethers.P
         address: a,
         jobAddress: addr,
         jobTitle: title,
-        name: info?.displayName || "Unknown",
-        profileImageUrl: info?.profileImageUrl || null,
+        name: info.displayName,
         application,
         appliedDate: Number(appliedAt) * 1000,
         status: isCurrent ? "reviewed" : "pending",
@@ -246,18 +251,18 @@ const fetchApplicantsForJobs = async (jobAddresses: string[], provider: ethers.P
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const accessToken = localStorage.getItem("accessToken")
-  const refreshToken = localStorage.getItem("refreshToken")
+  const accessToken = localStorage.getItem("accessToken");
+  const refreshToken = localStorage.getItem("refreshToken");
 
   // Add Authorization header if accessToken exists
   if (accessToken) {
     options.headers = {
       ...options.headers,
       Authorization: `Bearer ${accessToken}`,
-    }
+    };
   }
 
-  let response = await fetch(url, options)
+  let response = await fetch(url, options);
 
   // If access token is expired, refresh it
   if (response.status === 401 && refreshToken) {
@@ -265,82 +270,82 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken }),
-    })
+    });
 
     if (refreshResponse.ok) {
-      const { accessToken: newAccessToken } = await refreshResponse.json()
-      localStorage.setItem("accessToken", newAccessToken)
+      const { accessToken: newAccessToken } = await refreshResponse.json();
+      localStorage.setItem("accessToken", newAccessToken);
 
       // Retry the original request with the new access token
       options.headers = {
         ...options.headers,
         Authorization: `Bearer ${newAccessToken}`,
-      }
-      response = await fetch(url, options)
+      };
+      response = await fetch(url, options);
     } else {
       // If refresh token is invalid, log the user out
-      console.error("Refresh token expired or invalid")
-      localStorage.removeItem("accessToken")
-      localStorage.removeItem("refreshToken")
-      window.location.reload() // Redirect to login page
+      console.error("Refresh token expired or invalid");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      window.location.reload(); // Redirect to login page
     }
   }
 
-  return response
+  return response;
 }
 
 export async function axiosWithAuth(url: string, options: any = {}) {
-  const accessToken = localStorage.getItem("accessToken")
-  const refreshToken = localStorage.getItem("refreshToken")
+  const accessToken = localStorage.getItem("accessToken");
+  const refreshToken = localStorage.getItem("refreshToken");
 
   // Add Authorization header if accessToken exists
   if (accessToken) {
     options.headers = {
       ...options.headers,
       Authorization: `Bearer ${accessToken}`,
-    }
+    };
   }
 
   try {
     // Make the API request
-    const response = await axios(url, options)
-    return response
+    const response = await axios(url, options);
+    return response;
   } catch (error: any) {
     // If access token is expired, refresh it
     if (error.response?.status === 401 && refreshToken) {
       try {
         const refreshResponse = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, {
           refreshToken,
-        })
+        });
 
         if (refreshResponse.status === 200) {
-          const { accessToken: newAccessToken } = refreshResponse.data
-          localStorage.setItem("accessToken", newAccessToken)
+          const { accessToken: newAccessToken } = refreshResponse.data;
+          localStorage.setItem("accessToken", newAccessToken);
 
           // Retry the original request with the new access token
           options.headers = {
             ...options.headers,
             Authorization: `Bearer ${newAccessToken}`,
-          }
-          const retryResponse = await axios(url, options)
-          return retryResponse.data
+          };
+          const retryResponse = await axios(url, options);
+          return retryResponse.data;
         } else {
           // If refresh token is invalid, log the user out
-          console.error("Refresh token expired or invalid")
-          localStorage.removeItem("accessToken")
-          localStorage.removeItem("refreshToken")
-          window.location.reload() // Redirect to login page
+          console.error("Refresh token expired or invalid");
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          window.location.reload(); // Redirect to login page
         }
       } catch (refreshError) {
-        console.error("Error refreshing token:", refreshError)
-        localStorage.removeItem("accessToken")
-        localStorage.removeItem("refreshToken")
-        window.location.reload() // Redirect to login page
+        console.error("Error refreshing token:", refreshError);
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        window.location.reload(); // Redirect to login page
       }
     } else {
       // Handle other errors
-      console.error("API request error:", error)
-      throw error
+      console.error("API request error:", error);
+      throw error;
     }
   }
 }
@@ -360,18 +365,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Wallet and contract state
   const { address, isConnected } = useAppKitAccount()
+
   // const randomWallet = useMemo(() => ethers.Wallet.createRandom(), []);
 
   const publicProvider = useMemo(() => {
     return new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL) // Replace with your RPC URL
-  }, [])
+  }, []);
 
   // const randomSigner = useMemo(() => {
   //   return randomWallet.connect(publicProvider);
   // }, [randomWallet, publicProvider]);
 
   const { walletProvider } = useAppKitProvider("eip155")
-
   const provider = useMemo(() => {
     if (!walletProvider) return null
     return new BrowserProvider(walletProvider as Eip1193Provider)
@@ -389,6 +394,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const tags = []
       let index = 0
+
       while (true) {
         try {
           const tag = await jobContract.tags(index) // Fetch tag by index
@@ -415,8 +421,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const signer = await provider.getSigner()
+
       const jobFactory = new ethers.Contract(process.env.NEXT_PUBLIC_JOBFACTORY_ADDRESS || "", JOB_FACTORY_ABI, signer)
+
       const disputeDAOAddress = await fetchDisputeDAOAddress(jobFactory)
+
       const disputeDAO = new ethers.Contract(
         disputeDAOAddress || process.env.NEXT_PUBLIC_DAO_ADDRESS || "",
         DISPUTE_DAO_ABI,
@@ -433,21 +442,31 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const fetchAllJobs = async () => {
       const activeProvider = provider || publicProvider // Use wallet provider if connected, otherwise public provider
+
       if (contracts?.jobFactory || publicProvider) {
         try {
           // Fetch job factory contract using the active provider
           const jobFactory =
             contracts?.jobFactory ||
-            new ethers.Contract(process.env.NEXT_PUBLIC_JOBFACTORY_ADDRESS || "", JOB_FACTORY_ABI, activeProvider)
+            new ethers.Contract(
+              process.env.NEXT_PUBLIC_JOBFACTORY_ADDRESS || "", 
+              JOB_FACTORY_ABI, 
+              activeProvider
+            );
 
           // Fetch all job addresses
           const addresses = await fetchAllJobAddresses(jobFactory)
+
           setJobAddresses(addresses) // Store job addresses in state
 
           // Fetch job details
           const jobs = await Promise.all(
             addresses.map(async (address: string) => {
-              const jobContract = new ethers.Contract(address, PROOF_OF_WORK_JOB_ABI, activeProvider)
+              const jobContract = new ethers.Contract(
+                address, 
+                PROOF_OF_WORK_JOB_ABI, 
+                activeProvider
+              );
 
               const [
                 employer,
@@ -471,7 +490,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 jobContract.createdAt(),
                 jobContract.positions(),
                 jobContract.jobCancelled(), // Check if the job is canceled
-              ])
+              ]);
 
               // Skip canceled jobs
               if (jobCancelled) {
@@ -486,18 +505,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
               // Fetch reputation scores
               const reputationAddress = await jobContract.reputation() // Get the ReputationSystem contract address
               const reputationContract = new ethers.Contract(reputationAddress, REPUTATION_SYSTEM_ABI, provider)
-
               // Fetch reputation scores
               const ratingData = await getAverageRating(reputationContract, employer)
               const { averageRating, totalRatings } = ratingData || { averageRating: 0, totalRatings: 0 }
 
-              const employerInfo = await fetchEmployerInfo(employer)
+              const employerInfo = await fetchEmployerInfo(employer);
 
               return {
                 address,
                 employerAddress: employer,
-                employer: employerInfo?.displayName || "Unknown Employer",
-                employerProfileImage: employerInfo?.profileImageUrl || null,
+                employer: employerInfo.displayName,
                 title,
                 description,
                 payType: payType === BigInt(0) ? "WEEKLY" : "ONE_OFF",
@@ -516,6 +533,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // Filter out null values (canceled jobs)
           const filteredJobs = jobs.filter((job) => job !== null)
+
           setAllJobs(filteredJobs)
         } catch (error) {
           console.error("Error fetching all jobs:", error)
@@ -528,6 +546,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const activeProvider = provider || publicProvider
+
     if (contracts?.jobFactory || publicProvider) {
       try {
         // Fetch job factory contract using the active provider
@@ -544,6 +563,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const activeProvider = provider || publicProvider
     if (employerJobs.length && activeProvider) {
+
       fetchJobDetails(employerJobs, activeProvider).then(setJobDetails)
     }
   }, [employerJobs, provider, address, publicProvider])
@@ -561,7 +581,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("DisputeDAO contract or provider is not available.")
         return
       }
-
       // Fetch the total number of disputes
       const disputeCount = Number(await disputeDAOContract.getDisputeCount())
 
@@ -575,9 +594,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Fetch the DisputeCreated event for this dispute
           const filter = disputeDAOContract.filters.DisputeCreated(id)
           const events = await disputeDAOContract.queryFilter(filter)
+
           let openedDate = "Unknown"
           let votingEnds = "Unknown"
-
           if (events.length > 0) {
             const block = await provider.getBlock(events[0].blockNumber)
             if (block) {
@@ -605,39 +624,31 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             jobContract.getAssignedWorkers(),
           ])
 
-          // Fetch employer display name and profile image
-          const employerInfo = await fetchEmployerInfo(employer)
-          const employerName = employerInfo?.displayName || "Unknown Employer"
-          const employerProfileImage = employerInfo?.profileImageUrl || null
+          // Fetch employer display name
+          const employerName = await fetchEmployerDisplayName(employer)
 
           // Fetch worker details (assuming the first worker is the one involved in the dispute)
           const workerAddress = assignedWorkers.length > 0 ? assignedWorkers[0] : null
-          const workerInfo = workerAddress ? await fetchEmployerInfo(workerAddress) : null
-          const workerName = workerInfo?.displayName || "Unknown Worker"
-          const workerProfileImage = workerInfo?.profileImageUrl || null
+          const workerName = workerAddress ? await fetchEmployerDisplayName(workerAddress) : "Unknown Worker"
 
           // Fetch messages for the dispute
-          const messages = await axiosWithAuth(`${process.env.NEXT_PUBLIC_API}/messages/${id}`, {
-            method: "GET",
-          })
+            const messages = await axiosWithAuth(`${process.env.NEXT_PUBLIC_API}/messages/${id}`, {
+              method: "GET",
+            })
             .then(async (res) => {
               const resolvedMessages = await Promise.all(
-                res.data.map(async (msg: any) => {
-                  const senderInfo = await fetchEmployerInfo(msg.sender)
-                  return {
-                    sender: msg.sender,
-                    senderName: senderInfo?.displayName || "Unknown",
-                    senderProfileImage: senderInfo?.profileImageUrl || null,
-                    role:
-                      msg.sender === employer.toLowerCase()
-                        ? "employer"
-                        : assignedWorkers.find((assigned: any) => msg.sender === assigned.toLowerCase())
-                          ? "worker"
-                          : "juror",
-                    content: msg.content,
-                    timestamp: new Date(msg.createdAt).toLocaleString(),
-                  }
-                }),
+                res.data.map(async (msg: any) => ({
+                  sender: msg.sender,
+                  senderName: await fetchEmployerDisplayName(msg.sender),
+                  role:
+                    msg.sender === employer.toLowerCase()
+                      ? "employer"
+                      : assignedWorkers.find((assigend: any) => msg.sender === assigend.toLowerCase())
+                        ? "worker"
+                        : "juror",
+                  content: msg.content,
+                  timestamp: new Date(msg.createdAt).toLocaleString(),
+                })),
               )
               return resolvedMessages
             })
@@ -655,12 +666,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             employer: {
               address: employer,
               name: employerName,
-              profileImage: employerProfileImage,
             },
             worker: {
               address: workerAddress,
               name: workerName,
-              profileImage: workerProfileImage,
             },
             assignedWorkers: assignedWorkers,
             initiator: dispute.initiator,
@@ -692,7 +701,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           dispute.initiator?.toLowerCase() === address?.toLowerCase(),
       )
       setMyDisputes(filterDisputes)
-
       return formattedDisputes
     } catch (error) {
       console.error("Error fetching disputes:", error)
@@ -702,7 +710,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchMyJobs = async (jobAddresses: string[], userAddress: string) => {
     try {
-      const jobs = []
+      const jobs = [];
+
       for (const jobAddress of jobAddresses) {
         const jobContract = new ethers.Contract(jobAddress, PROOF_OF_WORK_JOB_ABI, provider)
 
@@ -748,16 +757,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Map payType to string
           const payTypeString = payType === BigInt(0) ? "WEEKLY" : "ONE_OFF"
 
-          // Fetch employer display name and profile image
-          const employerInfo = await fetchEmployerInfo(employer)
-          const employerName = employerInfo?.displayName || "Unknown Employer"
-          const employerProfileImage = employerInfo?.profileImageUrl || null
+          // Fetch employer display name
+          const employerName = await fetchEmployerDisplayName(employer)
 
           jobs.push({
             id: jobAddress,
             title,
             employer: employerName,
-            employerProfileImage,
             payType: payTypeString,
             weeklyPay: ethers.formatEther(weeklyPay),
             totalPay: ethers.formatEther(totalPay),
@@ -771,6 +777,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           })
         }
       }
+
       return jobs
     } catch (error) {
       console.error("Error fetching my jobs:", error)
@@ -826,7 +833,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await axiosWithAuth(`${process.env.NEXT_PUBLIC_API}/chat/messages/${peer}`, {
         method: "GET",
         params: { page, limit },
-      })
+      });
       return response.data
     } catch (error) {
       console.error(`Error fetching P2P messages with ${peer}:`, error)
@@ -836,63 +843,69 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchConversations = async (): Promise<any[]> => {
     try {
-      const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API}/chat/conversations`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      })
-
-      const conversationMap = new Map<string, { otherPartyAddress: string; lastMessage: any; messages: any[] }>()
-
+      const { data } = await axios.get(
+        `${process.env.NEXT_PUBLIC_API}/chat/conversations`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+  
+      const conversationMap = new Map<
+        string,
+        { otherPartyAddress: string; lastMessage: any; messages: any[] }
+      >();
+  
       for (const message of data) {
-        const me = address?.toLowerCase()
-        const sender = message.sender.toLowerCase()
-        const receiver = message.receiver.toLowerCase()
-        const other = sender === me ? receiver : sender
-
+        const me = address?.toLowerCase();
+        const sender   = message.sender.toLowerCase();
+        const receiver = message.receiver.toLowerCase();
+        const other    = sender === me ? receiver : sender;
+  
         if (!conversationMap.has(other)) {
           conversationMap.set(other, {
             otherPartyAddress: other,
             lastMessage: message,
-            messages: [], // ← start empty
-          })
+            messages: [],              // ← start empty
+          });
         }
-
-        const conv = conversationMap.get(other)!
-        conv.messages.push(message) // ← push every message
-
+  
+        const conv = conversationMap.get(other)!;
+        conv.messages.push(message); // ← push every message
+  
         // bump lastMessage if newer
         if (new Date(message.createdAt) > new Date(conv.lastMessage.createdAt)) {
-          conv.lastMessage = message
+          conv.lastMessage = message;
         }
       }
-
-      // fetch names & profile images & sort as before…
+  
+      // fetch names & sort as before…
       const withNames = await Promise.all(
         Array.from(conversationMap.values()).map(async (conv) => {
-          let name: string
-          let profileImage: string | null = null
+          let name: string;
           try {
-            const userInfo = await fetchEmployerInfo(conv.otherPartyAddress)
-            name = userInfo?.displayName || `${conv.otherPartyAddress.slice(0, 6)}…${conv.otherPartyAddress.slice(-4)}`
-            profileImage = userInfo?.profileImageUrl || null
+            name = (await fetchEmployerDisplayName(conv.otherPartyAddress)) ||
+              `${conv.otherPartyAddress.slice(0, 6)}…${conv.otherPartyAddress.slice(-4)}`;
           } catch {
-            name = `${conv.otherPartyAddress.slice(0, 6)}…${conv.otherPartyAddress.slice(-4)}`
+            name = `${conv.otherPartyAddress.slice(0, 6)}…${conv.otherPartyAddress.slice(-4)}`;
           }
-          return { ...conv, otherPartyName: name, otherPartyProfileImage: profileImage }
-        }),
-      )
-
+          return { ...conv, otherPartyName: name };
+        })
+      );
+  
       withNames.sort(
-        (a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime(),
-      )
-
-      return withNames
+        (a, b) =>
+          new Date(b.lastMessage.createdAt).getTime() -
+          new Date(a.lastMessage.createdAt).getTime()
+      );
+  
+      return withNames;
     } catch (error) {
-      console.error("Error fetching conversations:", error)
-      throw error
+      console.error("Error fetching conversations:", error);
+      throw error;
     }
-  }
+  };
 
   const sendMessage = async (disputeId: string, content: string) => {
     try {
@@ -904,20 +917,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
         },
       )
+
       const newMessage = response.data // The saved message object returned by the backend
 
       // Transform the newMessage structure
       const employer = myDisputes.find((dispute) => dispute.id === Number(disputeId))?.employer.address || ""
       const assignedWorker = myDisputes.find((dispute) => dispute.id === Number(disputeId))?.worker.address || ""
 
-      const senderInfo = await fetchEmployerInfo(newMessage.sender)
       const transformedMessage = {
         sender: newMessage.sender,
-        senderName: senderInfo?.displayName || "Unknown",
-        senderProfileImage: senderInfo?.profileImageUrl || null,
+        senderName: await fetchEmployerDisplayName(newMessage.sender),
         role:
           newMessage.sender === employer.toLowerCase()
-            ? "employer"
+          ? "employer"
             : newMessage.sender === assignedWorker.toLowerCase()
               ? "worker"
               : "juror",
@@ -947,38 +959,42 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             : dispute,
         ),
       )
+
     } catch (error) {
       console.error(`Error sending message for dispute ${disputeId}:`, error)
     }
   }
 
-  const submitApplication = async (jobAddress: string, applicationText: string) => {
+  const submitApplication = async (
+    jobAddress: string,
+    applicationText: string,
+  ) => {
     try {
-      if (!provider) {
-        console.error("Please connect the wallet first")
-        return
+      if(!provider) {
+        console.error('Please connect the wallet first');
+        return;
       }
-      const signer = await provider.getSigner()
 
+      const signer = await provider.getSigner();
       // Step 1: Interact with the ProofOfWorkJob contract
-      const jobContract = new ethers.Contract(jobAddress, PROOF_OF_WORK_JOB_ABI, signer)
-
+      const jobContract = new ethers.Contract(jobAddress, PROOF_OF_WORK_JOB_ABI, signer);
+  
       // Ensure the application text is valid
       if (!applicationText || applicationText.trim() === "") {
-        throw new Error("Application text cannot be empty.")
+        throw new Error("Application text cannot be empty.");
       }
-
+  
       // Submit the application
-      const tx = await jobContract.submitApplication(applicationText)
-      await tx.wait()
-
+      const tx = await jobContract.submitApplication(applicationText);
+      await tx.wait();
+  
       // toast.success("Application submitted successfully!");
     } catch (error: any) {
-      console.error("Error submitting application:", error)
-
-      throw new Error("Contract Error")
+      console.error("Error submitting application:", error);
+  
+      throw new Error("Contract Error");
     }
-  }
+  };  
 
   return (
     <UserContext.Provider
@@ -1009,7 +1025,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setJobDetails,
         setMyDisputes,
         fetchConversations,
-        submitApplication,
+        submitApplication
       }}
     >
       {children}
