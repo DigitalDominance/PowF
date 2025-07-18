@@ -23,7 +23,6 @@ export function CreateJob() {
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
-        console.log('handle submit')
         e.preventDefault();
         if (!contracts || !contracts.jobFactory) {
             toast({
@@ -42,8 +41,6 @@ export function CreateJob() {
             const value = formData.payType === 0
                 ? weeklyPayWei * durationWeeks
                 : totalPayWei;
-
-            console.log('value', value, formData)
 
             const tx = await contracts.jobFactory.createJob(
                 formData.payType,

@@ -1,7 +1,7 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Wallet, Copy, Check, ExternalLink, Briefcase, User, MessageSquare, Send, Loader2 } from "lucide-react"
+import { LogOut, Wallet, Copy, Check, ExternalLink, Briefcase, User, MessageSquare, Send, Loader2, ArrowLeft } from "lucide-react"
 // import { chains, kaspaEVMTestnet } from "@/lib/web3modal-config" // Import chains
 import { useState, useEffect, useRef } from "react"
 import {
@@ -18,6 +18,8 @@ import { useAppKit, useDisconnect } from "@reown/appkit/react"
 import axios from "axios"
 import { useUserContext } from "@/context/UserContext"
 import { Badge } from "@/components/ui/badge"
+import ZKResumeABI from '@/lib/contracts/ZKResume.json';
+import { ethers } from "ethers"
 // import { useContracts } from "@/hooks/useContract"
 
 function truncateAddress(address: string) {
@@ -48,6 +50,7 @@ export function ConnectWallet() {
 
   // Messaging state
   const [showMessagesPopup, setShowMessagesPopup] = useState(false)
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [conversations, setConversations] = useState<any[]>([])
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null)
   const [conversationMessages, setConversationMessages] = useState<any[]>([])
@@ -55,6 +58,30 @@ export function ConnectWallet() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [isSendingMessage, setIsSendingMessage] = useState(false)
+
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false); // State for sidebar visibility
+
+  const [workRecords, setWorkRecords] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (showProfilePopup) {
+      fetchWorkRecords();
+    }
+  }, [showProfilePopup]);  
+
+  const fetchWorkRecords = async () => {
+    if (!address || !provider) return;
+  
+    try {
+      const contract = new ethers.Contract(process.env.NEXT_PUBLIC_ZKRESUME_ADDRESS || '', ZKResumeABI, provider);
+  
+      const records = await contract.getWorkerRecords(address);
+      setWorkRecords(records);
+    } catch (error) {
+      console.error("Error fetching work records:", error);
+      toast.error("Failed to fetch work records.");
+    }
+  };  
 
   const handleCopyAddress = () => {
     if (address) {
@@ -107,8 +134,6 @@ export function ConnectWallet() {
           let storedToken = localStorage.getItem("accessToken");
           let refreshToken = localStorage.getItem("refreshToken");
           let storedWallet = localStorage.getItem("wallet");
-
-          console.log('Stored Wallet', storedWallet, address)
 
           // Check if tokens are for the current wallet address
           if (storedWallet?.toLowerCase() !== address?.toLowerCase()) {
@@ -203,7 +228,6 @@ export function ConnectWallet() {
           toast.error("User not found!")
         }
       } catch (error) {
-        console.log('Error Authenticating', error)
         try {
           toast.info("Authenticating user...")
           const {
@@ -395,6 +419,7 @@ export function ConnectWallet() {
 
   if (!isConnected || !address) {
     return (
+      <div className="max-md:scale-[0.65] -mx-8">
       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
         <Button
           onClick={handleConnectWallet}
@@ -405,6 +430,7 @@ export function ConnectWallet() {
           Connect Wallet
         </Button>
       </motion.div>
+      </div>
     )
   }
 
@@ -449,6 +475,14 @@ export function ConnectWallet() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
+                setShowProfilePopup(true); // Show the profile popup
+              }}
+            >
+              <User className="mr-2 h-4 w-4" />
+              Profile
+            </DropdownMenuItem>            
+            <DropdownMenuItem
+              onClick={() => {
                 setShowMessagesPopup(true)
                 fetchConversationsFromContext()
               }}
@@ -477,6 +511,114 @@ export function ConnectWallet() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {showProfilePopup && (
+        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="w-[90vw] max-w-md p-6 md:p-8 bg-gradient-to-br from-background via-background/95 to-accent/10 border border-accent/30 rounded-lg md:rounded-2xl shadow-2xl backdrop-blur-sm"
+          >
+            {/* Close Icon Button */}
+            <button
+              onClick={() => setShowProfilePopup(false)} // Close the profile popup
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+            >
+              ✕
+            </button>
+
+            <div className="text-center mb-4 md:mb-6">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-accent/20 to-accent/40 rounded-full flex items-center justify-center mx-auto mb-4"
+              >
+                <User className="h-6 w-6 md:h-8 md:w-8 text-accent" />
+              </motion.div>
+              <h2 className="font-varien text-xl md:text-2xl font-bold mb-1 md:mb-2 text-foreground tracking-wider">Your Profile</h2>
+              <p className="font-varela text-sm md:text-base text-muted-foreground">Manage your profile details</p>
+            </div>
+
+            <div className="space-y-4 md:space-y-6">
+              {/* Profile Image */}
+              <div className="flex items-center gap-4 mb-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={`https://effigy.im/a/${address}.svg`} alt="Profile Image" />
+                  <AvatarFallback>{address.charAt(2)}</AvatarFallback>
+                </Avatar>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    toast.info("Feature to update profile image coming soon!");
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Change Image
+                </Button>
+              </div>
+
+              {/* Display Name */}
+              <div className="mb-4">
+                <label htmlFor="displayName" className="block text-sm font-medium text-foreground font-varien">
+                  Display Name
+                </label>
+                <input
+                  id="displayName"
+                  type="text"
+                  value={displayName_}
+                  onChange={(e) => setDisplayName_(e.target.value)}
+                  placeholder="Enter your display name"
+                  className="w-full px-3 py-2 border border-accent/30 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela text-sm transition-all duration-200"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSubmitDisplayName}
+                  disabled={!displayName_}
+                  className="mt-2 bg-accent hover:bg-accent/80 text-accent-foreground font-varien"
+                >
+                  Update Name
+                </Button>
+              </div>
+
+              {/* Work Records */}
+              <div className="mb-4">
+                <h3 className="font-varien text-lg font-medium text-foreground mb-2">Work Records</h3>
+                {workRecords.length > 0 ? (
+                  <ul className="space-y-2">
+                    {workRecords.map((record, index) => (
+                      <li key={index} className="p-3 border border-accent/30 rounded-lg bg-background/50">
+                        <h4 className="font-medium text-foreground">{record.title}</h4>
+                        <p className="text-sm text-muted-foreground">Employer: {record.employer}</p>
+                        <p className="text-sm text-muted-foreground">Pay: {ethers.formatEther(record.totalPay)} ETH</p>
+                        <p className="text-sm text-muted-foreground">Duration: {record.durationWeeks} weeks</p>
+                        <p className="text-sm text-muted-foreground">
+                          Verified: {record.isVerified ? "Yes" : "No"}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No work records found.</p>
+                )}
+              </div>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowProfilePopup(false)} // Close the profile popup
+              className="text-muted-foreground hover:text-foreground mt-4"
+            >
+              Close
+            </Button>
+          </motion.div>
+        </div>
+      )}   
 
       {isSigned && (
         <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm h-[100vh] z-50">
@@ -562,8 +704,7 @@ export function ConnectWallet() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="
-              w-[260vw] -ml-[75vw] h-[85vh]
+            className="w-full h-[80vh]
               bg-gradient-to-br from-background via-background/95 to-accent/10
               border border-accent/30 rounded-lg
               shadow-none backdrop-blur-0
@@ -574,7 +715,12 @@ export function ConnectWallet() {
           >
             <div className="flex h-full">
               {/* Conversations List */}
-              <div className="w-1/3 md:w-1/3 border-r border-accent/20 flex flex-col">
+              <div className={`
+            ${selectedConversation ? 'hidden md:flex' : 'flex'} 
+            w-full md:w-1/3 
+            border-r border-gray-200 
+            flex-col
+          `}>
                 <div className="p-4 md:p-6 border-b border-accent/20">
                   <div className="flex items-center justify-between">
                     <h2 className="font-varien text-lg md:text-xl font-bold text-foreground tracking-wider">
@@ -654,12 +800,26 @@ export function ConnectWallet() {
               </div>
 
               {/* Chat Area */}
-              <div className="w-2/3 md:flex-1 flex flex-col">
+              <div className={`
+            ${selectedConversation ? 'flex' : 'hidden md:flex'} 
+            w-full md:flex-1 
+            flex-col
+          `}>
                 {selectedConversation ? (
                   <>
                     {/* Chat Header */}
                     <div className="p-4 md:p-6 border-b border-accent/20">
                       <div className="flex items-center gap-3">
+                        {/* Back button for mobile */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedConversation(null)}
+                          className="md:hidden text-gray-500 hover:text-gray-700 p-1"
+                        >
+                          <ArrowLeft className="h-5 w-5" />
+                        </Button>
+
                         <Avatar className="h-8 w-8 md:h-10 md:w-10">
                           <AvatarImage
                             src={`https://effigy.im/a/${selectedConversation.otherPartyAddress}.svg`}
