@@ -291,12 +291,6 @@ export function ConnectWallet() {
 
     setIsUpdatingDisplayName(true)
     try {
-      // For now, we'll show a message that this feature needs to be implemented
-      // You can implement a display name update endpoint similar to the username one
-      toast.info("Display name update feature coming soon!")
-
-      // When you implement the backend endpoint, uncomment and modify this:
-      /*
       const response = await axios.put(
         `${process.env.NEXT_PUBLIC_API}/users/display-name`,
         { displayName: displayName_.trim() },
@@ -307,11 +301,15 @@ export function ConnectWallet() {
         },
       )
 
+      // Update the local state and context
       setUserData({ wallet: address || "", displayName: displayName_.trim(), role })
       toast.success("Display name updated successfully!")
-      */
     } catch (error: any) {
-      toast.error("Failed to update display name")
+      if (error.response?.status === 400) {
+        toast.error(error.response.data.error || "Invalid display name")
+      } else {
+        toast.error("Failed to update display name")
+      }
     } finally {
       setIsUpdatingDisplayName(false)
     }
