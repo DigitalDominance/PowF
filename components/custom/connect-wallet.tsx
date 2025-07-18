@@ -1,8 +1,24 @@
 "use client"
 
+import type React from "react"
+
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Wallet, Copy, Check, ExternalLink, Briefcase, User, MessageSquare, Send, Loader2, ArrowLeft, Camera, Edit } from 'lucide-react'
+import {
+  LogOut,
+  Wallet,
+  Copy,
+  Check,
+  ExternalLink,
+  Briefcase,
+  User,
+  MessageSquare,
+  Send,
+  Loader2,
+  ArrowLeft,
+  Camera,
+  Edit,
+} from "lucide-react"
 // import { chains, kaspaEVMTestnet } from "@/lib/web3modal-config" // Import chains
 import { useState, useEffect, useRef } from "react"
 import {
@@ -19,7 +35,7 @@ import { useAppKit, useDisconnect } from "@reown/appkit/react"
 import axios from "axios"
 import { useUserContext } from "@/context/UserContext"
 import { Badge } from "@/components/ui/badge"
-import ZKResumeABI from '@/lib/contracts/ZKResume.json';
+import ZKResumeABI from "@/lib/contracts/ZKResume.json"
 import { ethers } from "ethers"
 // import { useContracts } from "@/hooks/useContract"
 
@@ -45,18 +61,17 @@ export function ConnectWallet() {
 
   const [isSigned, setIsSigned] = useState(false) // Track signing completion
   const [displayName_, setDisplayName_] = useState("") // State for displayName
-  const [username_, setUsername_] = useState("") // State for username
   const [challenge, setChallenge] = useState("") // State for storing the challenge
   const [copied, setCopied] = useState(false)
   const [role_, setRole_] = useState("") // State for role
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
-  const [isUpdatingUsername, setIsUpdatingUsername] = useState(false)
+  const [isUpdatingDisplayName, setIsUpdatingDisplayName] = useState(false)
   const [isUpdatingProfileImage, setIsUpdatingProfileImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Messaging state
   const [showMessagesPopup, setShowMessagesPopup] = useState(false)
-  const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const [showProfilePopup, setShowProfilePopup] = useState(false)
   const [conversations, setConversations] = useState<any[]>([])
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null)
   const [conversationMessages, setConversationMessages] = useState<any[]>([])
@@ -64,28 +79,28 @@ export function ConnectWallet() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [isSendingMessage, setIsSendingMessage] = useState(false)
-  const [isSidebarVisible, setIsSidebarVisible] = useState(false); // State for sidebar visibility
-  const [workRecords, setWorkRecords] = useState<any[]>([]);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false) // State for sidebar visibility
+  const [workRecords, setWorkRecords] = useState<any[]>([])
 
   useEffect(() => {
     if (showProfilePopup) {
-      fetchWorkRecords();
+      fetchWorkRecords()
     }
-  }, [showProfilePopup]);
+  }, [showProfilePopup])
 
   const fetchWorkRecords = async () => {
-    if (!address || !provider) return;
+    if (!address || !provider) return
 
     try {
-      const contract = new ethers.Contract(process.env.NEXT_PUBLIC_ZKRESUME_ADDRESS || '', ZKResumeABI, provider);
+      const contract = new ethers.Contract(process.env.NEXT_PUBLIC_ZKRESUME_ADDRESS || "", ZKResumeABI, provider)
 
-      const records = await contract.getWorkerRecords(address);
-      setWorkRecords(records);
+      const records = await contract.getWorkerRecords(address)
+      setWorkRecords(records)
     } catch (error) {
-      console.error("Error fetching work records:", error);
-      toast.error("Failed to fetch work records.");
+      console.error("Error fetching work records:", error)
+      toast.error("Failed to fetch work records.")
     }
-  };
+  }
 
   const handleCopyAddress = () => {
     if (address) {
@@ -104,9 +119,9 @@ export function ConnectWallet() {
   }
 
   const handleConnectWallet = async () => {
-    await open();
+    await open()
     if (address) {
-      localStorage.setItem("wallet", address); // Store wallet address in localStorage
+      localStorage.setItem("wallet", address) // Store wallet address in localStorage
     }
   }
 
@@ -134,19 +149,19 @@ export function ConnectWallet() {
         if (response.status === 200) {
           const response_ = await axios.get(`${process.env.NEXT_PUBLIC_API}/users/${address}`)
           const data = response_.data
-          let storedToken = localStorage.getItem("accessToken");
-          let refreshToken = localStorage.getItem("refreshToken");
-          let storedWallet = localStorage.getItem("wallet");
+          let storedToken = localStorage.getItem("accessToken")
+          let refreshToken = localStorage.getItem("refreshToken")
+          let storedWallet = localStorage.getItem("wallet")
 
           // Check if tokens are for the current wallet address
           if (storedWallet?.toLowerCase() !== address?.toLowerCase()) {
             // Invalidate tokens if wallet address has changed
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
-            localStorage.setItem("wallet", address || ''); // Update wallet in localStorage
-            storedToken = '';
-            refreshToken = '';
-            storedWallet = address || null;
+            localStorage.removeItem("accessToken")
+            localStorage.removeItem("refreshToken")
+            localStorage.setItem("wallet", address || "") // Update wallet in localStorage
+            storedToken = ""
+            refreshToken = ""
+            storedWallet = address || null
             // toast.info("Wallet changed, tokens invalidated!");
           }
 
@@ -157,41 +172,40 @@ export function ConnectWallet() {
                 // Refresh token
                 const { data: refreshedTokens } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/refresh`, {
                   refreshToken,
-                });
-                localStorage.setItem("accessToken", refreshedTokens.accessToken);
+                })
+                localStorage.setItem("accessToken", refreshedTokens.accessToken)
                 // toast.info("Token refreshed!");
               } catch (refreshError) {
-                console.error("Failed to refresh token:", refreshError);
-                toast.error("Failed to refresh token!");
+                console.error("Failed to refresh token:", refreshError)
+                toast.error("Failed to refresh token!")
                 // If refresh fails, generate a new token
                 try {
                   const {
                     data: { challenge },
-                  } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address });
-                  const signer = await provider?.getSigner();
-                  const signature = await signer?.signMessage(challenge);
+                  } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
+                  const signer = await provider?.getSigner()
+                  const signature = await signer?.signMessage(challenge)
                   if (!signature) {
-                    throw new Error("Signature rejected");
+                    throw new Error("Signature rejected")
                   }
                   const {
                     data: { accessToken, refreshToken: newRefreshToken },
                   } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
                     wallet: address,
                     signature,
-                  });
-                  localStorage.setItem("accessToken", accessToken);
-                  localStorage.setItem("refreshToken", newRefreshToken);
+                  })
+                  localStorage.setItem("accessToken", accessToken)
+                  localStorage.setItem("refreshToken", newRefreshToken)
                   // toast.info("New token generated!");
                 } catch (authError) {
-                  console.error("Failed to generate new token:", authError);
+                  console.error("Failed to generate new token:", authError)
                   // if(authError === 'Signature rejected') {
-                  disconnect();
-                  toast.error("Signing request rejected. Wallet disconnected.");
+                  disconnect()
+                  toast.error("Signing request rejected. Wallet disconnected.")
                   // } else {
                   //   toast.error("Failed to generate new token!");
                   // }
                 }
-
               }
             } else {
               try {
@@ -199,31 +213,31 @@ export function ConnectWallet() {
                   data: { challenge },
                 } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/challenge`, { wallet: address })
                 // Generate new token
-                const signer = await provider?.getSigner();
-                const signature = await signer?.signMessage(challenge);
+                const signer = await provider?.getSigner()
+                const signature = await signer?.signMessage(challenge)
                 if (!signature) {
-                  throw new Error("Signature rejected");
+                  throw new Error("Signature rejected")
                 }
                 const {
                   data: { accessToken, refreshToken: newRefreshToken },
                 } = await axios.post(`${process.env.NEXT_PUBLIC_API}/auth/verify`, {
                   wallet: address,
                   signature,
-                });
+                })
 
-                localStorage.setItem("accessToken", accessToken);
-                localStorage.setItem("refreshToken", newRefreshToken);
+                localStorage.setItem("accessToken", accessToken)
+                localStorage.setItem("refreshToken", newRefreshToken)
               } catch (error: any) {
-                console.error(error);
+                console.error(error)
                 // if(error.startsWith('user rejected')) {
-                disconnect();
-                toast.error("Signing request rejected. Wallet disconnected.");
+                disconnect()
+                toast.error("Signing request rejected. Wallet disconnected.")
                 // }
               }
             }
           }
           setUserData({ wallet: data.wallet, displayName: data.displayName, role: data.role })
-          setUsername_(data.username || "")
+          setDisplayName_(data.displayName || "")
           setProfileImageUrl(data.profileImageUrl || null)
           // toast.success("User exists!")
         } else {
@@ -258,7 +272,6 @@ export function ConnectWallet() {
         signature: await signer?.signMessage(challenge),
         displayName: displayName_,
         role: role_,
-        username: username_ || undefined, // Include username if provided
       })
       localStorage.setItem("accessToken", accessToken)
       localStorage.setItem("refreshToken", refreshToken)
@@ -266,45 +279,41 @@ export function ConnectWallet() {
       toast.success("Authentication successful!")
       setIsSigned(false)
     } catch (error: any) {
-      if (error.response?.status === 409) {
-        toast.error("Username is already taken. Please choose a different one.")
-      } else {
-        toast.error("Failed to submit display name!")
-      }
+      toast.error("Failed to submit display name!")
     }
   }
 
-  const handleUpdateUsername = async () => {
-    if (!username_.trim()) {
-      toast.error("Username cannot be empty")
+  const handleUpdateDisplayName = async () => {
+    if (!displayName_.trim()) {
+      toast.error("Display name cannot be empty")
       return
     }
 
-    setIsUpdatingUsername(true)
+    setIsUpdatingDisplayName(true)
     try {
+      // For now, we'll show a message that this feature needs to be implemented
+      // You can implement a display name update endpoint similar to the username one
+      toast.info("Display name update feature coming soon!")
+
+      // When you implement the backend endpoint, uncomment and modify this:
+      /*
       const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API}/users/username`,
-        { username: username_.trim() },
+        `${process.env.NEXT_PUBLIC_API}/users/display-name`,
+        { displayName: displayName_.trim() },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
-        }
+        },
       )
 
-      toast.success("Username updated successfully!")
-      // Update local state if needed
+      setUserData({ wallet: address || "", displayName: displayName_.trim(), role })
+      toast.success("Display name updated successfully!")
+      */
     } catch (error: any) {
-      if (error.response?.status === 409) {
-        toast.error("Username is already taken")
-      } else if (error.response?.status === 429) {
-        const nextAllowed = new Date(error.response.data.nextAllowedChange).toLocaleDateString()
-        toast.error(`Username can only be changed once every 30 days. Next allowed: ${nextAllowed}`)
-      } else {
-        toast.error("Failed to update username")
-      }
+      toast.error("Failed to update display name")
     } finally {
-      setIsUpdatingUsername(false)
+      setIsUpdatingDisplayName(false)
     }
   }
 
@@ -313,7 +322,7 @@ export function ConnectWallet() {
     if (!file) return
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file")
       return
     }
@@ -327,18 +336,14 @@ export function ConnectWallet() {
     setIsUpdatingProfileImage(true)
     try {
       const formData = new FormData()
-      formData.append('profileImage', file)
+      formData.append("profileImage", file)
 
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API}/users/profile-image`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      )
+      const response = await axios.put(`${process.env.NEXT_PUBLIC_API}/users/profile-image`, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          "Content-Type": "multipart/form-data",
+        },
+      })
 
       setProfileImageUrl(response.data.profileImageUrl)
       toast.success("Profile image updated successfully!")
@@ -353,7 +358,7 @@ export function ConnectWallet() {
       setIsUpdatingProfileImage(false)
       // Reset file input
       if (fileInputRef.current) {
-        fileInputRef.current.value = ''
+        fileInputRef.current.value = ""
       }
     }
   }
@@ -378,15 +383,12 @@ export function ConnectWallet() {
     setIsLoadingMessages(true)
     try {
       // find the conversation we already fetched
-      const conv = conversations.find(
-        (c) => c.otherPartyAddress.toLowerCase() === otherPartyAddress.toLowerCase()
-      )
+      const conv = conversations.find((c) => c.otherPartyAddress.toLowerCase() === otherPartyAddress.toLowerCase())
       if (!conv) {
         setConversationMessages([])
       } else {
         const sorted = [...conv.messages].sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
         )
         setConversationMessages(sorted)
       }
@@ -441,8 +443,7 @@ export function ConnectWallet() {
         </div>
       ) : messages.length > 0 ? (
         messages.map((message: any, index: number) => {
-          const isFromMe =
-            message.receiver?.toLowerCase() === otherPartyAddress?.toLowerCase()
+          const isFromMe = message.receiver?.toLowerCase() === otherPartyAddress?.toLowerCase()
           return (
             <div key={index} className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}>
               {!isFromMe && (
@@ -454,20 +455,22 @@ export function ConnectWallet() {
                 </Avatar>
               )}
               <div
-                className={`max-w-[80%] rounded-lg p-3 ${isFromMe
-                  ? "bg-green-100 dark:bg-green-900/30 text-foreground border border-green-200 dark:border-green-700"
-                  : "bg-red-100 dark:bg-red-900/30 text-foreground border border-red-200 dark:border-red-700"
-                  }`}
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  isFromMe
+                    ? "bg-green-100 dark:bg-green-900/30 text-foreground border border-green-200 dark:border-green-700"
+                    : "bg-red-100 dark:bg-red-900/30 text-foreground border border-red-200 dark:border-red-700"
+                }`}
               >
                 <div className="flex justify-between items-center mb-1">
                   <span className="font-medium text-sm font-varela">
                     {isFromMe ? displayName || "You" : otherPartyName}{" "}
                     <Badge
                       variant="outline"
-                      className={`text-xs ml-1 font-varela ${isFromMe
-                        ? "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
-                        : "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30"
-                        }`}
+                      className={`text-xs ml-1 font-varela ${
+                        isFromMe
+                          ? "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
+                          : "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30"
+                      }`}
                     >
                       {isFromMe ? "You" : "Contact"}
                     </Badge>
@@ -480,7 +483,10 @@ export function ConnectWallet() {
               </div>
               {isFromMe && (
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={profileImageUrl || `https://effigy.im/a/${currentUserAddress}.svg`} alt={currentUserAddress} />
+                  <AvatarImage
+                    src={profileImageUrl || `https://effigy.im/a/${currentUserAddress}.svg`}
+                    alt={currentUserAddress}
+                  />
                   <AvatarFallback>
                     <User className="h-4 w-4" />
                   </AvatarFallback>
@@ -505,7 +511,7 @@ export function ConnectWallet() {
           <Button
             onClick={handleConnectWallet}
             variant="outline"
-            className="font-varien border-accent text-accent hover:bg-accent/10 hover:text-accent group tracking-wider"
+            className="font-varien border-accent text-accent hover:bg-accent/10 hover:text-accent group tracking-wider bg-transparent"
           >
             <Wallet className="mr-2 h-4 w-4 group-hover:animate-pulse-glow" />
             Connect Wallet
@@ -530,7 +536,7 @@ export function ConnectWallet() {
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 variant="outline"
-                className="font-varien flex items-center gap-2 border-accent/70 hover:border-accent"
+                className="font-varien flex items-center gap-2 border-accent/70 hover:border-accent bg-transparent"
               >
                 <Avatar className="h-6 w-6">
                   <AvatarImage src={profileImageUrl || `https://effigy.im/a/${address}.svg`} alt={address} />
@@ -551,13 +557,12 @@ export function ConnectWallet() {
               </Avatar>
               <div>
                 <p className="font-medium">{displayName || truncateAddress(address)}</p>
-                {username_ && <p className="text-sm text-muted-foreground">@{username_}</p>}
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
-                setShowProfilePopup(true); // Show the profile popup
+                setShowProfilePopup(true) // Show the profile popup
               }}
             >
               <User className="mr-2 h-4 w-4" />
@@ -620,7 +625,9 @@ export function ConnectWallet() {
               >
                 <User className="h-6 w-6 md:h-8 md:w-8 text-accent" />
               </motion.div>
-              <h2 className="font-varien text-xl md:text-2xl font-bold mb-1 md:mb-2 text-foreground tracking-wider">Your Profile</h2>
+              <h2 className="font-varien text-xl md:text-2xl font-bold mb-1 md:mb-2 text-foreground tracking-wider">
+                Your Profile
+              </h2>
               <p className="font-varela text-sm md:text-base text-muted-foreground">Manage your profile details</p>
             </div>
             <div className="space-y-4 md:space-y-6">
@@ -651,7 +658,8 @@ export function ConnectWallet() {
                   className="hidden"
                 />
                 <p className="text-xs text-muted-foreground text-center">
-                  Click camera icon to change image<br />
+                  Click camera icon to change image
+                  <br />
                   (Max 10MB, can change every 7 days)
                 </p>
               </div>
@@ -661,45 +669,30 @@ export function ConnectWallet() {
                 <label htmlFor="displayName" className="block text-sm font-medium text-foreground font-varien">
                   Display Name
                 </label>
-                <input
-                  id="displayName"
-                  type="text"
-                  value={displayName || ""}
-                  readOnly
-                  className="w-full px-3 py-2 border border-accent/30 rounded-lg shadow-sm bg-muted/50 text-muted-foreground font-varela text-sm cursor-not-allowed"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Display name cannot be changed</p>
-              </div>
-
-              {/* Username */}
-              <div className="mb-4">
-                <label htmlFor="username" className="block text-sm font-medium text-foreground font-varien">
-                  Username
-                </label>
                 <div className="flex gap-2">
                   <input
-                    id="username"
+                    id="displayName"
                     type="text"
-                    value={username_}
-                    onChange={(e) => setUsername_(e.target.value)}
-                    placeholder="Enter your username"
+                    value={displayName_}
+                    onChange={(e) => setDisplayName_(e.target.value)}
+                    placeholder="Enter your display name"
                     className="flex-1 px-3 py-2 border border-accent/30 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela text-sm transition-all duration-200"
                   />
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleUpdateUsername}
-                    disabled={!username_.trim() || isUpdatingUsername}
+                    onClick={handleUpdateDisplayName}
+                    disabled={!displayName_.trim() || isUpdatingDisplayName}
                     className="bg-accent hover:bg-accent/80 text-accent-foreground font-varien"
                   >
-                    {isUpdatingUsername ? (
+                    {isUpdatingDisplayName ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Edit className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Can be changed every 30 days</p>
+                <p className="text-xs text-muted-foreground mt-1">Update your display name</p>
               </div>
 
               {/* Work Records */}
@@ -713,9 +706,7 @@ export function ConnectWallet() {
                         <p className="text-sm text-muted-foreground">Employer: {record.employer}</p>
                         <p className="text-sm text-muted-foreground">Pay: {ethers.formatEther(record.totalPay)} ETH</p>
                         <p className="text-sm text-muted-foreground">Duration: {record.durationWeeks} weeks</p>
-                        <p className="text-sm text-muted-foreground">
-                          Verified: {record.isVerified ? "Yes" : "No"}
-                        </p>
+                        <p className="text-sm text-muted-foreground">Verified: {record.isVerified ? "Yes" : "No"}</p>
                       </li>
                     ))}
                   </ul>
@@ -754,8 +745,12 @@ export function ConnectWallet() {
               >
                 <User className="h-6 w-6 md:h-8 md:w-8 text-accent" />
               </motion.div>
-              <h2 className="font-varien text-xl md:text-2xl font-bold mb-1 md:mb-2 text-foreground tracking-wider">Welcome!</h2>
-              <p className="font-varela text-sm md:text-base text-muted-foreground">Set up your profile to get started</p>
+              <h2 className="font-varien text-xl md:text-2xl font-bold mb-1 md:mb-2 text-foreground tracking-wider">
+                Welcome!
+              </h2>
+              <p className="font-varela text-sm md:text-base text-muted-foreground">
+                Set up your profile to get started
+              </p>
             </div>
             <div className="space-y-4 md:space-y-6">
               {/* Display Name Input */}
@@ -769,21 +764,6 @@ export function ConnectWallet() {
                   value={displayName_}
                   onChange={(e) => setDisplayName_(e.target.value)}
                   placeholder="Enter your display name"
-                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-accent/30 rounded-lg md:rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela text-sm md:text-base transition-all duration-200"
-                />
-              </div>
-
-              {/* Username Input */}
-              <div className="space-y-2">
-                <label htmlFor="username" className="block text-sm font-medium text-foreground font-varien">
-                  Username (Optional)
-                </label>
-                <input
-                  id="username"
-                  type="text"
-                  value={username_}
-                  onChange={(e) => setUsername_(e.target.value)}
-                  placeholder="Enter your username"
                   className="w-full px-3 md:px-4 py-2 md:py-3 border border-accent/30 rounded-lg md:rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent bg-background/50 backdrop-blur-sm text-foreground font-varela text-sm md:text-base transition-all duration-200"
                 />
               </div>
@@ -812,10 +792,11 @@ export function ConnectWallet() {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSubmitDisplayName}
                 disabled={!displayName_ || !role_}
-                className={`w-full py-2 md:py-3 px-4 md:px-6 rounded-lg md:rounded-xl font-varien font-medium transition-all duration-200 ${displayName_ && role_
-                  ? "bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 text-accent-foreground shadow-md md:shadow-lg hover:shadow-lg md:hover:shadow-xl"
-                  : "bg-muted text-muted-foreground cursor-not-allowed"
-                  }`}
+                className={`w-full py-2 md:py-3 px-4 md:px-6 rounded-lg md:rounded-xl font-varien font-medium transition-all duration-200 ${
+                  displayName_ && role_
+                    ? "bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 text-accent-foreground shadow-md md:shadow-lg hover:shadow-lg md:hover:shadow-xl"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                }`}
               >
                 Get Started
               </motion.button>
@@ -843,12 +824,14 @@ export function ConnectWallet() {
           >
             <div className="flex h-full">
               {/* Conversations List */}
-              <div className={`
-            ${selectedConversation ? 'hidden md:flex' : 'flex'} 
+              <div
+                className={`
+            ${selectedConversation ? "hidden md:flex" : "flex"} 
             w-full md:w-1/3 
             border-r border-gray-200 
             flex-col
-          `}>
+          `}
+              >
                 <div className="p-4 md:p-6 border-b border-accent/20">
                   <div className="flex items-center justify-between">
                     <h2 className="font-varien text-lg md:text-xl font-bold text-foreground tracking-wider">
@@ -886,15 +869,19 @@ export function ConnectWallet() {
                             setSelectedConversation(conversation)
                             fetchConversationMessages(conversation.otherPartyAddress)
                           }}
-                          className={`p-3 md:p-4 rounded-xl cursor-pointer transition-all duration-200 ${selectedConversation?.otherPartyAddress === conversation.otherPartyAddress
-                            ? "bg-accent/20 border border-accent/30"
-                            : "hover:bg-accent/10 border border-transparent"
-                            }`}
+                          className={`p-3 md:p-4 rounded-xl cursor-pointer transition-all duration-200 ${
+                            selectedConversation?.otherPartyAddress === conversation.otherPartyAddress
+                              ? "bg-accent/20 border border-accent/30"
+                              : "hover:bg-accent/10 border border-transparent"
+                          }`}
                         >
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8 md:h-10 md:w-10">
                               <AvatarImage
-                                src={conversation.otherPartyProfileImage || `https://effigy.im/a/${conversation.otherPartyAddress}.svg`}
+                                src={
+                                  conversation.otherPartyProfileImage ||
+                                  `https://effigy.im/a/${conversation.otherPartyAddress || "/placeholder.svg"}.svg`
+                                }
                                 alt={conversation.otherPartyAddress}
                               />
                               <AvatarFallback>
@@ -925,11 +912,13 @@ export function ConnectWallet() {
                 </div>
               </div>
               {/* Chat Area */}
-              <div className={`
-            ${selectedConversation ? 'flex' : 'hidden md:flex'} 
+              <div
+                className={`
+            ${selectedConversation ? "flex" : "hidden md:flex"} 
             w-full md:flex-1 
             flex-col
-          `}>
+          `}
+              >
                 {selectedConversation ? (
                   <>
                     {/* Chat Header */}
@@ -946,7 +935,10 @@ export function ConnectWallet() {
                         </Button>
                         <Avatar className="h-8 w-8 md:h-10 md:w-10">
                           <AvatarImage
-                            src={selectedConversation.otherPartyProfileImage || `https://effigy.im/a/${selectedConversation.otherPartyAddress}.svg`}
+                            src={
+                              selectedConversation.otherPartyProfileImage ||
+                              `https://effigy.im/a/${selectedConversation.otherPartyAddress || "/placeholder.svg"}.svg`
+                            }
                             alt={selectedConversation.otherPartyAddress}
                           />
                           <AvatarFallback>
