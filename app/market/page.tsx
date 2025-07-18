@@ -57,6 +57,7 @@ import STANDARD_LICENSE_1155 from "@/lib/contracts/StandardLicense1155.json"
 import EXCLUSIVE_LICENSE_721 from "@/lib/contracts/ExclusiveLicense721.json"
 import VideoComponent from "@/components/custom/video-component"
 import AudioComponent from "@/components/custom/audio-component"
+import AvatarWithFetch from "@/components/custom/avatar-with-fetch"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -993,10 +994,11 @@ export default function MarketPage() {
 
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
-                        <AvatarImage
+                        {/* <AvatarImage
                           src={`https://effigy.im/a/${asset.creatorAddress}.svg`}
                           alt={asset.creatorName || asset.creatorAddress}
-                        />
+                        /> */}
+                        <AvatarWithFetch address={asset.creatorAddress} />
                         <AvatarFallback className="bg-accent/10 text-accent text-xs">
                           {asset.creatorAddress.charAt(2)}
                         </AvatarFallback>
@@ -1323,10 +1325,11 @@ export default function MarketPage() {
 
                               <div className="flex items-center gap-1">
                                 <Avatar className="h-5 w-5">
-                                  <AvatarImage
+                                  {/* <AvatarImage
                                     src={`https://effigy.im/a/${asset.creatorAddress}.svg`}
                                     alt={asset.creatorName || asset.creatorAddress}
-                                  />
+                                  /> */}
+                                  <AvatarWithFetch address={asset.creatorAddress} />                                  
                                   <AvatarFallback className="bg-accent/10 text-accent text-xs">
                                     {asset.creatorAddress.charAt(2)}
                                   </AvatarFallback>
@@ -1410,10 +1413,11 @@ export default function MarketPage() {
                                 <div className="flex items-center gap-4 mb-3 text-sm">
                                   <div className="flex items-center gap-2">
                                     <Avatar className="h-6 w-6">
-                                      <AvatarImage
+                                      {/* <AvatarImage
                                         src={`https://effigy.im/a/${asset.creatorAddress}.svg`}
                                         alt={asset.creatorName || asset.creatorAddress}
-                                      />
+                                      /> */}
+                                      <AvatarWithFetch address={asset.creatorAddress} />
                                       <AvatarFallback className="bg-accent/10 text-accent text-xs">
                                         {asset.creatorAddress.charAt(2)}
                                       </AvatarFallback>
@@ -2286,10 +2290,11 @@ export default function MarketPage() {
                       <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Creator</h4>
                       <div className="flex items-center gap-2">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage
+                          {/* <AvatarImage
                             src={`https://effigy.im/a/${selectedAsset.creatorAddress}.svg`}
                             alt={selectedAsset.creatorName || selectedAsset.creatorAddress}
-                          />
+                          /> */}
+                          <AvatarWithFetch address={selectedAsset.creatorAddress} />
                           <AvatarFallback className="bg-accent/10 text-accent text-xs">
                             {selectedAsset.creatorAddress.charAt(2)}
                           </AvatarFallback>

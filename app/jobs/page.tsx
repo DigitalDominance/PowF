@@ -56,6 +56,7 @@ import DISPUTE_DAO_ABI from "@/lib/contracts/DisputeDAO.json"
 import { toast } from "sonner"
 import { fetchEmployerDisplayName, useUserContext } from "@/context/UserContext"
 import { io, type Socket } from "socket.io-client"
+import AvatarWithFetch from "@/components/custom/avatar-with-fetch"
 
 // Animation variants
 const fadeIn = (delay = 0, duration = 0.5) => ({
@@ -681,7 +682,8 @@ export default function JobsPage() {
             <div key={index} className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}>
               {!isFromMe && (
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} alt={message.sender} />
+                  <AvatarWithFetch address={message.sender} />
+                  {/* <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} alt={message.sender} /> */}
                   <AvatarFallback>
                     <Briefcase className="h-4 w-4" />
                   </AvatarFallback>
@@ -716,7 +718,8 @@ export default function JobsPage() {
               </div>
               {isFromMe && (
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={`https://effigy.im/a/${currentUserAddress}.svg`} alt={currentUserAddress} />
+                  {/* <AvatarImage src={`https://effigy.im/a/${currentUserAddress}.svg`} alt={currentUserAddress} /> */}
+                  <AvatarWithFetch address={currentUserAddress} />
                   <AvatarFallback>
                     <User className="h-4 w-4" />
                   </AvatarFallback>

@@ -49,6 +49,7 @@ import { fetchEmployerDisplayName, useUserContext } from "@/context/UserContext"
 import { useDisputeControl } from "@/hooks/useDisputeControl"
 import { io, Socket } from "socket.io-client";
 import { disputeProcessSteps } from "@/constants/constants"
+import AvatarWithFetch from "@/components/custom/avatar-with-fetch"
 
 // Animation variants
 const fadeIn = (delay = 0, duration = 0.5) => ({
@@ -618,7 +619,8 @@ export default function DisputesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={`https://effigy.im/a/${selectedDispute.employer.address}.svg`} />
+                          {/* <AvatarImage src={`https://effigy.im/a/${selectedDispute.employer.address}.svg`} /> */}
+                          <AvatarWithFetch address={selectedDispute.employer.address} />
                           <AvatarFallback>
                             <Briefcase className="h-4 w-4" />
                           </AvatarFallback>
@@ -630,7 +632,8 @@ export default function DisputesPage() {
                       </div>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={`https://effigy.im/a/${selectedDispute.worker.address}.svg`} />
+                          {/* <AvatarImage src={`https://effigy.im/a/${selectedDispute.worker.address}.svg`} /> */}
+                          <AvatarWithFetch address={selectedDispute.worker.address} />
                           <AvatarFallback>
                             <User className="h-4 w-4" />
                           </AvatarFallback>
@@ -695,7 +698,8 @@ export default function DisputesPage() {
                             <div key={index} className={`flex gap-3 ${isJuror ? "justify-end" : "justify-start"}`}>
                               {!isJuror && (
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
+                                  {/* <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} /> */}
+                                  <AvatarWithFetch address={message.sender} />
                                   <AvatarFallback>
                                     {isEmployer ? <Briefcase className="h-4 w-4" /> : <User className="h-4 w-4" />}
                                   </AvatarFallback>
@@ -732,7 +736,8 @@ export default function DisputesPage() {
                               </div>
                               {isJuror && (
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
+                                  {/* <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} /> */}
+                                  <AvatarWithFetch address={message.sender} />
                                   <AvatarFallback>
                                     <Gavel className="h-4 w-4" />
                                   </AvatarFallback>
@@ -923,7 +928,8 @@ export default function DisputesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={`https://effigy.im/a/${selectedJuryDispute.employer.address}.svg`} />
+                          {/* <AvatarImage src={`https://effigy.im/a/${selectedJuryDispute.employer.address}.svg`} /> */}
+                          <AvatarWithFetch address={selectedJuryDispute.employer.address} />
                           <AvatarFallback>
                             <Briefcase className="h-4 w-4" />
                           </AvatarFallback>
@@ -935,7 +941,8 @@ export default function DisputesPage() {
                       </div>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={`https://effigy.im/a/${selectedJuryDispute.worker.address}.svg`} />
+                          {/* <AvatarImage src={`https://effigy.im/a/${selectedJuryDispute.worker.address}.svg`} /> */}
+                          <AvatarWithFetch address={selectedJuryDispute.worker.address} />
                           <AvatarFallback>
                             <User className="h-4 w-4" />
                           </AvatarFallback>
@@ -986,7 +993,8 @@ export default function DisputesPage() {
                             <div key={index} className={`flex gap-3 ${isJuror ? "justify-end" : "justify-start"}`}>
                               {!isJuror && (
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
+                                  {/* <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} /> */}
+                                  <AvatarWithFetch address={message.sender} />
                                   <AvatarFallback>
                                     {isEmployer ? <Briefcase className="h-4 w-4" /> : <User className="h-4 w-4" />}
                                   </AvatarFallback>
@@ -1023,7 +1031,8 @@ export default function DisputesPage() {
                               </div>
                               {isJuror && (
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} />
+                                  {/* <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} /> */}
+                                  <AvatarWithFetch address={message.sender} />
                                   <AvatarFallback>
                                     <Gavel className="h-4 w-4" />
                                   </AvatarFallback>

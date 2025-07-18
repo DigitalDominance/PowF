@@ -18,6 +18,7 @@ import { ethers } from "ethers"
 import { fetchJobDetails, fetchJobsByEmployerFromEvents, useUserContext } from "@/context/UserContext"
 import PROOF_OF_WORK_JOB_ABI from "@/lib/contracts/ProofOfWorkJob.json"
 import { instructionSteps } from "@/constants/constants"
+import AvatarWithFetch from "@/components/custom/avatar-with-fetch"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -651,10 +652,11 @@ export default function PostJobPage() {
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                               <div className="flex items-center gap-4">
                                 <Avatar className="h-12 w-12">
-                                  <AvatarImage
+                                  {/* <AvatarImage
                                     src={`https://effigy.im/a/${applicant.address}.svg`}
                                     alt={applicant.address}
-                                  />
+                                  /> */}
+                                  <AvatarWithFetch address={applicant.address} />
                                   <AvatarFallback className="bg-accent/10 text-accent font-semibold">
                                     {applicant.address.charAt(2)}
                                   </AvatarFallback>

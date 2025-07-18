@@ -54,6 +54,7 @@ import {
   fetchEmployerDisplayName,
   fetchWithAuth,
 } from "@/context/UserContext"
+import AvatarWithFetch from "@/components/custom/avatar-with-fetch"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -1097,10 +1098,11 @@ export default function TaskPage() {
                         <div className="space-y-3 text-sm mb-4">
                           <div className="flex items-center gap-2">
                             <Avatar className="h-6 w-6">
-                              <AvatarImage
+                              {/* <AvatarImage
                                 src={`https://effigy.im/a/${task.workerAddress || "unknown"}.svg`}
                                 alt={task.workerAddress || "Unknown"}
-                              />
+                              /> */}
+                              <AvatarWithFetch address={task.workerAddress} />
                               <AvatarFallback className="bg-accent/10 text-accent text-xs">
                                 {task.workerAddress ? task.workerAddress.charAt(2) : "U"}
                               </AvatarFallback>
@@ -1411,10 +1413,11 @@ export default function TaskPage() {
                                 <span className="text-muted-foreground">From:</span>
                                 <div className="flex items-center gap-2">
                                   <Avatar className="h-5 w-5">
-                                    <AvatarImage
+                                    {/* <AvatarImage
                                       src={`https://effigy.im/a/${offer.employerAddress || "unknown"}.svg`}
                                       alt={offer.employerAddress || "Unknown"}
-                                    />
+                                    /> */}
+                                    <AvatarWithFetch address={offer.employerAddress} />
                                     <AvatarFallback className="bg-accent/10 text-accent text-xs">
                                       {offer.employerAddress ? offer.employerAddress.charAt(2) : "U"}
                                     </AvatarFallback>
@@ -1689,10 +1692,11 @@ export default function TaskPage() {
                         <span className="text-muted-foreground">To:</span>
                         <div className="flex items-center gap-2">
                           <Avatar className="h-5 w-5">
-                            <AvatarImage
+                            {/* <AvatarImage
                               src={`https://effigy.im/a/${offer.workerAddress || "unknown"}.svg`}
                               alt={offer.workerAddress || "Unknown"}
-                            />
+                            /> */}
+                            <AvatarWithFetch address={offer.workerAddress} />
                             <AvatarFallback className="bg-accent/10 text-accent text-xs">
                               {offer.workerAddress ? offer.workerAddress.charAt(2) : "U"}
                             </AvatarFallback>
@@ -1823,10 +1827,11 @@ export default function TaskPage() {
                     <h4 className="font-varien text-sm font-semibold text-foreground mb-2">Worker</h4>
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage
+                        {/* <AvatarImage
                           src={`https://effigy.im/a/${selectedTaskForView.workerAddress}.svg`}
                           alt={selectedTaskForView.workerAddress}
-                        />
+                        /> */}
+                        <AvatarWithFetch address={selectedTaskForView.workerAddress} />
                         <AvatarFallback className="bg-accent/10 text-accent text-xs">
                           {selectedTaskForView.workerAddress.charAt(2)}
                         </AvatarFallback>

@@ -88,6 +88,21 @@ export const fetchEmployerInfo = async (wallet: string) => {
   return promise
 }
 
+export const fetchEmployerAvatar = async (employerAddress: string) => {
+  try {
+    const employerInfo = await fetchEmployerInfo(employerAddress)
+    if (employerInfo) {
+      return employerInfo.profileImageUrl || `https://effigy.im/a/${employerAddress}.svg` // Return a default avatar if none is set
+    } else {
+      console.error("Employer not found for address:", employerAddress)
+      return `https://effigy.im/a/${employerAddress}.svg` // Return a default avatar if the employer is not found
+    }
+  } catch (error) {
+    console.error("Error fetching employer avatar:", error)
+    return `https://effigy.im/a/${employerAddress}.svg` // Return a default avatar in case of an error
+  }
+}
+
 export const fetchEmployerDisplayName = async (employerAddress: string) => {
   try {
     const employerInfo = await fetchEmployerInfo(employerAddress)
@@ -624,12 +639,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             jobContract.getAssignedWorkers(),
           ])
 
-          // Fetch employer display name
-          const employerName = await fetchEmployerDisplayName(employer)
+          const workerAddress = assignedWorkers.length > 0 ? assignedWorkers[0] : null          
 
-          // Fetch worker details (assuming the first worker is the one involved in the dispute)
-          const workerAddress = assignedWorkers.length > 0 ? assignedWorkers[0] : null
-          const workerName = workerAddress ? await fetchEmployerDisplayName(workerAddress) : "Unknown Worker"
+          // Fetch employer display name
+          const [employerName, employerAvatar, workerName, workerAvatar]  = await Promise.all([                     
+            fetchEmployerDisplayName(employer),
+            fetchEmployerAvatar(employer),
+            fetchEmployerDisplayName(workerAddress),
+            fetchEmployerAvatar(workerAddress)
+          ]);
 
           // Fetch messages for the dispute
             const messages = await axiosWithAuth(`${process.env.NEXT_PUBLIC_API}/messages/${id}`, {
@@ -666,10 +684,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             employer: {
               address: employer,
               name: employerName,
+              avatar: employerAvatar,
             },
             worker: {
               address: workerAddress,
               name: workerName,
+              avatar: workerAvatar
             },
             assignedWorkers: assignedWorkers,
             initiator: dispute.initiator,

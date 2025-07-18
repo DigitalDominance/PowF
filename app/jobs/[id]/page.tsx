@@ -35,6 +35,7 @@ import {
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { InteractiveCard } from "@/components/custom/interactive-card"
+import AvatarWithFetch from "@/components/custom/avatar-with-fetch"
 
 const fadeIn = (delay = 0, duration = 0.5) => ({
   hidden: { opacity: 0, y: 20 },
@@ -207,7 +208,8 @@ export default function JobDetailPage() {
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={`https://effigy.im/a/${job.employerAddress}.svg`} />
+                            {/* <AvatarImage src={`https://effigy.im/a/${job.employerAddress}.svg`} /> */}
+                            <AvatarWithFetch address={job.employerAddress} />
                             <AvatarFallback>{job.employer.charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div>
@@ -363,7 +365,8 @@ export default function JobDetailPage() {
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start gap-3">
                               <Avatar className="h-10 w-10">
-                                <AvatarImage src={`https://effigy.im/a/${applicant.address}.svg`} />
+                                {/* <AvatarImage src={`https://effigy.im/a/${applicant.address}.svg`} /> */}
+                                <AvatarWithFetch address={applicant.address} />
                                 <AvatarFallback className="bg-accent/10 text-accent">{applicant.avatar}</AvatarFallback>
                               </Avatar>
                               <div className="space-y-2">
@@ -544,7 +547,8 @@ export default function JobDetailPage() {
                   <h3 className="text-lg font-semibold text-foreground">About the Employer</h3>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={`https://effigy.im/a/${job.employerAddress}.svg`} />
+                      {/* <AvatarImage src={`https://effigy.im/a/${job.employerAddress}.svg`} /> */}
+                      <AvatarWithFetch address={job.employerAddress} />
                       <AvatarFallback>{job.employer.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
