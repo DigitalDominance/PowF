@@ -1,76 +1,1101 @@
 [
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "verifierAddr",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "worker",
-          "type": "address"
-        }
-      ],
-      "name": "ResumeProofSubmitted",
-      "type": "event"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "bytes",
-          "name": "proof",
-          "type": "bytes"
-        },
-        {
-          "internalType": "uint256[]",
-          "name": "pubSignals",
-          "type": "uint256[]"
-        }
-      ],
-      "name": "submitProof",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "name": "proofs",
-      "outputs": [
-        {
-          "internalType": "bytes",
-          "name": "",
-          "type": "bytes"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "verifier",
-      "outputs": [
-        {
-          "internalType": "contract IZKVerifier",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    }
-  ]
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_admin",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_jobFactory",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "ReentrancyGuardReentrantCall",
+		"type": "error"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "jobContract",
+				"type": "address"
+			}
+		],
+		"name": "JobAuthorized",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "jobContract",
+				"type": "address"
+			}
+		],
+		"name": "JobDeauthorized",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "worker",
+				"type": "address"
+			}
+		],
+		"name": "StatsUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "worker",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "jobContract",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "employer",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "recordId",
+				"type": "uint256"
+			}
+		],
+		"name": "WorkRecordAdded",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "worker",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "recordId",
+				"type": "uint256"
+			}
+		],
+		"name": "WorkRecordVerified",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_worker",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_employer",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "_title",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_description",
+				"type": "string"
+			},
+			{
+				"internalType": "string[]",
+				"name": "_tags",
+				"type": "string[]"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_totalPay",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_durationWeeks",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint8",
+				"name": "_payType",
+				"type": "uint8"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_startedAt",
+				"type": "uint256"
+			}
+		],
+		"name": "addWorkRecord",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "admin",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_jobContract",
+				"type": "address"
+			}
+		],
+		"name": "authorizeJob",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "authorizedJobs",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_jobContract",
+				"type": "address"
+			}
+		],
+		"name": "deauthorizeJob",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_worker",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_recordId",
+				"type": "uint256"
+			}
+		],
+		"name": "generateWorkProof",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_worker",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_employer",
+				"type": "address"
+			}
+		],
+		"name": "getRecordsByEmployer",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "jobContract",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "employer",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "description",
+						"type": "string"
+					},
+					{
+						"internalType": "string[]",
+						"name": "tags",
+						"type": "string[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalPay",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "durationWeeks",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "payType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint256",
+						"name": "startedAt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "completedAt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "employerRating",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint8",
+						"name": "workerRating",
+						"type": "uint8"
+					},
+					{
+						"internalType": "bool",
+						"name": "isVerified",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "recordId",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct ZKResume.WorkRecord[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_worker",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "_skill",
+				"type": "string"
+			}
+		],
+		"name": "getRecordsBySkill",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "jobContract",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "employer",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "description",
+						"type": "string"
+					},
+					{
+						"internalType": "string[]",
+						"name": "tags",
+						"type": "string[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalPay",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "durationWeeks",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "payType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint256",
+						"name": "startedAt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "completedAt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "employerRating",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint8",
+						"name": "workerRating",
+						"type": "uint8"
+					},
+					{
+						"internalType": "bool",
+						"name": "isVerified",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "recordId",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct ZKResume.WorkRecord[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_worker",
+				"type": "address"
+			}
+		],
+		"name": "getVerifiedRecords",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "jobContract",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "employer",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "description",
+						"type": "string"
+					},
+					{
+						"internalType": "string[]",
+						"name": "tags",
+						"type": "string[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalPay",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "durationWeeks",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "payType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint256",
+						"name": "startedAt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "completedAt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "employerRating",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint8",
+						"name": "workerRating",
+						"type": "uint8"
+					},
+					{
+						"internalType": "bool",
+						"name": "isVerified",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "recordId",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct ZKResume.WorkRecord[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_worker",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_recordId",
+				"type": "uint256"
+			}
+		],
+		"name": "getWorkerRecord",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "jobContract",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "employer",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "description",
+						"type": "string"
+					},
+					{
+						"internalType": "string[]",
+						"name": "tags",
+						"type": "string[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalPay",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "durationWeeks",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "payType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint256",
+						"name": "startedAt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "completedAt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "employerRating",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint8",
+						"name": "workerRating",
+						"type": "uint8"
+					},
+					{
+						"internalType": "bool",
+						"name": "isVerified",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "recordId",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct ZKResume.WorkRecord",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_worker",
+				"type": "address"
+			}
+		],
+		"name": "getWorkerRecordCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_worker",
+				"type": "address"
+			}
+		],
+		"name": "getWorkerRecords",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "jobContract",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "employer",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "description",
+						"type": "string"
+					},
+					{
+						"internalType": "string[]",
+						"name": "tags",
+						"type": "string[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalPay",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "durationWeeks",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "payType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint256",
+						"name": "startedAt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "completedAt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "employerRating",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint8",
+						"name": "workerRating",
+						"type": "uint8"
+					},
+					{
+						"internalType": "bool",
+						"name": "isVerified",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "recordId",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct ZKResume.WorkRecord[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_worker",
+				"type": "address"
+			}
+		],
+		"name": "getWorkerStats",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "totalJobsCompleted",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalEarnings",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalWeeksWorked",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "averageRating",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalRatings",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string[]",
+						"name": "skillTags",
+						"type": "string[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "firstJobDate",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "lastJobDate",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct ZKResume.WorkerStats",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "hasJobRecord",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_jobContract",
+				"type": "address"
+			}
+		],
+		"name": "isJobAuthorized",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "jobFactory",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "nextRecordId",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_newAdmin",
+				"type": "address"
+			}
+		],
+		"name": "updateAdmin",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_newJobFactory",
+				"type": "address"
+			}
+		],
+		"name": "updateJobFactory",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_worker",
+				"type": "address"
+			},
+			{
+				"internalType": "uint8",
+				"name": "_employerRating",
+				"type": "uint8"
+			},
+			{
+				"internalType": "uint8",
+				"name": "_workerRating",
+				"type": "uint8"
+			}
+		],
+		"name": "updateRating",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_worker",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_recordId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_proof",
+				"type": "bytes32"
+			}
+		],
+		"name": "verifyWorkProof",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_worker",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_recordId",
+				"type": "uint256"
+			}
+		],
+		"name": "verifyWorkRecord",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "workerRecords",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "jobContract",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "employer",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "title",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "description",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalPay",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "durationWeeks",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint8",
+				"name": "payType",
+				"type": "uint8"
+			},
+			{
+				"internalType": "uint256",
+				"name": "startedAt",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "completedAt",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint8",
+				"name": "employerRating",
+				"type": "uint8"
+			},
+			{
+				"internalType": "uint8",
+				"name": "workerRating",
+				"type": "uint8"
+			},
+			{
+				"internalType": "bool",
+				"name": "isVerified",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "recordId",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "workerStats",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "totalJobsCompleted",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalEarnings",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalWeeksWorked",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "averageRating",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalRatings",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "firstJobDate",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "lastJobDate",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]

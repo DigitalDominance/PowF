@@ -929,7 +929,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         senderName: await fetchEmployerDisplayName(newMessage.sender),
         role:
           newMessage.sender === employer.toLowerCase()
-            ? "employer"
+          ? "employer"
             : newMessage.sender === assignedWorker.toLowerCase()
               ? "worker"
               : "juror",
