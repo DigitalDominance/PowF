@@ -661,7 +661,7 @@ export function ConnectWallet() {
                 <p className="text-xs text-muted-foreground text-center">
                   Click camera icon to change image
                   <br />
-                  (Max 10MB, can change every 7 days)
+                  (Max 10MB, Recommended Size: 400px by 400px)
                 </p>
               </div>
 
