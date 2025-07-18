@@ -33,10 +33,11 @@ import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { useAppKit, useDisconnect } from "@reown/appkit/react"
 import axios from "axios"
-import { useUserContext } from "@/context/UserContext"
+import { fetchEmployerDisplayName, useUserContext } from "@/context/UserContext"
 import { Badge } from "@/components/ui/badge"
 import ZKResumeABI from "@/lib/contracts/ZKResume.json"
 import { ethers } from "ethers"
+import AvatarWithFetch from "./avatar-with-fetch"
 // import { useContracts } from "@/hooks/useContract"
 
 function truncateAddress(address: string) {
@@ -95,7 +96,19 @@ export function ConnectWallet() {
       const contract = new ethers.Contract(process.env.NEXT_PUBLIC_ZKRESUME_ADDRESS || "", ZKResumeABI, provider)
 
       const records = await contract.getWorkerRecords(address)
-      setWorkRecords(records)
+
+      const recordsWithEmployerNames = await Promise.all(
+        records.map(async (record: any) => {
+          const employerName = await fetchEmployerDisplayName(record.employer);
+
+          console.log('Record:', record, employerName)
+          return { employerName, title: record.title, totalPay: record.totalPay, };
+        })
+      );      
+
+      console.log('Records', recordsWithEmployerNames)
+
+      setWorkRecords(recordsWithEmployerNames)
     } catch (error) {
       console.error("Error fetching work records:", error)
       toast.error("Failed to fetch work records.")
@@ -336,6 +349,8 @@ export function ConnectWallet() {
 
     setIsUpdatingProfileImage(true)
     try {
+      console.log("File details:", file);
+      console.log("File size (bytes):", file.size);
       const formData = new FormData()
       formData.append("profileImage", file)
 
@@ -449,7 +464,8 @@ export function ConnectWallet() {
             <div key={index} className={`flex gap-3 ${isFromMe ? "justify-end" : "justify-start"}`}>
               {!isFromMe && (
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} alt={message.sender} />
+                  {/* <AvatarImage src={`https://effigy.im/a/${message.sender}.svg`} alt={message.sender} /> */}
+                  <AvatarWithFetch address={message.sender} />
                   <AvatarFallback>
                     <Briefcase className="h-4 w-4" />
                   </AvatarFallback>
@@ -484,10 +500,11 @@ export function ConnectWallet() {
               </div>
               {isFromMe && (
                 <Avatar className="h-8 w-8">
-                  <AvatarImage
+                  {/* <AvatarImage
                     src={profileImageUrl || `https://effigy.im/a/${currentUserAddress}.svg`}
                     alt={currentUserAddress}
-                  />
+                  /> */}
+                  <AvatarWithFetch address={currentUserAddress} />
                   <AvatarFallback>
                     <User className="h-4 w-4" />
                   </AvatarFallback>
@@ -507,7 +524,7 @@ export function ConnectWallet() {
 
   if (!isConnected || !address) {
     return (
-      <div className="flex justify-center max-md:scale-[0.65] -mx-8">
+      <div className="flex justify-center max-md:scale-[0.65] max-md:-mx-8">
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
             onClick={handleConnectWallet}
@@ -540,7 +557,8 @@ export function ConnectWallet() {
                 className="font-varien flex items-center gap-2 border-accent/70 hover:border-accent bg-transparent"
               >
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={profileImageUrl || `https://effigy.im/a/${address}.svg`} alt={address} />
+                  {/* <AvatarImage src={profileImageUrl || `https://effigy.im/a/${address}.svg`} alt={address} /> */}
+                  <AvatarWithFetch address={address} />
                   <AvatarFallback>{address.charAt(2)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start">
@@ -553,7 +571,8 @@ export function ConnectWallet() {
           <DropdownMenuContent align="end" className="font-varien w-64 glass-effect">
             <DropdownMenuLabel className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={profileImageUrl || `https://effigy.im/a/${address}.svg`} alt={address} />
+                {/* <AvatarImage src={profileImageUrl || `https://effigy.im/a/${address}.svg`} alt={address} /> */}
+                <AvatarWithFetch address={address} />
                 <AvatarFallback>{address.charAt(2)}</AvatarFallback>
               </Avatar>
               <div>
@@ -636,7 +655,8 @@ export function ConnectWallet() {
               <div className="flex flex-col items-center gap-4 mb-4">
                 <div className="relative">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={profileImageUrl || `https://effigy.im/a/${address}.svg`} alt="Profile Image" />
+                    {/* <AvatarImage src={profileImageUrl || `https://effigy.im/a/${address}.svg`} alt="Profile Image" /> */}
+                    <AvatarWithFetch address={address} />
                     <AvatarFallback>{address.charAt(2)}</AvatarFallback>
                   </Avatar>
                   <button
@@ -661,7 +681,7 @@ export function ConnectWallet() {
                 <p className="text-xs text-muted-foreground text-center">
                   Click camera icon to change image
                   <br />
-                  (Max 10MB, Recommended Size: 400px by 400px)
+                  (Max 10MB, can change every 7 days)
                 </p>
               </div>
 
@@ -706,10 +726,10 @@ export function ConnectWallet() {
                     {workRecords.map((record, index) => (
                       <li key={index} className="p-3 border border-accent/30 rounded-lg bg-background/50">
                         <h4 className="font-medium text-foreground">{record.title}</h4>
-                        <p className="text-sm text-muted-foreground">Employer: {record.employer}</p>
-                        <p className="text-sm text-muted-foreground">Pay: {ethers.formatEther(record.totalPay)} ETH</p>
-                        <p className="text-sm text-muted-foreground">Duration: {record.durationWeeks} weeks</p>
-                        <p className="text-sm text-muted-foreground">Verified: {record.isVerified ? "Yes" : "No"}</p>
+                        <p className="text-sm text-muted-foreground">Employer: {record.employerName}</p>
+                        <p className="text-sm text-muted-foreground">Pay: {ethers.formatEther(record.totalPay)} KAS</p>
+                        {/* <p className="text-sm text-muted-foreground">Duration: {record.durationWeeks} weeks</p>
+                        <p className="text-sm text-muted-foreground">Verified: {record.isVerified ? "Yes" : "No"}</p> */}
                       </li>
                     ))}
                   </ul>
@@ -880,13 +900,14 @@ export function ConnectWallet() {
                         >
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                              <AvatarImage
+                              {/* <AvatarImage
                                 src={
                                   conversation.otherPartyProfileImage ||
                                   `https://effigy.im/a/${conversation.otherPartyAddress || "/placeholder.svg"}.svg`
                                 }
                                 alt={conversation.otherPartyAddress}
-                              />
+                              /> */}
+                              <AvatarWithFetch address={conversation.otherPartyAddress} />
                               <AvatarFallback>
                                 <User className="h-4 w-4 md:h-5 md:w-5" />
                               </AvatarFallback>
@@ -937,13 +958,14 @@ export function ConnectWallet() {
                           <ArrowLeft className="h-5 w-5" />
                         </Button>
                         <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                          <AvatarImage
+                          {/* <AvatarImage
                             src={
                               selectedConversation.otherPartyProfileImage ||
                               `https://effigy.im/a/${selectedConversation.otherPartyAddress || "/placeholder.svg"}.svg`
                             }
                             alt={selectedConversation.otherPartyAddress}
-                          />
+                          /> */}
+                          <AvatarWithFetch address={selectedConversation.otherPartyAddress} />
                           <AvatarFallback>
                             <User className="h-4 w-4 md:h-5 md:w-5" />
                           </AvatarFallback>
