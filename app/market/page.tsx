@@ -875,27 +875,14 @@ export default function MarketPage() {
             </Balancer>
           </motion.p>
 
-          {/* Featured Stats */}
-          <motion.div variants={fadeIn(0.3)} className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl mx-auto">
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-accent font-varien">10K+</div>
-              <div className="text-sm text-muted-foreground font-varela">Assets</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-accent font-varien">5K+</div>
-              <div className="text-sm text-muted-foreground font-varela">Creators</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-accent font-varien">50K+</div>
-              <div className="text-sm text-muted-foreground font-varela">Downloads</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-accent font-varien">4.8★</div>
-              <div className="text-sm text-muted-foreground font-varela">Avg Rating</div>
-            </div>
+          <motion.div variants={fadeIn(0.3)} className="mt-12">
+            <a
+              href="#featured-assets"
+              className="inline-block py-3 px-8 text-lg font-varien font-bold bg-accent text-foreground rounded-full hover:bg-accent/90 transition"
+            >
+              Explore Featured Assets
+            </a>
           </motion.div>
-        </div>
-      </motion.section>
 
       {/* Featured Assets Section */}
       <SectionWrapper id="featured-assets" padding="py-12 md:py-16">
