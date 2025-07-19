@@ -875,14 +875,17 @@ export default function MarketPage() {
             </Balancer>
           </motion.p>
 
+          {/* Browse Featured Assets Button */}
           <motion.div variants={fadeIn(0.3)} className="mt-12">
-            <a
-              href="#featured-assets"
-              className="inline-block py-3 px-8 text-lg font-varien font-bold bg-accent text-foreground rounded-full hover:bg-accent/90 transition"
+            <button
+              onClick={() => document.getElementById('featured-assets')?.scrollIntoView({ behavior: 'smooth' })}
+              className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-4 rounded-lg font-varien font-semibold text-lg tracking-wide transition-colors duration-200 shadow-lg hover:shadow-xl"
             >
-              Explore Featured Assets
-            </a>
+              Browse Featured Assets
+            </button>
           </motion.div>
+        </div>
+      </motion.section>
 
       {/* Featured Assets Section */}
       <SectionWrapper id="featured-assets" padding="py-12 md:py-16">
