@@ -415,135 +415,141 @@ export default function MarketPage() {
   }
 
   // Handle asset listing
-  const handleListAsset = async (e: React.FormEvent) => {
-    e.preventDefault()
+const handleListAsset = async (e: React.FormEvent) => {
+  e.preventDefault()
 
-    if (!wallet) {
-      toast.error("Please connect your wallet first", { duration: 3000 })
-      return
-    }
-
-    const price = Number.parseFloat(assetFormData.price)
-    if (price < 1) {
-      toast.error("Minimum price is 1 KAS", { duration: 3000 })
-      return
-    }
-
-    try {
-      setListingState("uploading")
-
-      // Simulate file upload
-      // await new Promise((resolve) => setTimeout(resolve, 2000))
-      // Step 1: Upload file to Pinata via backend
-      const formData = new FormData()
-      if (assetFormData.file) {
-        formData.append("file", assetFormData.file)
-      }
-
-      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/upload`, {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!uploadResponse.ok) {
-        throw new Error("File upload failed")
-      }
-
-      const { cid: fileCid, url: fileUrl, size: fileSize, mimeType } = await uploadResponse.json()
-
-      setListingState("processing")
-
-      // Simulate blockchain transaction
-      // await new Promise((resolve) => setTimeout(resolve, 3000))
-
-      const metadata = {
-        title: assetFormData.title,
-        description: assetFormData.description,
-        type: assetFormData.type,
-        category: assetFormData.category,
-        tags: assetFormData.tags,
-        price: assetFormData.price,
-        license: assetFormData.license,
-        fileCid,
-        fileUrl,
-        fileSize,
-        creatorAddress: wallet,
-        mimeType,
-      }
-
-      const metadataResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/metadata`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify(metadata),
-      })
-
-      if (!metadataResponse.ok) {
-        throw new Error("Metadata upload failed")
-      }
-
-      const { metadataUri, metadataCid } = await metadataResponse.json()
-
-      const signer = await provider?.getSigner()
-      let tx
-
-      if (assetFormData.license === "standard") {
-        const standardContract = new ethers.Contract(
-          process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
-          STANDARD_LICENSE_1155,
-          signer,
-        )
-
-        tx = await standardContract.registerStandardAsset(metadataUri, ethers.parseEther(assetFormData.price))
-      } else if (assetFormData.license === "exclusive") {
-        const exclusiveContract = new ethers.Contract(
-          process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
-          EXCLUSIVE_LICENSE_721,
-          signer,
-        )
-
-        tx = await exclusiveContract.registerExclusiveAsset(metadataUri, ethers.parseEther(assetFormData.price))
-      }
-
-      // Wait for the transaction to be mined
-      const receipt = await tx.wait()
-
-      // Step 4: Save the asset in the database
-      const saveResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/assets`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify({
-          ...metadata,
-          metadataUri,
-          metadataCid,
-          transactionHash: receipt.hash,
-        }),
-      })
-
-      if (!saveResponse.ok) {
-        throw new Error("Failed to save asset in the database")
-      }
-
-      setListingState("success")
-      toast.success("Asset listed successfully!")
-
-      // Reset form and close dialog
-      setTimeout(() => {
-        resetAssetForm()
-        setListingState("idle")
-        setShowListDialog(false)
-        fetchAssets()
-      }, 2000)
-    } catch (err: any) {
-      setListingState("idle")
-      toast.error(`Failed to list asset: ${err.message}`, { duration: 5000 })
-    }
+  if (!wallet) {
+    toast.error("Please connect your wallet first", { duration: 3000 })
+    return
   }
+
+  const price = Number.parseFloat(assetFormData.price)
+  if (price < 1) {
+    toast.error("Minimum price is 1 KAS", { duration: 3000 })
+    return
+  }
+
+  try {
+    setListingState("uploading")
+
+    // Step 1: Upload file to Pinata via backend
+    const formData = new FormData()
+    if (assetFormData.file) {
+      formData.append("file", assetFormData.file)
+    }
+
+    const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/upload`, {
+      method: "POST",
+      body: formData,
+    })
+    if (!uploadResponse.ok) throw new Error("File upload failed")
+
+    const { cid: fileCid, url: fileUrl, size: fileSize, mimeType } = await uploadResponse.json()
+    setListingState("processing")
+
+    // Step 2: Upload metadata to backend
+    const metadata = {
+      title: assetFormData.title,
+      description: assetFormData.description,
+      type: assetFormData.type,
+      category: assetFormData.category,
+      tags: assetFormData.tags,
+      price: assetFormData.price,
+      license: assetFormData.license,
+      fileCid,
+      fileUrl,
+      fileSize,
+      creatorAddress: wallet,
+      mimeType,
+    }
+
+    const metadataResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/metadata`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      },
+      body: JSON.stringify(metadata),
+    })
+    if (!metadataResponse.ok) throw new Error("Metadata upload failed")
+
+    const { metadataUri, metadataCid } = await metadataResponse.json()
+
+    // Step 3: Send blockchain transaction
+    const signer = await provider?.getSigner()
+    let tx
+    if (assetFormData.license === "standard") {
+      const standardContract = new ethers.Contract(
+        process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
+        STANDARD_LICENSE_1155,
+        signer,
+      )
+      tx = await standardContract.registerStandardAsset(metadataUri, ethers.parseEther(assetFormData.price))
+    } else {
+      const exclusiveContract = new ethers.Contract(
+        process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
+        EXCLUSIVE_LICENSE_721,
+        signer,
+      )
+      tx = await exclusiveContract.registerExclusiveAsset(metadataUri, ethers.parseEther(assetFormData.price))
+    }
+
+    const receipt = await tx.wait()
+
+    // Extract tokenId from mint events
+    let tokenId: string
+    if (assetFormData.license === "standard") {
+      const ev = receipt.events?.find((e) => e.event === "TransferSingle")
+      if (!ev?.args?.id) throw new Error("Could not read tokenId from TransferSingle")
+      tokenId = ev.args.id.toString()
+    } else {
+      const ev = receipt.events?.find((e) => e.event === "Transfer")
+      if (!ev?.args?.tokenId) throw new Error("Could not read tokenId from Transfer")
+      tokenId = ev.args.tokenId.toString()
+    }
+
+    // Step 4: Save the asset in the database
+    const saveResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/assets`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      },
+      body: JSON.stringify({
+        title: metadata.title,
+        description: metadata.description,
+        type: metadata.type,
+        category: metadata.category,
+        tags: metadata.tags,
+        price: metadata.price,
+        license: metadata.license,
+        fileCid: metadata.fileCid,
+        fileSize: metadata.fileSize,
+        mimeType: metadata.mimeType,
+        metadataUri,
+        metadataCid,
+        tokenId,
+        transactionHash: receipt.hash,
+      }),
+    })
+    if (!saveResponse.ok) throw new Error("Failed to save asset in the database")
+
+    setListingState("success")
+    toast.success("Asset listed successfully!")
+
+    // Reset form and refresh
+    setTimeout(() => {
+      resetAssetForm()
+      setListingState("idle")
+      setShowListDialog(false)
+      fetchAssets()
+    }, 2000)
+
+  } catch (err: any) {
+    setListingState("idle")
+    toast.error(`Failed to list asset: ${err.message}`, { duration: 5000 })
+  }
+}
 
   // Handle asset purchase
   const handlePurchaseAsset = async (asset: Asset) => {
