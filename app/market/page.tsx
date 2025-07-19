@@ -414,140 +414,165 @@ export default function MarketPage() {
     })
   }
 
-  // Handle asset listing
+// Handle asset listing
 const handleListAsset = async (e: React.FormEvent) => {
-  e.preventDefault()
+  e.preventDefault();
 
   if (!wallet) {
-    toast.error("Please connect your wallet first", { duration: 3000 })
-    return
+    toast.error("Please connect your wallet first", { duration: 3000 });
+    return;
   }
 
-  const price = Number.parseFloat(assetFormData.price)
-  if (price < 1) {
-    toast.error("Minimum price is 1 KAS", { duration: 3000 })
-    return
+  const priceValue = parseFloat(assetFormData.price);
+  if (priceValue < 1) {
+    toast.error("Minimum price is 1 KAS", { duration: 3000 });
+    return;
   }
 
   try {
-    setListingState("uploading")
+    setListingState("uploading");
 
-    // Step 1: Upload file to Pinata via backend
-    const formData = new FormData()
-    if (assetFormData.file) {
-      formData.append("file", assetFormData.file)
-    }
+    // ──────────────────────────────────────────────────
+    // Step 1: file upload
+    const formData = new FormData();
+    if (assetFormData.file) formData.append("file", assetFormData.file);
 
-    const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API}/upload`, {
+    const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API}/upload`, {
       method: "POST",
       body: formData,
-    })
-    if (!uploadResponse.ok) throw new Error("File upload failed")
+    });
+    if (!uploadRes.ok) throw new Error("File upload failed");
+    const { cid: fileCid, url: fileUrl, size: fileSize, mimeType } = await uploadRes.json();
 
-    const { cid: fileCid, url: fileUrl, size: fileSize, mimeType } = await uploadResponse.json()
-    setListingState("processing")
+    setListingState("processing");
 
-    // Step 2: Upload metadata to backend
-    const metadata = {
+    // ──────────────────────────────────────────────────
+    // Step 2: metadata on IPFS
+    const tagsArray = Array.isArray(assetFormData.tags)
+      ? assetFormData.tags
+      : assetFormData.tags.split(",").map((t) => t.trim());
+
+    const metadataPayload = {
       title: assetFormData.title,
       description: assetFormData.description,
       type: assetFormData.type,
       category: assetFormData.category,
-      tags: assetFormData.tags,
-      price: assetFormData.price,
+      tags: tagsArray,
+      price: priceValue,
       license: assetFormData.license,
       fileCid,
       fileUrl,
       fileSize,
+      fileName: assetFormData.file?.name,
       creatorAddress: wallet,
       mimeType,
-    }
+    };
 
-    const metadataResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/metadata`, {
+    const metaRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/metadata`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
       },
-      body: JSON.stringify(metadata),
-    })
-    if (!metadataResponse.ok) throw new Error("Metadata upload failed")
+      body: JSON.stringify(metadataPayload),
+    });
+    if (!metaRes.ok) throw new Error("Metadata upload failed");
+    const { metadataUri, metadataCid } = await metaRes.json();
 
-    const { metadataUri, metadataCid } = await metadataResponse.json()
+    // ──────────────────────────────────────────────────
+    // Step 3: mint on‑chain
+    const signer = await provider?.getSigner();
+    const standardContract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_ERC1155_ADDRESS!,
+      STANDARD_LICENSE_1155,
+      signer
+    );
+    const exclusiveContract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_ERC721_ADDRESS!,
+      EXCLUSIVE_LICENSE_721,
+      signer
+    );
 
-    // Step 3: Send blockchain transaction
-    const signer = await provider?.getSigner()
-    let tx
+    let tx;
     if (assetFormData.license === "standard") {
-      const standardContract = new ethers.Contract(
-        process.env.NEXT_PUBLIC_ERC1155_ADDRESS || "",
-        STANDARD_LICENSE_1155,
-        signer,
-      )
-      tx = await standardContract.registerStandardAsset(metadataUri, ethers.parseEther(assetFormData.price))
+      tx = await standardContract.registerStandardAsset(
+        metadataUri,
+        ethers.parseEther(assetFormData.price)
+      );
     } else {
-      const exclusiveContract = new ethers.Contract(
-        process.env.NEXT_PUBLIC_ERC721_ADDRESS || "",
-        EXCLUSIVE_LICENSE_721,
-        signer,
-      )
-      tx = await exclusiveContract.registerExclusiveAsset(metadataUri, ethers.parseEther(assetFormData.price))
+      tx = await exclusiveContract.registerExclusiveAsset(
+        metadataUri,
+        ethers.parseEther(assetFormData.price)
+      );
     }
 
-    const receipt = await tx.wait()
+    const receipt = await tx.wait();
 
-    // Extract tokenId from mint events
-    let tokenId: string
+    // ──────────────────────────────────────────────────
+    // Step 4: extract tokenId robustly
+    let tokenId: string | undefined;
+
     if (assetFormData.license === "standard") {
-      const ev = receipt.events?.find((e) => e.event === "TransferSingle")
-      if (!ev?.args?.id) throw new Error("Could not read tokenId from TransferSingle")
-      tokenId = ev.args.id.toString()
+      // ERC‑1155 uses TransferSingle(operator, from, to, id, value)
+      const topic = standardContract.interface.getEventTopic("TransferSingle");
+      const log = receipt.logs.find(
+        (l) =>
+          l.address.toLowerCase() === process.env.NEXT_PUBLIC_ERC1155_ADDRESS!.toLowerCase() &&
+          l.topics[0] === topic
+      );
+      if (log) {
+        const parsed = standardContract.interface.parseLog(log);
+        tokenId = parsed.args.id.toString();
+      }
     } else {
-      const ev = receipt.events?.find((e) => e.event === "Transfer")
-      if (!ev?.args?.tokenId) throw new Error("Could not read tokenId from Transfer")
-      tokenId = ev.args.tokenId.toString()
+      // ERC‑721 uses Transfer(from, to, tokenId)
+      const topic = exclusiveContract.interface.getEventTopic("Transfer");
+      const log = receipt.logs.find(
+        (l) =>
+          l.address.toLowerCase() === process.env.NEXT_PUBLIC_ERC721_ADDRESS!.toLowerCase() &&
+          l.topics[0] === topic
+      );
+      if (log) {
+        const parsed = exclusiveContract.interface.parseLog(log);
+        tokenId = parsed.args.tokenId.toString();
+      }
     }
 
-    // Step 4: Save the asset in the database
-    const saveResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/assets`, {
+    if (!tokenId) {
+      throw new Error("Could not retrieve tokenId from the mint event");
+    }
+
+    // ──────────────────────────────────────────────────
+    // Step 5: save to your backend
+    const saveRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API}/assets`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
       },
       body: JSON.stringify({
-        title: metadata.title,
-        description: metadata.description,
-        type: metadata.type,
-        category: metadata.category,
-        tags: metadata.tags,
-        price: metadata.price,
-        license: metadata.license,
-        fileCid: metadata.fileCid,
-        fileSize: metadata.fileSize,
-        mimeType: metadata.mimeType,
+        ...metadataPayload,
         metadataUri,
         metadataCid,
+        transactionHash: receipt.transactionHash,
         tokenId,
-        transactionHash: receipt.hash,
       }),
-    })
-    if (!saveResponse.ok) throw new Error("Failed to save asset in the database")
+    });
+    if (!saveRes.ok) throw new Error("Failed to save asset in the database");
 
-    setListingState("success")
-    toast.success("Asset listed successfully!")
+    setListingState("success");
+    toast.success("Asset listed successfully!");
 
-    // Reset form and refresh
+    // reset form
     setTimeout(() => {
-      resetAssetForm()
-      setListingState("idle")
-      setShowListDialog(false)
-      fetchAssets()
-    }, 2000)
-
+      resetAssetForm();
+      setListingState("idle");
+      setShowListDialog(false);
+      fetchAssets();
+    }, 2000);
   } catch (err: any) {
-    setListingState("idle")
-    toast.error(`Failed to list asset: ${err.message}`, { duration: 5000 })
+    setListingState("idle");
+    toast.error(`Failed to list asset: ${err.message}`, { duration: 5000 });
   }
 }
 
